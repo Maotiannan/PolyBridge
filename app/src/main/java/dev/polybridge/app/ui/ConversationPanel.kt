@@ -20,17 +20,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import dev.polybridge.app.ProbeRequest
+import dev.polybridge.app.audio.ConversationVoice
 import dev.polybridge.core.*
 
 internal val Side.label get() = if (this == Side.CHINESE) "中文" else "Français"
 
 internal class TalkActions(val start: (Side) -> String?, val end: (String, Boolean) -> Unit,
-    val speak: (Turn) -> Unit, val edit: (Turn) -> Unit, val type: (Side) -> Unit)
+    val speak: (Turn) -> Unit, val edit: (Turn) -> Unit, val type: (Side) -> Unit,
+    val playback: ConversationVoice.Feedback? = null)
 
 @Composable internal fun CompactTalk(chat: Conversation, active: ProbeRequest?, actions: TalkActions,
     book: () -> Unit, live: () -> Unit, call: () -> Unit) {
@@ -125,7 +128,7 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
     Box(modifier.background(if (chinese) Paper else Color(0xFFFBF1E9))) {
         if (visible.isEmpty()) Arches(if (chinese) Line else Color(0xFFE5CCBB),
             Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(.37f))
-        Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 7.dp)) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Kicker(if (chinese) "ZH  /  中文 → FR" else "FR  /  FRANÇAIS → ZH", if (chinese) Muted else Clay)
                 Spacer(Modifier.weight(1f))
@@ -155,10 +158,11 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
     val hint = when {
         held && !sampling -> if (chinese) "正在准备…" else "Un instant…"
         held -> if (chinese) "松开发送" else "Relâchez"
+        active != null -> if (chinese) "对方正在说话" else "À son tour"
         chinese -> "按住说话"
         else -> "Maintenez"
     }
-    Row(modifier.heightIn(min = if (compact) 55.dp else 70.dp).clip(RoundedCornerShape(18.dp))
+    Row(modifier.heightIn(min = if (compact) 49.dp else 64.dp).clip(RoundedCornerShape(18.dp))
         .background(if (held && chinese) Color(0xFF28594B) else bg)
         .semantics(mergeDescendants = true) {
             role = Role.Button
@@ -204,7 +208,7 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
     val state = rememberLazyListState()
     LaunchedEffect(turns.lastOrNull()?.id) { if (state.firstVisibleItemIndex <= 1) state.scrollToItem(0) }
     LazyColumn(modifier.fillMaxWidth(), state = state, reverseLayout = true,
-        verticalArrangement = Arrangement.spacedBy(7.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
+        contentPadding = PaddingValues(vertical = 1.dp)) {
         items(turns.asReversed(), key = { it.id }) { TurnCard(it, viewer, actions) }
     }
 }
@@ -213,25 +217,40 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
     val chinese = turn.side == Side.CHINESE
     val frenchUi = viewer == Side.FRENCH
     val color = if (chinese) Forest else Clay
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(CardWhite).border(1.dp, Line, RoundedCornerShape(15.dp))
-        .padding(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(7.dp).background(color, CircleShape)); Spacer(Modifier.width(6.dp))
-            Kicker(if (chinese) "ZH  →  FR" else "FR  →  ZH", color)
-            if (turn.status == TurnStatus.DEMO_READY) Text("   旧版示例", color = Muted, style = MaterialTheme.typography.labelSmall)
-            if (remove != null) { Spacer(Modifier.weight(1f)); ToolButton(Mark.DELETE, "删除这句 · ${turn.sourceText}", remove, Muted) }
-        }
-        Spacer(Modifier.height(5.dp))
+    Column(Modifier.fillMaxWidth().testTag("turn-${turn.id}")) {
         val ready = turn.status == TurnStatus.READY || turn.status == TurnStatus.DEMO_READY
         if (ready) {
             val originalFirst = viewer == turn.side
-            Text(if (originalFirst) turn.sourceText else turn.translatedText, color = Ink,
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium)
-            Text(if (originalFirst) turn.translatedText else turn.sourceText, color = Muted, style = MaterialTheme.typography.bodyMedium)
-            Row {
-                TextButton(onClick = { actions.speak(turn) }) { Glyph(Mark.SPEAK, color, 16.dp); Spacer(Modifier.width(5.dp)); Text(if (frenchUi) "Écouter" else "重播", color = color) }
-                if (turn.status == TurnStatus.READY) TextButton(onClick = { actions.edit(turn) }) { Text(if (frenchUi) "Corriger" else "纠错", color = Muted) }
+            val first = if (originalFirst) turn.sourceText else turn.translatedText
+            val second = if (originalFirst) turn.translatedText else turn.sourceText
+            val feedback = actions.playback?.takeIf { it.id == turn.id }
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val wide = maxWidth >= 530.dp
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (wide) {
+                        Text(if (chinese) "中›法" else "法›中", Modifier.width(40.dp), color = color, style = MaterialTheme.typography.labelSmall)
+                        val primary = if (viewer == null && chinese) turn.sourceText else first
+                        val secondary = if (viewer == null && chinese) turn.translatedText else second
+                        Text(primary, Modifier.weight(1f).padding(end = 9.dp), color = Ink, style = MaterialTheme.typography.bodyLarge)
+                        Text(secondary, Modifier.weight(1f).padding(end = 8.dp), color = Muted, style = MaterialTheme.typography.bodyMedium)
+                    } else Column(Modifier.weight(1f).padding(vertical = 6.dp, horizontal = 2.dp)) {
+                        Text(first, color = Ink, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Text(second, color = Muted, style = MaterialTheme.typography.bodySmall)
+                    }
+                    val replayLabel = if (feedback?.active == true && feedback.manual) (if (frenchUi) "Arrêter" else "停止") else if (frenchUi) "Écouter" else "重播"
+                    val editLabel = if (frenchUi) "Corriger" else "纠错"
+                    if (wide) {
+                        TextButton(onClick = { actions.speak(turn) }) { Text(replayLabel, color = color) }
+                        TextButton(onClick = { actions.edit(turn) }) { Text(editLabel, color = Muted) }
+                    } else {
+                        ToolButton(Mark.SPEAK, replayLabel, { actions.speak(turn) }, color, caption = true)
+                        ToolButton(Mark.EDIT, editLabel, { actions.edit(turn) }, Muted, caption = true)
+                    }
+                    if (remove != null) ToolButton(Mark.DELETE, "删除这句 · ${turn.sourceText}", remove, Muted)
+                }
             }
+            if (feedback != null) Text(feedback.message, color = color, style = MaterialTheme.typography.labelSmall)
+            if (turn.status == TurnStatus.DEMO_READY) Text("旧版示例", color = Muted, style = MaterialTheme.typography.labelSmall)
         } else {
             if (turn.sourceText.isNotBlank()) Text(turn.sourceText, color = Ink, style = MaterialTheme.typography.bodyLarge)
             Text(when (turn.status) {
@@ -243,8 +262,10 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             if (turn.status == TurnStatus.FAILED && turn.sourceText.isNotBlank()) TextButton(onClick = { actions.edit(turn) }) {
                 Text(if (frenchUi) "Réessayer" else "用原文重试")
             }
+            if (remove != null) ToolButton(Mark.DELETE, "删除这句 · ${turn.sourceText}", remove, Muted)
             Spacer(Modifier.height(4.dp))
         }
+        HorizontalDivider(color = Line)
     }
 }
 

@@ -54,12 +54,23 @@ data class Conversation(val turns: List<Turn> = emptyList(), val session: String
     }
 
     fun retranslate(id: String, source: String) = change(id) {
-        if (source.isBlank() || it.status !in setOf(TurnStatus.READY, TurnStatus.FAILED)) it
-        else it.copy(status = TurnStatus.TRANSLATING, sourceText = source.trim(), translatedText = "", issue = null)
+        if (source.isBlank() || it.status !in setOf(TurnStatus.READY, TurnStatus.DEMO_READY, TurnStatus.FAILED)) it
+        else it.copy(status = TurnStatus.TRANSLATING, sourceText = source.trim(), issue = null)
     }
 
     fun editTranslation(id: String, text: String) = change(id) {
         if (it.status == TurnStatus.READY && text.isNotBlank()) it.copy(translatedText = text.trim()) else it
+    }
+
+    fun correct(id: String, source: String, target: String) = change(id) {
+        if (source.isBlank() || target.isBlank() || it.status !in setOf(TurnStatus.READY, TurnStatus.DEMO_READY, TurnStatus.FAILED)) it
+        else it.copy(status = TurnStatus.READY, sourceText = source.trim(), translatedText = target.trim(), issue = null)
+    }
+
+    fun restoreHistory(previous: Conversation): Conversation {
+        val ids = turns.mapTo(mutableSetOf()) { it.id }
+        val restored = previous.recoverInterrupted().turns.filterNot { it.id in ids }
+        return copy(turns = (restored + turns).takeLast(100), session = if (turns.isEmpty()) previous.session else session)
     }
 
     fun recoverInterrupted() = copy(turns = turns.map {

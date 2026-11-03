@@ -53,7 +53,8 @@ class QwenSpeech internal constructor(private val key: String, private val endpo
     override fun synthesize(language: String, text: String): ByteArray {
         val input = mapOf("text" to text, "voice" to options.voice, "language_type" to if (language.startsWith("fr")) "French" else "Chinese")
         val api = URL(endpoint, "/api/v1/services/aigc/multimodal-generation/generation")
-        val response = post(api, mapOf("model" to options.voiceModel, "input" to input))
+        val response = post(api, mapOf("model" to options.voiceModel, "input" to input),
+            readTimeoutMs = (8500 + text.length.coerceAtMost(1600) * 20).coerceAtMost(40000))
         val uri = runCatching { URL(response.getAsJsonObject("output").getAsJsonObject("audio").get("url").asString) }
             .getOrNull() ?: throw TranslationFailure(TranslationIssue.EMPTY_REPLY)
         if (uri.protocol !in setOf("http", "https") || !uri.host.endsWith(".aliyuncs.com") || uri.userInfo != null)
@@ -88,14 +89,14 @@ class QwenSpeech internal constructor(private val key: String, private val endpo
             .get("content").asString.trim().takeIf(String::isNotEmpty) }.getOrNull() ?: throw TranslationFailure(TranslationIssue.EMPTY_REPLY)
     }
 
-    private fun post(url: URL, body: Map<String, Any>): JsonObject {
+    private fun post(url: URL, body: Map<String, Any>, readTimeoutMs: Int = 40000): JsonObject {
         if (key.isBlank()) throw TranslationFailure(TranslationIssue.CREDENTIAL)
         val call = url.openConnection() as HttpURLConnection
         try {
             call.requestMethod = "POST"
             call.instanceFollowRedirects = false
             call.connectTimeout = 10_000
-            call.readTimeout = 40_000
+            call.readTimeout = readTimeoutMs
             call.doOutput = true
             call.setRequestProperty("Authorization", "Bearer $key")
             call.setRequestProperty("Content-Type", "application/json; charset=utf-8")

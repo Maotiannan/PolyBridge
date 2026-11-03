@@ -9,39 +9,63 @@ import dev.polybridge.app.*
 import dev.polybridge.core.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.concurrent.atomic.AtomicBoolean
 
 internal data class ListeningState(val id: String? = null, val ready: Boolean = false,
     val partial: LiveUpdate.Caption? = null, val turnIds: List<String> = emptyList(), val speaking: Boolean = false,
-    val isolatedOutput: Boolean = false, val issue: TranslationIssue? = null, val reconnecting: Boolean = false)
+    val isolatedOutput: Boolean = false, val issue: TranslationIssue? = null, val reconnecting: Boolean = false,
+    val interruptions: Int = 0, val playbackStoppedAt: Long = 0)
 
-internal class LiveDesk(private val context: Context, private val store: ProbeStore, private val settings: TranslationSettings) {
+internal typealias MicFrames = (ShortArray, Int, Int) -> Unit
+
+internal class LiveDesk(private val context: Context, private val store: ProbeStore, private val settings: TranslationSettings,
+    private val clips: VoiceClips,
+    private val connect: ((LiveUpdate) -> Unit) -> LiveSpeechSession = {
+        settings.provider()?.live(it) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL)
+    }, private val microphone: (MicFrames) -> AudioInputSource = { AndroidAudioInput(context, onFrame = it) }) {
     private val main = Handler(Looper.getMainLooper())
     private val routing = PlaybackRouting(context, settings)
     private val state = MutableStateFlow(ListeningState())
     val view = state.asStateFlow()
     private var session: LiveSpeechSession? = null
-    private var player: MediaPlayer? = null
-    private val guard = AtomicBoolean(false)
-    @Volatile private var quietUntil = 0L
+    private var player: PcmSpeechPlayer? = null
+    @Volatile private var echo: PlaybackEcho? = null
     private var voiceEpoch = 0L
+    @Volatile private var background = RoomNoise()
+    @Volatile private var mutedAt = -1L
+    @Volatile private var roomLevel = 0.0
+    private val inputUs = java.util.concurrent.atomic.AtomicLong()
+    private val spoken = SpokenEchoes()
 
     fun record(request: ProbeRequest): ProbeEntry {
-        synchronized(this) { state.value = ListeningState(id = request.id) }
+        synchronized(this) {
+            state.value = ListeningState(id = request.id); background = RoomNoise(); echo = null
+            spoken.reset(); inputUs.set(0)
+        }
         var live: LiveSpeechSession? = null
         return try {
-            val api = settings.provider() ?: throw TranslationFailure(TranslationIssue.CREDENTIAL)
-            val connection = api.live { event -> receive(request, event) }
+            val connection = connect { event -> receive(request, event) }
             live = connection
             synchronized(this) { session = connection }
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
             connection.connect()
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
-            val silence = ShortArray(960)
-            val input = AndroidAudioInput(context, onFrame = { samples, n, rate ->
-                val suppress = guard.get() || SystemClock.elapsedRealtime() < quietUntil
-                connection.send(if (suppress) silence else samples, n, rate)
-            })
+            val floor = PlaybackFloor()
+            val input = microphone { samples, n, rate ->
+                val now = SystemClock.elapsedRealtime()
+                inputUs.addAndGet(n * 1_000_000L / rate)
+                if (!state.value.speaking && (state.value.playbackStoppedAt == 0L ||
+                        SystemClock.elapsedRealtime() - state.value.playbackStoppedAt > 350)) background.observe(samples, n, rate)
+                val current = echo
+                floor.send(samples, n, rate, now, current, state.value.speaking, state.value.isolatedOutput, roomLevel, mutedAt,
+                    connection, duck = { enabled -> main.post { synchronized(this) { if (echo === current) {
+                        player?.duck(enabled); mutedAt = if (enabled) SystemClock.elapsedRealtime() else -1L
+                    } } } }, interrupt = {
+                    synchronized(this) { if (echo === current) {
+                        state.value = state.value.copy(interruptions = state.value.interruptions + 1)
+                        interrupt()
+                    } }
+                })
+            }
             val measured = input.measure(request, null) {
                 request.sampling.value = true
                 synchronized(this) { state.value = state.value.copy(ready = true) }
@@ -81,12 +105,22 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                 interrupt()
                 state.value = state.value.copy(partial = null, ready = false, reconnecting = true)
             }
-            LiveUpdate.Reconnected -> state.value = state.value.copy(ready = true, reconnecting = false)
+            LiveUpdate.Reconnected -> {
+                spoken.reset(); inputUs.set(0)
+                state.value = state.value.copy(ready = true, reconnecting = false)
+            }
             is LiveUpdate.Caption -> {
-                if (state.value.speaking && state.value.isolatedOutput && state.value.partial?.id != event.id) interrupt()
+                if (state.value.speaking && spoken.independent(event.side, event.source, event.startedMs)) {
+                    state.value = state.value.copy(interruptions = state.value.interruptions + 1)
+                    interrupt()
+                }
                 state.value = state.value.copy(partial = event)
             }
             is LiveUpdate.Finished -> {
+                if (spoken.repeated(event.side, event.source, event.startedMs, inputUs.get() / 1000)) {
+                    state.value = state.value.copy(partial = state.value.partial?.takeUnless { it.id == event.id })
+                    return
+                }
                 val id = "live-" + request.id + "-" + event.id
                 val added = store.changeChat { chat ->
                     if (chat.turns.any { it.id == id }) chat
@@ -95,10 +129,14 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                 if (added) {
                     state.value = state.value.copy(partial = state.value.partial?.takeUnless { it.id == event.id },
                         turnIds = (state.value.turnIds + id).takeLast(100))
-                    if (request.end.get() == null && settings.state.value.autoSpeak && event.pcm.isNotEmpty()) {
-                        val epoch = ++voiceEpoch
-                        guard.set(true)
-                        main.post { if (currentVoice(request.id, epoch)) play(event.pcm, event.side.target, epoch) }
+                    if (event.pcm.isNotEmpty()) {
+                        val wave = waveFromPcm(24000, event.pcm)
+                        val turn = store.chat.value.turns.firstOrNull { it.id == id } ?: return
+                        clips.put(clips.key(turn, settings.state.value.cloud), wave)
+                        if (request.end.get() == null && settings.state.value.autoSpeak && state.value.partial == null) {
+                            val epoch = ++voiceEpoch
+                            main.post { if (currentVoice(request.id, epoch)) play(event.pcm, event.side.target, event.target, epoch) }
+                        }
                     }
                 }
             }
@@ -123,38 +161,44 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
 
     @Synchronized fun interrupt() {
         val epoch = ++voiceEpoch
-        guard.set(false)
-        quietUntil = SystemClock.elapsedRealtime() + 250
+        echo?.stop(SystemClock.elapsedRealtime())
+        spoken.finish(inputUs.get() / 1000)
         state.value = state.value.copy(speaking = false, isolatedOutput = false)
-        main.post { synchronized(this) { if (voiceEpoch == epoch) { player?.release(); player = null } } }
+        main.post { synchronized(this) { if (voiceEpoch == epoch && player != null) {
+            player?.close(); player = null
+            state.value = state.value.copy(playbackStoppedAt = SystemClock.elapsedRealtime())
+        } } }
     }
 
-    private fun play(pcm: ByteArray, language: String, epoch: Long) {
-        player?.release()
-        val media = MediaPlayer()
+    private fun play(pcm: ByteArray, language: String, text: String, epoch: Long) {
+        player?.close()
+        val media = PcmSpeechPlayer(routing)
+        roomLevel = background.level()
+        mutedAt = -1
+        val reference = PlaybackEcho(roomLevel).apply { start(pcm) }
+        echo = reference
         player = media
+        var began = false
         fun finished() {
             synchronized(this) {
                 if (epoch != voiceEpoch) return
                 interrupt()
             }
         }
-        fun routed(device: AudioDeviceInfo?) {
+        fun routed(output: TranslationSettings.PlaybackObservation) {
             synchronized(this) {
                 if (voiceEpoch != epoch) return
-                val isolated = headphoneType(device?.type)
-                guard.set(!isolated)
-                state.value = state.value.copy(speaking = true, isolatedOutput = isolated)
+                val speaking = (output.gain > 0 || output.ducked) && output.positionMs > 0
+                if (speaking && !began) {
+                    began = true
+                    spoken.start(language, text, inputUs.get() / 1000)
+                }
+                if (speaking) reference.position(output.positionMs, SystemClock.elapsedRealtime())
+                state.value = state.value.copy(speaking = speaking, isolatedOutput = headphoneType(output.type))
             }
         }
         try {
-            val wave = waveFromPcm(24000, pcm)
-            val start = routing.prepare(media, language, ::routed)
-            media.setDataSource(VoiceData(wave))
-            media.setOnPreparedListener { if (synchronized(this) { voiceEpoch == epoch }) start() }
-            media.setOnCompletionListener { finished() }
-            media.setOnErrorListener { _, _, _ -> finished(); true }
-            media.prepareAsync()
+            media.play(VoicePcm(pcm, 0, pcm.size, 24000), language, false, ::routed) { finished() }
         } catch (_: Exception) { finished() }
     }
 }

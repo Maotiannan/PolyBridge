@@ -4,6 +4,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TranslationTurnsTest {
+    @Test fun aManualCorrectionCanFixBothTextsWithoutTheNetwork() {
+        val draft = Conversation().typed("turn", Side.CHINESE, "三站").translated("turn", "三站", "trois arrêts")
+        val saved = draft.correct("turn", "两站", "deux arrêts")
+        val reopened = ReportCodec.readChat(ReportCodec.saveChat(saved)).turns.single()
+        assertEquals("两站", reopened.sourceText)
+        assertEquals("deux arrêts", reopened.translatedText)
+        assertEquals(saved, saved.translated("turn", "三站", "ancienne réponse"))
+        val retry = saved.retranslate("turn", "下一站").failed("turn", TranslationIssue.NETWORK)
+        assertEquals("deux arrêts", retry.turns.single().translatedText)
+        assertEquals(TurnStatus.READY, retry.correct("turn", "下一站", "le prochain arrêt").turns.single().status)
+    }
     @Test fun sessionsKeepOldMessagesOutOfTheHomeScreenWithoutRemovingHistory() {
         val old = ReportCodec.readChat("""{"turns":[{"id":"demo","side":"FRENCH","status":"DEMO_READY","sourceText":"Salut","translatedText":"你好"}]}""")
         assertTrue(old.currentTurns.isEmpty())

@@ -17,7 +17,7 @@ import javax.crypto.spec.GCMParameterSpec
 
 enum class Microphone(val label: String) { AUTO("系统自动选择"), PHONE("手机麦克风"), HEADSET("蓝牙耳机麦克风") }
 data class TranslatorSettings(val configured: Boolean, val cloud: QwenOptions, val autoSpeak: Boolean, val opposed: Boolean,
-    val mic: Microphone, val quietSpeaker: Boolean, val splitPlayback: Boolean)
+    val mic: Microphone, val quietSpeaker: Boolean, val splitPlayback: Boolean, val privateReplay: Boolean)
 
 class TranslationSettings(context: Context) {
     internal val headsets by lazy { dev.polybridge.app.audio.HeadsetPreferences(context.applicationContext) }
@@ -26,14 +26,18 @@ class TranslationSettings(context: Context) {
         QwenOptions(runCatching { Region.valueOf(prefs.getString("region", "")!!) }.getOrDefault(Region.BEIJING),
             prefs.getString("workspace", "").orEmpty()), prefs.getBoolean("autoSpeak", true), prefs.getBoolean("opposed", true),
         runCatching { Microphone.valueOf(prefs.getString("mic", "")!!) }.getOrDefault(Microphone.AUTO),
-        prefs.getBoolean("quietSpeaker", true), prefs.getBoolean("splitPlayback", true))
+        prefs.getBoolean("quietSpeaker", true), prefs.getBoolean("splitPlayback", true), prefs.getBoolean("privateReplay", true))
     private val values = MutableStateFlow(snapshot())
     val state = values.asStateFlow()
-    data class PlaybackObservation(val type: Int, val matchedPreference: Boolean?)
+    data class PlaybackObservation(val type: Int, val matchedPreference: Boolean?, val gain: Float, val positionMs: Int,
+        val manual: Boolean, val playbackId: Long, val ducked: Boolean = false)
     private val routes = MutableStateFlow<Map<String, PlaybackObservation>>(emptyMap())
     val lastRoutes = routes.asStateFlow()
-    @Synchronized fun noteRoute(language: String?, type: Int, matched: Boolean?) {
-        if (language != null) routes.value = routes.value + (language to PlaybackObservation(type, matched))
+    @Synchronized fun noteRoute(language: String?, observation: PlaybackObservation) {
+        if (language != null) routes.value = routes.value + (language to observation)
+    }
+    @Synchronized fun privateReplay(enabled: Boolean) {
+        prefs.edit().putBoolean("privateReplay", enabled).apply(); values.value = snapshot()
     }
     @Synchronized fun quietSpeaker(enabled: Boolean) {
         prefs.edit().putBoolean("quietSpeaker",enabled).apply(); values.value = snapshot()

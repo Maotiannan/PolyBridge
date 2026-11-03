@@ -120,12 +120,13 @@ import kotlinx.coroutines.*
                         notice("译文已复制")
                     }) { Text("复制译文") }
                     Button(enabled = !sharing, onClick = {
-                        if (!config.configured) { cloud(); return@Button }
+                        val clip = app.clips[app.clips.key(turn, config.cloud)]
+                        if (clip == null && !config.configured) { cloud(); return@Button }
                         sharing = true
                         scope.launch {
                             try {
                                 val share = withContext(Dispatchers.IO) {
-                                    val voice = requireNotNull(app.settings.provider()).synthesize(turn.side.target, turn.translatedText)
+                                    val voice = clip ?: requireNotNull(app.settings.provider()).synthesize(turn.side.target, turn.translatedText)
                                     TranslatedAudioShare(context).create(voice)
                                 }
                                 context.startActivity(Intent.createChooser(share, "分享译音"))

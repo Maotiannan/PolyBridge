@@ -21,7 +21,8 @@ class PolyBridgeApp : Application() {
     }
     val store by lazy { ProbeStore(this) }
     val settings by lazy { TranslationSettings(this) }
-    internal val live by lazy { dev.polybridge.app.audio.LiveDesk(this, store, settings) }
+    internal val clips by lazy { dev.polybridge.app.audio.VoiceClips() }
+    internal val live by lazy { dev.polybridge.app.audio.LiveDesk(this, store, settings, clips) }
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val translator by lazy { ConversationTranslator(store, CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(2)), settings::provider) }
 }
@@ -71,21 +72,32 @@ class ProbeStore(context: Context, preferencesName: String = "diagnostics") {
         persist()
     }
 
-    @Synchronized fun changeChat(update: (Conversation) -> Conversation): Boolean {
+    fun changeChat(update: (Conversation) -> Conversation): Boolean = changeChat(false, update)
+
+    @Synchronized fun changeChat(durable: Boolean, update: (Conversation) -> Conversation): Boolean {
         val next = update(conversation.value)
         if (next == conversation.value) return false
+        if (!persist(next, durable)) return false
         conversation.value = next
-        persist()
         return true
+    }
+
+    @Synchronized fun clearHistory(): Conversation? {
+        if (current.value != null || conversation.value.turns.isEmpty()) return null
+        val previous = conversation.value
+        return if (changeChat(durable = true) { Conversation().newSession() }) previous else null
     }
 
     private fun append(report: ProbeReport, entry: ProbeEntry) =
         report.copy(probes = (report.probes + entry).takeLast(40))
 
-    private fun persist() {
+    private fun persist(chat: Conversation = conversation.value, durable: Boolean = false): Boolean {
         // A process death between press and release leaves a recoverable interruption.
         val diskReport = current.value?.let { append(currentReport.value, it.empty(Verdict.INTERRUPTED)) } ?: currentReport.value
-        prefs.edit().putString("report", ReportCodec.json(diskReport))
-            .putString("chat", ReportCodec.saveChat(conversation.value)).apply()
+        val write = prefs.edit().putString("report", ReportCodec.json(diskReport))
+            .putString("chat", ReportCodec.saveChat(chat))
+        if (durable) return write.commit()
+        write.apply()
+        return true
     }
 }

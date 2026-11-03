@@ -86,7 +86,7 @@ class VoiceToolsDeviceTest {
             check(shell("settings --user 0 get secure default_input_method") == ime)
             app.store.changeChat { it.typed(id, Side.CHINESE, "键盘测试").translated(id, "键盘测试", "Bonjour.") }
             click("通话辅助", AccessibilityWindowInfo.TYPE_APPLICATION)
-            val host = node(AccessibilityWindowInfo.TYPE_APPLICATION) { it.isEditable && !it.isPassword }
+            val host = node(AccessibilityWindowInfo.TYPE_APPLICATION, scroll = true) { it.isEditable && it.isVisibleToUser && !it.isPassword }
             val bounds = Rect()
             host.getBoundsInScreen(bounds)
             check(!bounds.isEmpty)
@@ -142,25 +142,32 @@ class VoiceToolsDeviceTest {
         error("翻译键盘未显示预期控件，当前应用窗口 " + windowState)
     }
 
-    private fun node(type: Int, match: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo {
+    private fun node(type: Int, scroll: Boolean = false, match: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo {
         val deadline = SystemClock.elapsedRealtime() + 7000
         do {
+            var container: AccessibilityNodeInfo? = null
             val list = ArrayDeque(inst.uiAutomation.windows.filter { it.type == type }.mapNotNull { it.root })
             while (list.isNotEmpty()) {
                 val item = list.removeFirst()
                 if (item.packageName == "dev.polybridge.app" && match(item)) return item
+                if (item.packageName == "dev.polybridge.app" && item.isScrollable) container = item
                 for (i in 0 until item.childCount) item.getChild(i)?.let(list::addLast)
             }
-            SystemClock.sleep(100)
+            if (scroll) container?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+            SystemClock.sleep(if (scroll) 250 else 100)
         } while (SystemClock.elapsedRealtime() < deadline)
         error("应用或翻译键盘中未出现预期控件")
     }
     private fun click(label: String, type: Int) {
-        var item: AccessibilityNodeInfo? = node(type) { it.text?.toString() == label || it.contentDescription?.toString() == label }
-        while (item != null) {
-            if (item.isClickable && item.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return
-            item = item.parent
+        val bounds = Rect()
+        var target: AccessibilityNodeInfo? = node(type) {
+            it.getBoundsInScreen(bounds)
+            it.isVisibleToUser && !bounds.isEmpty && (it.text?.toString() == label || it.contentDescription?.toString() == label)
         }
-        error("无法点击 $label")
+        while (target != null) {
+            if (target.isClickable && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return
+            target = target.parent
+        }
+        shell("input tap ${bounds.centerX()} ${bounds.centerY()}")
     }
 }

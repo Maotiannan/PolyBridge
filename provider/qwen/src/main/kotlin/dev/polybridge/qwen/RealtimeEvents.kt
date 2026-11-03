@@ -76,7 +76,7 @@ internal class RealtimeEvents(private val side: Side, private val update: (LiveU
             }
             discard(line)
         } else if (line.language == sourceLanguage && line.source.isNotBlank())
-            update(LiveUpdate.Caption(line.id, side, line.source.trim(), line.target.trim()))
+            update(LiveUpdate.Caption(line.id, side, line.source.trim(), line.target.trim(), line.start))
     }
 
     private fun discard(line: Sentence) { inputs.remove(line.id); outputs.remove(line.response) }

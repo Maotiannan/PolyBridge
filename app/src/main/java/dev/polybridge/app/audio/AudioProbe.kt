@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.*
+import android.media.audiofx.AcousticEchoCanceler
 import android.media.projection.MediaProjection
 import android.os.SystemClock
 import dev.polybridge.app.ProbeRequest
@@ -45,12 +46,17 @@ class AndroidAudioInput(private val context: Context,
                 route?.connect(request)?.let { return it }
                 val source = if (route == null) MediaRecorder.AudioSource.MIC else MediaRecorder.AudioSource.VOICE_COMMUNICATION
                 val record = open(config, source) ?: return request.empty(Verdict.FAILED, "RECORDER_INIT")
+                val aec = if (request.kind == Kind.LISTEN) runCatching {
+                    if (AcousticEchoCanceler.isAvailable()) AcousticEchoCanceler.create(record.audioSessionId)?.apply { enabled = true }
+                    else null
+                }.getOrNull() else null
                 try {
                     ended()?.let { return it }
                     if (preferred != null && route == null && !record.setPreferredDevice(preferred))
                         return request.empty(Verdict.FAILED, "ROUTE_REQUEST_REJECTED")
                     capture(record, request, onStarted)
                 } finally {
+                    aec?.release()
                     runCatching { if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) record.stop() }
                     record.release()
                 }
@@ -114,7 +120,7 @@ class AndroidAudioInput(private val context: Context,
                     end = End.ROUTE_LOST; break
                 }
             }
-            val read = record.read(buffer, 0, buffer.size, AudioRecord.READ_NON_BLOCKING)
+            val read = record.read(buffer, 0, buffer.size, if (live) AudioRecord.READ_BLOCKING else AudioRecord.READ_NON_BLOCKING)
             if (read < 0) { end = End.READ_ERROR; reason = "READ_$read"; break }
             if (read == 0) SystemClock.sleep(8) else {
                 meter.add(buffer, read)

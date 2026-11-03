@@ -1,0 +1,64 @@
+{
+  "testedOn": "2026-11-03",
+  "version": "0.4.0",
+  "device": "vivo X Fold5 / OriginOS 6 / one paired Bluetooth headset",
+  "packages": {
+    "appSha256": "4623c656b0ed788235b6b5d21320a179724d1439fd00ffaf2f62c690cf32d3de",
+    "instrumentationSha256": "717e895ce128648efd48dd3228e1ba03d8974f9b03c04ae8fa4c0ce95eb3f04b",
+    "v2SignaturesVerified": true,
+    "bothHashesMatchedInstalledApks": true
+  },
+  "fold5": {
+    "authenticatedDuplex": {
+      "provider": "qwen3.5-livetranslate-flash-realtime",
+      "input": "Known Chinese and French utterances streamed at microphone timing. Echo references reconstructed from actual returned PCM with delay and attenuation.",
+      "ordinary": {"turns": 2, "interruptions": 1, "stopMs": 339, "extraEchoTurns": 0},
+      "quietSpeechWithHum": {"turns": 2, "interruptions": 1, "stopMs": 364, "extraEchoTurns": 0}
+    },
+    "offlineDuplex": [
+      {"output": "speaker", "language": "fr", "stopMs": 253, "remainingEchoPowerFraction": 0.01398},
+      {"output": "bluetooth", "language": "zh", "stopMs": 394, "remainingEchoPowerFraction": 0.01590}
+    ],
+    "physicalRoom": {
+      "outcome": "missed interruption",
+      "configuration": "Built-in mic, Fold5 speaker at the lowest nonzero setting. Independent Windows speaker submitted a known second sentence at 1/150 sample amplitude. No ambient audio sent to the cloud.",
+      "schedulerOffsetMs": 7,
+      "ambientDbfs": -43.95,
+      "duringPhonePlaybackDbfs": -41.92,
+      "withSecondSpeakerDbfs": -43.61,
+      "forwardedResidualWithSecondSpeakerDbfs": -45.60,
+      "falseStopsBeforeSecondSpeaker": 0,
+      "interruptions": 0,
+      "nextAcceptance": "Two independent voices at a representative speaking distance. Measure misses, premature stops and retained openings in real rooms."
+    },
+    "manualReplay": {
+      "output": "Bluetooth A2DP",
+      "appGain": 1.0,
+      "speakerMediaIndex": "1/150",
+      "headsetMediaIndex": "53/150",
+      "source": "qwen3-tts-flash / Cherry",
+      "fr": {"audioRmsDbfs": -18.14, "observedSpeechPositionMs": [160, 158]},
+      "zh": {"audioRmsDbfs": -23.25, "observedSpeechPositionMs": [198, 158]},
+      "reusedSameAudioOnSecondTap": true,
+      "afterVisibleCorrection": "Both edited fields survived a fresh store read. The changed French text produced a different non-silent clip, consumed by the headset output.",
+      "holdToInterrupt": "The opposite hold button stopped replay and retained microphone ownership until released."
+    },
+    "headsetMic": {"actualType": "Bluetooth SCO", "sampleRateHz": 16000, "samples": 159040, "nonZeroSamples": 9944, "verdict": "SIGNAL"},
+    "voiceTools": {"passed": 3, "fileInput": "Je voudrais deux billets.", "translation": "我想要两张票。", "ime": "Edited French committed into a real host editor. Original IME restored."},
+    "sharing": {"mime": "audio/wav", "systemTargets": ["WeChat 8.0.79", "WhatsApp 2.26.42.74"], "remoteDeliveryVerified": false},
+    "usbStayAwakeRestored": true
+  },
+  "isolatedAndroid35": {
+    "scope": "AOSP ATD without personal credentials. Real application, storage, Android audio player and UI. The input PCM and provider events for the offline duplex test are fixtures.",
+    "defaultSuite": {"passed": 9, "skippedByDesign": 13, "failed": 0},
+    "duplexSoak": {"elapsedMs": 902982, "alternatingInterruptions": 248, "p95StopMs": 383, "maxStopMs": 391, "missedOrPrematureStops": 0, "perTurnChecks": ["remaining echo power below 5 percent", "retained projection of the opening above 65 percent", "duplicate completion never added a turn"]},
+    "archive": {
+      "sameShortBilingualTurns": 22,
+      "inner": {"pixels": [2200, 2480], "widthDp": 677, "visibleBefore": 3, "visibleAfter": 12},
+      "outer": {"pixels": [1172, 2748], "widthDp": 361, "visibleBefore": 3, "visibleAfter": 13},
+      "clearScope": "Isolated emulator archive and isolated host storage only. No automated bulk clear on the owner's phone."
+    }
+  },
+  "build": {"coreTests": 19, "qwenTests": 4, "appHostTests": 25, "failures": 0, "lintErrors": 0, "lintWarnings": 32},
+  "outstanding": ["Representative acoustic barge-in in real rooms", "WeChat and WhatsApp voice-note receipt and two-way call audio", "Independent simultaneous playback and capture on two headsets"]
+}

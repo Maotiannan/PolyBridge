@@ -38,6 +38,7 @@ import dev.polybridge.app.audio.HeadsetRole
             SettingRow(Mark.SPEAK, "自动朗读译文", "打开对话页时，读出刚完成的译文", { settings.playback(!config.autoSpeak) }, config.autoSpeak)
             SettingRow(Mark.SPEAK, "轻声外放", "机身扬声器按最低档朗读，耳机沿用系统音量", { settings.quietSpeaker(!config.quietSpeaker) }, config.quietSpeaker)
             SettingRow(Mark.AUDIO, "中法分开播放", "连接耳机时尝试法语外放、中文进耳机，以实际路由为准", { settings.splitPlayback(!config.splitPlayback) }, config.splitPlayback)
+            SettingRow(Mark.SPEAK, "手动重播优先用耳机", "点重播时，两种语言都读到耳机。关闭后按对话的分路设置播放。", { settings.privateReplay(!config.privateReplay) }, config.privateReplay)
             SettingRow(Mark.AUDIO, "我的耳机", "查看连接状态，为麦克风和两种译音选择耳机", { showHeadsets = true })
             if (routes.isNotEmpty()) Text(routes.entries.joinToString("  ·  ") { (lang, route) ->
                 (if (lang.startsWith("fr")) "法语" else "中文") + "上次路由到" + typeLabel(route.type) +

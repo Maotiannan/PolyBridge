@@ -25,7 +25,7 @@ jobs:
           target: aosp_atd
           arch: x86_64
           profile: pixel_6
-          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.testKeyboard=true
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.testKeyboard=true -Pandroid.testInstrumentationRunnerArguments.testArchive=true -Pandroid.testInstrumentationRunnerArguments.testDuplex=true
       - uses: actions/upload-artifact@v4
         with:
           name: polybridge-debug

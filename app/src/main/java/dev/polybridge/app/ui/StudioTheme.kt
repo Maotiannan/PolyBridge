@@ -75,9 +75,12 @@ internal enum class Mark(val path: String) {
     }
 }
 
-@Composable internal fun ToolButton(mark: Mark, label: String, action: () -> Unit, color: Color = Ink) {
+@Composable internal fun ToolButton(mark: Mark, label: String, action: () -> Unit, color: Color = Ink, caption: Boolean = false) {
     IconButton(onClick = action, modifier = Modifier.size(48.dp).semantics { contentDescription = label }) {
-        Glyph(mark, color)
+        if (caption) Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Glyph(mark, color, 17.dp)
+            Text(label, color = color, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        } else Glyph(mark, color)
     }
 }
 

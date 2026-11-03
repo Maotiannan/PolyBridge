@@ -53,6 +53,13 @@ class StudioScreenTest {
         pick("历史")
         waitFor { it.text?.toString() == "对话历史" }
         pick("设置")
+        waitFor { it.text?.toString() == "翻译服务" }
+        repeat(3) {
+            if (find { it.text?.toString() == "设备诊断" && it.isVisibleToUser } == null) {
+                find { it.isScrollable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                SystemClock.sleep(200)
+            }
+        }
         pick("设备诊断")
         waitFor { it.text?.toString() == "麦克风" }
     }

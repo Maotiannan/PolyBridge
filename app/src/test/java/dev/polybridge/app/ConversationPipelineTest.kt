@@ -14,6 +14,23 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class ConversationPipelineTest {
+    @Test fun clearIsDurableIgnoresLateResultsAndUndoKeepsNewerTurns() {
+        val store = this.store
+        store.changeChat { it.typed("old", Side.CHINESE, "你好").translated("old", "你好", "Bonjour.")
+            .typed("pending", Side.FRENCH, "Deux places.") }
+        val previous = requireNotNull(store.clearHistory())
+        assertTrue(this.store.chat.value.turns.isEmpty())
+        assertFalse(store.changeChat { it.translated("pending", "Deux places.", "两个座位") })
+        store.changeChat { it.typed("next", Side.CHINESE, "明天") }
+        store.changeChat(durable = true) { it.restoreHistory(previous) }
+        val restored = this.store.chat.value
+        assertEquals(listOf("old", "pending", "next"), restored.turns.map(Turn::id))
+        assertEquals(TurnStatus.FAILED, restored.turns[1].status)
+        assertEquals(listOf("next"), restored.currentTurns.map(Turn::id))
+        val recording = requireNotNull(store.begin(Kind.HOLD, PlaybackTarget.SELF, null, Side.CHINESE, null))
+        assertNull(store.clearHistory())
+        store.finish(recording.empty(Verdict.CANCELLED))
+    }
     private val context: Context get() = RuntimeEnvironment.getApplication()
     private val store get() = ProbeStore(context)
     private val scope = CoroutineScope(Dispatchers.Unconfined)
