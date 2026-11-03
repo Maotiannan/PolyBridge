@@ -3,3 +3,5 @@
 gradlew text eol=lf
 *.jar binary
 *.docx binary
+*.onnx binary
+*.wav binary

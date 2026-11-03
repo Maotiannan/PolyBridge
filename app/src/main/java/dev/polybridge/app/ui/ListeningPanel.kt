@@ -32,7 +32,10 @@ import dev.polybridge.core.*
         if (on) view.keepScreenOn = true
         onDispose { if (on) view.keepScreenOn = previous }
     }
-    val turns = chat.turns.filter { state.kind == Kind.LISTEN && it.id in state.turnIds }
+    val report by app.store.report.collectAsState()
+    val rows = remember(chat, state.captureId, state.kind, state.drafts, report) {
+        transcriptRows(chat, state, Kind.LISTEN, report.probes.lastOrNull { it.kind == Kind.LISTEN }?.id)
+    }
     val title = when {
         !on -> "听身边的人"
         state.reconnecting -> "正在重新连接…"
@@ -61,13 +64,10 @@ import dev.polybridge.core.*
                 }, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(vertical = 7.dp))
             }
             Spacer(Modifier.height(8.dp))
-            state.partial?.let { line ->
-                Kicker(if (line.side == Side.CHINESE) "中文  →  FR" else "FR  →  中文")
-                Text(line.source, color = Muted, style = MaterialTheme.typography.bodyMedium)
-                Text(line.target.ifBlank { "…" }, color = Ink, style = MaterialTheme.typography.titleLarge)
-                HorizontalDivider(Modifier.padding(vertical = 6.dp), color = Line)
+            if (rows.isNotEmpty()) {
+                Kicker("监听全文  ·  ${rows.size} 段")
+                TranscriptList(rows, Modifier.weight(1f), actions)
             }
-            if (turns.isNotEmpty()) Timeline(turns, null, actions, Modifier.weight(1f))
             else Text(if (on) "两人轮流说话，双语字幕会出现在这里。" else
                 "用麦克风听身边的对话，中文和法语自动互译。请先告诉对方你在使用翻译。离开此页会结束监听。",
                 color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 8.dp))

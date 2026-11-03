@@ -39,6 +39,8 @@ internal class QwenLiveSession(private val token: String, private val options: Q
                             "session.created" -> {
                                 val config = mapOf("modalities" to (if (textOnly) listOf("text") else listOf("text", "audio")),
                                     "translation" to mapOf("language" to side.target.substringBefore('-')),
+                                    "turn_detection" to mapOf("type" to "server_vad",
+                                        "silence_duration_ms" to if (textOnly) options.mediaPauseMs else options.conversationPauseMs),
                                     "input_audio_transcription" to mapOf("model" to "qwen3-asr-flash-realtime"))
                                 webSocket.send(gson.toJson(mapOf("type" to "session.update", "session" to config)))
                             }
@@ -100,7 +102,8 @@ internal class QwenLiveSession(private val token: String, private val options: Q
         if (stopped.get()) return
         flush()
         sockets.forEach { it.send("""{"type":"session.finish"}""") }
-        ended.await(5, TimeUnit.SECONDS)
+        if (!ended.await(12, TimeUnit.SECONDS)) throw TranslationFailure(TranslationIssue.NETWORK)
+        error.get()?.let { throw TranslationFailure(it) }
     }
 
     private fun fail(reason: TranslationIssue) {

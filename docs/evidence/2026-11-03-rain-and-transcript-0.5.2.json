@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-03",
+  "version": "0.5.2",
+  "versionCode": 5002,
+  "baselineCommit": "7dbf37c",
+  "packages": {
+    "appBytes": 63496395,
+    "appSha256": "b851dd6ff6ebbb9fa635eb1fe15e7c349aa787c225b9ae580880d3278d65ca0a",
+    "testBytes": 1911257,
+    "testSha256": "f970eaef982dca535105a23e2a974456b2173c0a0006028445cf234883415d0a",
+    "v2VerifiedAndMatchedInstalledIsolatedDevice": true
+  },
+  "host": {
+    "coreTests": 20, "providerTests": 10, "appTests": 21,
+    "failures": 0, "skipped": 0, "androidLintErrors": 0, "androidLintWarnings": 29
+  },
+  "isolatedAndroid15": {
+    "externalScreen1172x2748": { "discovered": 31, "executed": 17, "skippedByRuntimeRequirement": 14, "failures": 0 },
+    "innerScreen2200x2480ListeningSuite": { "discovered": 7, "executed": 6, "skippedCloudOptIn": 1, "failures": 0 },
+    "additionalIndependentTranscriptScrollRuns": { "externalPassed": 2, "innerPassed": 2 },
+    "audioAndInterfaceRunsUseAPersonalCloudKey": false
+  },
+  "rainAndSpeech": {
+    "fixtures": ["1-21189-A-10.wav", "2-73027-A-10.wav"],
+    "modelSha256": "7ed98ddbad84ccac4cd0aeb3099049280713df825c610a8ed34543318f1b2c49",
+    "input": "Each route starts with ten seconds of its rain fixture at two levels, then French and Chinese speech at 0.45 gain over rain at 0.15 gain, separated by 0.8 s. Correctly handles input reads of 319 or 962 samples.",
+    "pureRainScoredSecondsPerRoute": 9.75,
+    "baselineMicNonzeroSamplesInRain": 155832,
+    "scoredSamplesPerRouteAt16kHz": 156000,
+    "mic": { "rateHz": 16000, "nonzeroSamplesInRain": 0, "strongVoiceSamplesRetainedRatioFrZh": [0.9996178830722201, 0.999704535381888] },
+    "appPlayback": { "rateHz": 48000, "nonzeroSamplesInRain": 0, "strongVoiceSamplesRetainedRatioFrZh": [0.999923576614444, 0.999704535381888] },
+    "speechMetric": "Share of reference speech samples above absolute amplitude 900 that arrive nonzero at the translator input. Also checks the first 150 ms of each voice and exact total sample count. This measures signal retention, not word accuracy.",
+    "stopBeforeConfirmedOnsetKeepsNoiseSilent": true
+  },
+  "continuousFrenchPlayback": {
+    "durationSeconds": 77.84475, "phrases": 24, "connections": 1,
+    "breathSecondsInsidePair": 0.8, "alternatingGapsBetweenPairsSeconds": [0.25, 2.2],
+    "minimumUnchangedStrongSampleRatioInAnyPhrase": 0.9944522896913456,
+    "metric": "Twelve repeats of the test player's rainy French recording. For each French phrase compare every source sample above absolute amplitude 1200 with the exact value delivered to recognition."
+  },
+  "transcript": {
+    "controlledEventDelivery": ["A preview", "B preview", "B final", "A final", "B duplicate", "C preview", "C final at stop"],
+    "baselinePersistedOrder": ["B", "A", "C"],
+    "persistedOrderAfterReload": ["A", "B", "C"],
+    "bilingualParagraphsInReopenedScrollableTranscript": 17,
+    "newContentWhileReadingAnEarlierOverlayParagraphPreservesScrollPosition": true,
+    "fullLastCaptionRowsAfterSerializationAndClearUndo": 125,
+    "fullLastMicrophoneRowsAfterSerializationAndClearUndo": 121,
+    "additionalCases": ["failed noise preview removed", "confirmed original retained when translation is cancelled", "reconnect with reused provider ID", "translation arriving after response completion", "text kept after exceeding the per-turn synthesized audio limit"]
+  },
+  "duplexRegression": {
+    "controlledPlaybackInterruptionMs": { "fr": 242, "zh": 381 }
+  },
+  "fold5": {
+    "lastPreviouslyVerifiedInstalledVersion": "0.5.0",
+    "testedInThisRun": false,
+    "pending": ["Fold5 and real Qwen with fixed rain and long speech", "single-app playback capture with media projection", "microphone behavior in the actual room"]
+  }
+}

@@ -8,9 +8,11 @@ enum class Side(val source: String, val target: String) {
 
 enum class TurnStatus { CAPTURING, TRANSCRIBING, TRANSLATING, READY, DEMO_READY, FAILED }
 
+data class LiveOrigin(val captureId: String, val kind: Kind, val offsetMs: Long)
+
 data class Turn(val id: String, val side: Side, val status: TurnStatus = TurnStatus.CAPTURING,
     val sourceText: String = "", val translatedText: String = "", val verdict: Verdict? = null,
-    val issue: TranslationIssue? = null, val atMs: Long = 0, val session: String? = null)
+    val issue: TranslationIssue? = null, val atMs: Long = 0, val session: String? = null, val live: LiveOrigin? = null)
 
 data class Conversation(val turns: List<Turn> = emptyList(), val session: String? = null) {
     val currentTurns: List<Turn> get() = if (session == null) emptyList() else turns.filter { it.session == session }
@@ -24,6 +26,14 @@ data class Conversation(val turns: List<Turn> = emptyList(), val session: String
     fun typed(id: String, side: Side, text: String): Conversation {
         if (text.isBlank() || turns.any { it.id == id }) return this
         return append(Turn(id, side, TurnStatus.TRANSLATING, text.trim(), atMs = System.currentTimeMillis()))
+    }
+
+    fun heard(line: LiveUpdate.Caption, origin: LiveOrigin, issue: TranslationIssue? = null): Conversation {
+        if (line.source.isBlank() || turns.any { it.id == line.id }) return this
+        val turn = Turn(line.id, line.side, if (issue == null) TurnStatus.READY else TurnStatus.FAILED,
+            line.source, line.target, issue = issue, atMs = System.currentTimeMillis(), live = origin)
+        val next = turns.indexOfFirst { it.live?.let { earlier -> earlier.captureId == origin.captureId && earlier.offsetMs > origin.offsetMs } == true }
+        return append(turn, if (next >= 0) next else turns.size)
     }
 
     fun cancel(id: String) = copy(turns = turns.filterNot { it.id == id && it.status == TurnStatus.CAPTURING })
@@ -67,7 +77,7 @@ data class Conversation(val turns: List<Turn> = emptyList(), val session: String
     fun restoreHistory(previous: Conversation): Conversation {
         val ids = turns.mapTo(mutableSetOf()) { it.id }
         val restored = previous.recoverInterrupted().turns.filterNot { it.id in ids }
-        return copy(turns = (restored + turns).takeLast(100), session = if (turns.isEmpty()) previous.session else session)
+        return copy(turns = retain(restored + turns), session = if (turns.isEmpty()) previous.session else session)
     }
 
     fun recoverInterrupted() = copy(turns = turns.map {
@@ -78,9 +88,17 @@ data class Conversation(val turns: List<Turn> = emptyList(), val session: String
         }
     })
 
-    private fun append(turn: Turn): Conversation {
+    private fun append(turn: Turn, index: Int = turns.size): Conversation {
         val current = session ?: UUID.randomUUID().toString()
-        return copy(session = current, turns = (turns + turn.copy(session = current)).takeLast(100))
+        val updated = turns.toMutableList().apply { add(index, turn.copy(session = current)) }
+        return copy(session = current, turns = retain(updated))
+    }
+    private fun retain(all: List<Turn>): List<Turn> {
+        if (all.size <= 100) return all
+        // A single long recording can itself exceed the rolling history. Keep the last complete
+        // transcript for each listening mode, in addition to the usual hundred recent turns.
+        val latest = all.mapNotNull { it.live }.associate { it.kind to it.captureId }
+        return all.filterIndexed { i, turn -> i >= all.size - 100 || turn.live?.let { latest[it.kind] == it.captureId } == true }
     }
     private fun change(id: String, update: (Turn) -> Turn) = copy(turns = turns.map { if (it.id == id) update(it) else it })
 }

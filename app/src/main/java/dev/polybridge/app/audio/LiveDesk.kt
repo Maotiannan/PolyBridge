@@ -11,9 +11,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 internal data class ListeningState(val id: String? = null, val ready: Boolean = false,
-    val partial: LiveUpdate.Caption? = null, val turnIds: List<String> = emptyList(), val speaking: Boolean = false,
+    val drafts: List<LiveUpdate.Caption> = emptyList(), val turnIds: List<String> = emptyList(), val speaking: Boolean = false,
     val isolatedOutput: Boolean = false, val issue: TranslationIssue? = null, val reconnecting: Boolean = false,
-    val interruptions: Int = 0, val playbackStoppedAt: Long = 0, val lastLine: LiveUpdate.Caption? = null, val kind: Kind? = null)
+    val interruptions: Int = 0, val playbackStoppedAt: Long = 0, val lastLine: LiveUpdate.Caption? = null,
+    val kind: Kind? = null, val captureId: String? = null) {
+    val partial get() = drafts.lastOrNull()
+}
 
 internal typealias MicFrames = (ShortArray, Int, Int) -> Unit
 
@@ -29,6 +32,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     private val routing = PlaybackRouting(context, settings)
     private val state = MutableStateFlow(ListeningState())
     val view = state.asStateFlow()
+    val chat = store.chat
     private var session: LiveSpeechSession? = null
     private var player: PcmSpeechPlayer? = null
     @Volatile private var echo: PlaybackEcho? = null
@@ -38,18 +42,23 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     @Volatile private var roomLevel = 0.0
     private val inputUs = java.util.concurrent.atomic.AtomicLong()
     private val spoken = SpokenEchoes()
+    private var epoch = 0
+    private var offsetMs = 0L
 
     fun record(request: ProbeRequest, projection: android.media.projection.MediaProjection? = null): ProbeEntry {
         synchronized(this) {
-            state.value = ListeningState(id = request.id, kind = request.kind); background = RoomNoise(); echo = null
+            state.value = ListeningState(id = request.id, kind = request.kind, captureId = request.id); background = RoomNoise(); echo = null
+            epoch = 0; offsetMs = 0
             spoken.reset(); inputUs.set(0)
         }
         var live: LiveSpeechSession? = null
         return try {
             val captions = request.kind == Kind.CAPTIONS
-            val connection = (if (captions) captionConnection else connect) { event -> receive(request, event) }
+            val transport = (if (captions) captionConnection else connect) { event -> receive(request, event) }
+            live = transport
+            val connection = SpeechGate(context, transport)
             live = connection
-            synchronized(this) { session = connection }
+            synchronized(this) { session = transport }
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
             connection.connect()
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
@@ -79,7 +88,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                 request.sampling.value = true
                 synchronized(this) { state.value = state.value.copy(ready = true) }
             }
-            if (request.end.get() == End.RELEASED) connection.finish()
+            if (request.end.get() == End.RELEASED || request.end.get() == null && measured.verdict == Verdict.SIGNAL) connection.finish()
             measured
         } catch (failure: TranslationFailure) {
             synchronized(this) { if (request.end.get() != End.CANCELLED) state.value = state.value.copy(issue = failure.issue) }
@@ -92,55 +101,68 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
             live?.close()
             synchronized(this) {
                 session = null
-                val partial = state.value.partial
-                if (partial != null && partial.source.isNotBlank() && state.value.issue != null) {
-                    val id = "live-" + request.id + "-" + partial.id
-                    store.changeChat { it.typed(id, partial.side, partial.source).failed(id, state.value.issue!!) }
-                }
-                state.value = state.value.copy(id = null, ready = false, partial = null)
+                preserveDrafts(request, state.value.issue ?: TranslationIssue.INTERRUPTED)
+                state.value = state.value.copy(id = null, ready = false)
             }
             interrupt()
         }
+    }
+
+    private fun localId(request: ProbeRequest, side: Side, id: String) = "live-${request.id}-$epoch-${side.name}-$id"
+
+    private fun preserveDrafts(request: ProbeRequest, reason: TranslationIssue) {
+        val drafts = state.value.drafts
+        if (drafts.isEmpty()) return
+        store.changeChat { chat -> drafts.fold(chat) { saved, line ->
+            saved.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), reason)
+        } }
+        state.value = state.value.copy(drafts = emptyList(), turnIds = (state.value.turnIds + drafts.map { it.id }).distinct())
     }
 
     @Synchronized private fun receive(request: ProbeRequest, event: LiveUpdate) {
         if (state.value.id != request.id || request.end.get()?.let { it != End.RELEASED } == true) return
         when (event) {
             is LiveUpdate.Reconnecting -> {
-                state.value.partial?.takeIf { it.source.isNotBlank() }?.let { line ->
-                    val id = "live-" + request.id + "-" + line.id
-                    store.changeChat { it.typed(id, line.side, line.source).failed(id, TranslationIssue.NETWORK) }
-                    state.value = state.value.copy(turnIds = (state.value.turnIds + id).distinct().takeLast(100))
-                }
+                preserveDrafts(request, TranslationIssue.NETWORK)
                 interrupt()
-                state.value = state.value.copy(partial = null, ready = false, reconnecting = true)
+                state.value = state.value.copy(ready = false, reconnecting = true)
             }
             LiveUpdate.Reconnected -> {
-                spoken.reset(); inputUs.set(0)
+                spoken.reset()
+                offsetMs = maxOf(offsetMs + inputUs.getAndSet(0) / 1000, (state.value.lastLine?.startedMs ?: 0) + 1)
+                epoch++
                 state.value = state.value.copy(ready = true, reconnecting = false)
             }
             is LiveUpdate.Caption -> {
+                val line = event.copy(id = localId(request, event.side, event.id), startedMs = offsetMs + event.startedMs)
+                if (line.id in state.value.turnIds) return
                 if (state.value.speaking && spoken.independent(event.side, event.source, event.startedMs)) {
                     state.value = state.value.copy(interruptions = state.value.interruptions + 1)
                     interrupt()
                 }
-                state.value = state.value.copy(partial = event)
+                val pending = state.value.drafts.toMutableList()
+                val index = pending.indexOfFirst { it.id == line.id }
+                if (index < 0) pending.add(line) else pending[index] = line
+                state.value = state.value.copy(drafts = pending.sortedBy { it.startedMs })
+            }
+            is LiveUpdate.Withdrawn -> {
+                val id = localId(request, event.side, event.id)
+                state.value = state.value.copy(drafts = state.value.drafts.filterNot { it.id == id })
             }
             is LiveUpdate.Finished -> {
+                val id = localId(request, event.side, event.id)
+                val drafts = state.value.drafts.filterNot { it.id == id }
                 if (spoken.repeated(event.side, event.source, event.startedMs, inputUs.get() / 1000)) {
-                    state.value = state.value.copy(partial = state.value.partial?.takeUnless { it.id == event.id })
+                    state.value = state.value.copy(drafts = drafts)
                     return
                 }
-                val id = "live-" + request.id + "-" + event.id
-                val added = store.changeChat { chat ->
-                    if (chat.turns.any { it.id == id }) chat
-                    else chat.typed(id, event.side, event.source).translated(id, event.source, event.target)
-                }
+                val line = LiveUpdate.Caption(id, event.side, event.source, event.target, offsetMs + event.startedMs)
+                val added = store.changeChat { it.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), event.issue) }
                 if (added) {
-                    state.value = state.value.copy(partial = state.value.partial?.takeUnless { it.id == event.id },
-                        turnIds = (state.value.turnIds + id).takeLast(100),
-                        lastLine = LiveUpdate.Caption(event.id, event.side, event.source, event.target, event.startedMs))
-                    if (event.pcm.isNotEmpty() && request.kind != Kind.CAPTIONS) {
+                    val latest = state.value.lastLine
+                    state.value = state.value.copy(drafts = drafts, turnIds = state.value.turnIds + id,
+                        lastLine = if (latest != null && latest.startedMs > line.startedMs) latest else line)
+                    if (event.issue == null && event.pcm.isNotEmpty() && request.kind != Kind.CAPTIONS) {
                         val wave = waveFromPcm(24000, event.pcm)
                         val turn = store.chat.value.turns.firstOrNull { it.id == id } ?: return
                         clips.put(clips.key(turn, settings.state.value.cloud), wave)

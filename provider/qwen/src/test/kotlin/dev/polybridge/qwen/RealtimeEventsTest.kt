@@ -5,6 +5,80 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RealtimeEventsTest {
+    @Test fun aCancelledTranslationStillKeepsTheConfirmedOriginalWhenTheNextTurnStarts() {
+        for (early in listOf(true, false)) {
+            val updates = mutableListOf<LiveUpdate>()
+            val events = RealtimeEvents(Side.FRENCH, updates::add)
+            events.accept("""{"type":"input_audio_buffer.speech_started","item_id":"s"}""")
+            events.accept("""{"type":"response.created","response":{"id":"r"}}""")
+            events.accept("""{"type":"response.text.text","response_id":"r","text":"两张","stash":""}""")
+            val source = """{"type":"conversation.item.input_audio_transcription.completed","item_id":"s","language":"fr","transcript":"deux billets"}"""
+            if (early) events.accept(source)
+            events.accept("""{"type":"response.done","response":{"id":"r","status":"cancelled"}}""")
+            if (!early) events.accept(source)
+            val saved = updates.filterIsInstance<LiveUpdate.Finished>().single()
+            assertEquals("deux billets", saved.source)
+            assertEquals("两张", saved.target)
+            assertEquals(TranslationIssue.INTERRUPTED, saved.issue)
+            assertTrue(saved.pcm.isEmpty())
+        }
+    }
+
+    @Test fun theFinalResponseMayCarryTheTranslationInsteadOfASeparateTextEvent() {
+        val updates = mutableListOf<LiveUpdate>()
+        val events = RealtimeEvents(Side.FRENCH, updates::add)
+        events.accept("""{"type":"input_audio_buffer.speech_started","item_id":"s"}""")
+        events.accept("""{"type":"response.created","response":{"id":"r"}}""")
+        events.accept("""{"type":"response.done","response":{"id":"r","status":"completed","output":[{"content":[{"type":"text","text":"车站"}]}]}}""")
+        events.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"s","language":"fr","transcript":"la gare"}""")
+        assertEquals("车站", updates.filterIsInstance<LiveUpdate.Finished>().single().target)
+    }
+
+    @Test fun aFailedNoiseHypothesisIsWithdrawnFromTheTranscript() {
+        val updates = mutableListOf<LiveUpdate>()
+        val events = RealtimeEvents(Side.FRENCH, updates::add)
+        events.accept("""{"type":"input_audio_buffer.speech_started","item_id":"noise"}""")
+        events.accept("""{"type":"conversation.item.input_audio_transcription.text","item_id":"noise","language":"fr","text":"","stash":"oh"}""")
+        events.accept("""{"type":"conversation.item.input_audio_transcription.failed","item_id":"noise"}""")
+        assertEquals(2, updates.size)
+        assertTrue(updates.first() is LiveUpdate.Caption)
+        assertEquals(LiveUpdate.Withdrawn("noise", Side.FRENCH), updates.last())
+    }
+    @Test fun anOversizedVoiceCanStillFinishItsTextAndTheNextSentence() {
+        val out = mutableListOf<LiveUpdate>()
+        val events = RealtimeEvents(Side.FRENCH, out::add)
+        val audio = java.util.Base64.getEncoder().encodeToString(ByteArray(80 * 1024))
+        for (id in listOf("long", "next")) {
+            events.accept("""{"type":"input_audio_buffer.speech_started","item_id":"$id"}""")
+            events.accept("""{"type":"response.created","response":{"id":"r$id"}}""")
+            events.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"$id","language":"fr","transcript":"du texte"}""")
+            repeat(if (id == "long") 52 else 1) { events.accept("""{"type":"response.audio.delta","response_id":"r$id","delta":"$audio"}""") }
+            events.accept("""{"type":"response.audio_transcript.done","response_id":"r$id","transcript":"文字"}""")
+            events.accept("""{"type":"response.done","response":{"id":"r$id","status":"completed"}}""")
+        }
+        val finals = out.filterIsInstance<LiveUpdate.Finished>()
+        assertEquals(listOf("long", "next"), finals.map { it.id })
+        assertTrue(finals[0].pcm.isEmpty())
+        assertEquals(80 * 1024, finals[1].pcm.size)
+    }
+    @Test fun terminalEventsInDifferentOrdersRetainBothSentencesAcrossABreath() {
+        val output = mutableListOf<LiveUpdate>()
+        val events = RealtimeEvents(Side.FRENCH, output::add)
+        fun send(raw: String) = events.accept(raw)
+        for (id in listOf("a", "b")) {
+            send("""{"type":"input_audio_buffer.speech_started","item_id":"$id","audio_start_ms":${if (id == "a") 100 else 1900}}""")
+            send("""{"type":"conversation.item.input_audio_transcription.text","item_id":"$id","language":"fr","text":"phrase $id","stash":""}""")
+            send("""{"type":"response.created","response":{"id":"r$id"}}""")
+        }
+        // A final ASR event can omit metadata already supplied in its live preview.
+        send("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"a","transcript":"phrase a"}""")
+        send("""{"type":"response.done","response":{"id":"ra","status":"completed"}}""")
+        send("""{"type":"response.text.done","response_id":"rb","text":"第二句"}""")
+        send("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"b","language":"fr","transcript":"phrase b"}""")
+        send("""{"type":"response.done","response":{"id":"rb","status":"completed"}}""")
+        send("""{"type":"response.text.done","response_id":"ra","text":"第一句"}""")
+        assertEquals(mapOf("a" to "第一句", "b" to "第二句"), output.filterIsInstance<LiveUpdate.Finished>().associate { it.id to it.target })
+    }
     private fun events(side: Side, language: String, finishSourceLate: Boolean): List<LiveUpdate> {
         val output = mutableListOf<LiveUpdate>()
         val bridge = RealtimeEvents(side) { output += it }

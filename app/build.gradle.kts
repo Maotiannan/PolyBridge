@@ -21,6 +21,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { compose = true; buildConfig = true }
+    // The sideloaded APK supports all ABIs. Compress native libraries and let Android extract its own ABI.
+    packaging { jniLibs.useLegacyPackaging = true }
     testOptions.unitTests {
         isIncludeAndroidResources = true
         all { it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2") }
@@ -30,6 +32,7 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 dependencies {
     implementation(project(":core"))
     implementation(project(":provider:qwen"))
+    implementation(libs.onnxruntime)
     implementation(platform(libs.compose.bom))
     implementation(libs.activity.compose)
     implementation(libs.compose.ui)

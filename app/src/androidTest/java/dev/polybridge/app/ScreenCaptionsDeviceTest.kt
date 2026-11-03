@@ -95,7 +95,7 @@ class ScreenCaptionsDeviceTest {
             waitFor("独立样本播放器没有启动") { find(fixture) { it.text?.toString() == "独立媒体播放器" } != null }
             openProjectLauncher()
             app.settings.captionApp(fixture)
-            check(app.store.chat.value.turns.size < 97) { "测试需要三条空闲历史位置" }
+            check(app.store.chat.value.turns.size < 94) { "测试需要六条空闲历史位置" }
             click(own, "屏幕字幕")
             waitFor("样本应用未显示") { find(own) { it.text?.toString() == "PolyBridge 字幕样本" } != null }
             click(own, "从应用播放中采集")
@@ -109,6 +109,9 @@ class ScreenCaptionsDeviceTest {
             click(fixture, "播放禁止共享的样本")
             SystemClock.sleep(3200)
             assertTrue(app.live.view.value.turnIds.isEmpty())
+            click(fixture, "播放纯雨声")
+            SystemClock.sleep(8500)
+            assertTrue("纯雨声生成了原文或译文", app.live.view.value.turnIds.isEmpty() && app.live.view.value.drafts.isEmpty())
             for ((label, side) in listOf("播放法语样本" to Side.FRENCH, "播放中文样本" to Side.CHINESE)) {
                 click(fixture, label)
                 val until = SystemClock.elapsedRealtime() + 30000
@@ -133,6 +136,19 @@ class ScreenCaptionsDeviceTest {
             }
             assertEquals(2, app.live.view.value.turnIds.size)
             assertFalse(app.live.view.value.speaking)
+            val previousIds = app.live.view.value.turnIds.toSet()
+            click(fixture, "播放换气长语音")
+            waitFor("长语音换气前后的原文和译文都应保存", 40000) {
+                val lines = app.store.chat.value.turns.filter { it.live?.captureId == id && it.id !in previousIds }
+                val source = lines.joinToString(" ") { it.sourceText }.lowercase()
+                val target = lines.joinToString(" ") { it.translatedText }
+                source.indexOf("billet") >= 0 && source.indexOf("gare") > source.indexOf("billet") &&
+                    target.indexOf("票") >= 0 && target.indexOf("站") > target.indexOf("票")
+            }
+            click(own, "查看字幕全文")
+            waitFor("悬浮全文缺少换气后的内容") {
+                find(own) { node -> node.text?.toString()?.let { "票" in it && "站" in it && it.contains("gare", true) } == true } != null
+            }
             click(own, "停止屏幕字幕")
             waitFor("未释放共享会话", 18000) { app.store.active.value == null && find(own) { it.contentDescription?.toString() == "停止屏幕字幕" } == null }
         } finally {

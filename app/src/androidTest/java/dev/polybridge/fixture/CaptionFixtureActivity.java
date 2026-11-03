@@ -27,6 +27,8 @@ public class CaptionFixtureActivity extends Activity {
         add(root, "播放法语样本", "tickets-fr", true);
         add(root, "播放中文样本", "station-zh", true);
         add(root, "播放禁止共享的样本", "tickets-fr", false);
+        add(root, "播放纯雨声", "rain/1-21189-A-10.wav", true);
+        add(root, "播放换气长语音", "rain/breathing-fr.wav", true);
         setContentView(root);
     }
 
@@ -36,8 +38,10 @@ public class CaptionFixtureActivity extends Activity {
         button.setOnClickListener(view -> {
             release();
             try {
-                Context owner = createPackageContext("dev.polybridge.app", 0);
-                try (AssetFileDescriptor asset = owner.getAssets().openFd("phrasebook/" + name + ".wav")) {
+                boolean testAsset = name.startsWith("rain/");
+                Context owner = testAsset ? this : createPackageContext("dev.polybridge.app", 0);
+                String path = testAsset ? name : "phrasebook/" + name + ".wav";
+                try (AssetFileDescriptor asset = owner.getAssets().openFd(path)) {
                     player = new MediaPlayer();
                     player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).setAllowedCapturePolicy(

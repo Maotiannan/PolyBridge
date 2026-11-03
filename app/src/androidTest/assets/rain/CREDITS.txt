@@ -1,0 +1,11 @@
+Rain fixtures from ESC-10, curated by Karol J. Piczak (CC BY 3.0).
+https://github.com/karolpiczak/ESC-50/blob/33c8ce9eb2cf0b1c2f8bcf322eb349b6be34dbb6/LICENSE
+https://creativecommons.org/licenses/by/3.0/
+
+Louisiana Rain 1.wav by uberhuberman, original recording CC0:
+https://freesound.org/people/uberhuberman/sounds/21189/
+rain_on_greenhouse.mp3 by j1987, original recording CC0:
+https://freesound.org/people/j1987/sounds/73027/
+
+The two five-second excerpts are resampled to 16 kHz. breathing-fr.wav
+mixes rain with two PolyBridge French phrasebook recordings and a synthesized breath.

@@ -4,7 +4,7 @@
 
 Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动耳机重播，以及改完两栏文字后播放新译文。自由监听支持按实际译音识别回声和打断。微信和 WhatsApp 的通话上下行、双耳机同时收发仍需独立验收。[各功能实测范围](docs/NEXT_TASKS.md)
 
-0.5.1 调整了自由监听对播报回声的处理。背景声持续、扬声器返回的声音大小变化时，应用会按新音量重新估计回声。外放和耳机由系统媒体音量键控制。
+0.5.2 在手机上先区分人声与雨声，再把人声交给千问。一次监听里的原文和译文按说话顺序保存，换气或分段后可以回看开头。在其他应用上点浮窗的「全文」即可往前翻。[已测声音与真机待验项](docs/NEXT_TASKS.md)
 
 ## 从这里开始
 
@@ -12,8 +12,8 @@ Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动�
 2. 按住「中文」或「Français」说一句，松手后看双语字幕。手指可以在键上移动，上滑到取消区会变红，在红区松手取消，移回按钮再松手发送。展开后底部留有手势空区。面对面默认使用沉浸模式，可在设置里关闭。打字、纠错和手动重播都在对话页。
 3. 在「常用表达」选见面、沟通、出行或用餐。12 组表达的中法录音随包安装，离线可听。「历史」在内屏并排显示双语。点「新对话」保留历史、换一页继续聊。点「清空历史」一次移除所有对话，六秒内可撤销。
 4. 在「设置」可选手机或蓝牙麦克风、自动朗读和对面朝向。「设备诊断」可测十秒收音、单独播放测试音、对指定应用申请播放共享、导出 JSON 或 Markdown 报告。诊断只保存音频统计，测试音及诊断录音不会发给千问。
-5. 在「自由监听」点「开始监听」，两人可以轮流说中文或法语。结束按钮上的音量条跟着麦克风输入变化。监听页保持亮屏，译音播放时可以打断。离开此页或手动锁屏会结束麦克风监听。
-6. 要听其他应用，打开「屏幕字幕」。检查声音来源，点「从应用播放中采集」。首次使用允许 PolyBridge 显示悬浮窗，每次按系统提示共享选定的应用。播放语音或视频即可看到原文和另一种语言的译文。字幕条的标题可以上下拖动，点「停止」立即关窗。只采集所选应用允许共享的媒体声音，不会采集画面。遇到禁止共享的音频，应用会提示没有收到声音。[安卓播放采集规则](https://developer.android.com/media/platform/av-capture)
+5. 在「自由监听」点「开始监听」，两人可以轮流说中文或法语，译音播放时可以打断。结束按钮上的音量条反映麦克风实际听到的声音，有雨声时也可能起伏。应用自动过滤背景声。监听页可向前翻看本次原文和译文，停止后仍可回看。离开此页或手动锁屏会结束麦克风监听。
+6. 要听其他应用，打开「屏幕字幕」，选好声音来源，点「从应用播放中采集」。首次使用允许悬浮窗，每次按系统提示共享选定的应用。字幕条随语音更新，点「全文」可前后翻看中法对照。拖动标题可挪动字幕，点「停止」立即关窗，返回字幕页可读本次全文。系统只提供来源应用允许共享的媒体声音，遇到限制时应用会提示没有收到声音。[安卓播放采集规则](https://developer.android.com/media/platform/av-capture)
 7. 音量用手机的媒体音量键调节。默认开启「中法分开播放」。连接耳机后，法语从机身扬声器播放给对面的人，中文从耳机播放。在「我的耳机」可分别指定说话用的麦克风与两种译音的耳机。指定的接收耳机未匹配时，应用显示字幕并静音。设置显示系统上次报告的实际播放设备。
 8. 在「中文转法语」按住说中文、松手看法语。可以点「在本机播放法语」，也可以手动分享法语语音文件。普通电话、微信和 WhatsApp 通话的对端目前不能直接听到本机的合成法语。0.5.0 已移除翻译输入法和选择录音文件的入口。
 
@@ -37,7 +37,7 @@ adb -d install -r app/build/outputs/apk/debug/app-debug.apk
 adb -d shell am start -n dev.polybridge.app/.MainActivity
 ```
 
-默认设备测试检查启动与只读状态，并列出输入端口。需要自动实测收音时，先在应用内授权麦克风，再明确执行下面的命令。测试会打开可见界面和前台采样通知，十秒后在命令输出中返回脱敏 JSON。加上 `-e inputPort 编号` 可指定耳机，编号来自本次设备枚举。系统播放共享仍需逐次点选授权。
+默认设备测试检查启动、输入端口，并用隔离的记录和固定的声音样本验证监听。需要实测麦克风时，先在应用内授权，再执行下面的命令。测试会打开可见界面和前台采样通知，十秒后在命令输出中返回脱敏 JSON。加上 `-e inputPort 编号` 可指定耳机，编号来自本次设备枚举。系统播放共享仍需逐次点选授权。
 
 ```powershell
 adb -d install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
@@ -76,6 +76,13 @@ adb -e shell am instrument -w -r -e testDuplex true -e duplexDurationMs 900000 -
 
 版本目录 `gradle/libs.versions.toml` 的同一版本号生成安装包版本、系统排序编号和设置中的版本。
 
+0.5.2 的离线回归会向自由监听和应用采集两个入口送入真实雨声、人声和换气停顿，检查送往识别的音频、字幕顺序、重连和重新打开后的记录。第一条使用隔离模拟器。第二条在配置千问的手机上使用固定样本验证自由监听，测试期间不外放。上面的 `cloudCaptions` 则通过独立应用的真实播放共享验证雨声和整段法语字幕。
+
+```powershell
+adb -e shell am instrument -w -r -e class dev.polybridge.app.StreamingListeningRegressionTest dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+adb -d shell am instrument -w -r -e class dev.polybridge.app.StreamingListeningRegressionTest#realQwenIgnoresRainAndTranslatesTheEntireBreathFixture -e cloudRain true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+```
+
 已获机主授权的 USB 联调可由调试端代点本项目的可见按钮。这台 Fold5 已验证可以自动选择「共享当前应用」并开始一次测试。长时间联调可临时开启 USB 供电亮屏，结束时恢复原设置。安全锁要求密码或生物识别时，由机主在手机上解锁。
 
 ## 文档导航
@@ -83,4 +90,5 @@ adb -e shell am instrument -w -r -e testDuplex true -e duplexDurationMs 900000 -
 - [需求原文](PRD_XFold5_Translation_App_v1.0.md) · [原始启动说明](CODEX_START_PROMPT.md)
 - [实施计划](docs/IMPLEMENTATION_PLAN.md) · [模块与数据流](docs/ARCHITECTURE.md) · [决策记录](docs/DECISION_LOG.md)
 - [真机兼容性](docs/DEVICE_COMPATIBILITY.md) · [音频测试矩阵](docs/AUDIO_PROBE_MATRIX.md)
+- [人声检测模型与测试录音来源](docs/AUDIO_ASSETS.md)
 - [验收进度与下一步](docs/NEXT_TASKS.md) · [版本记录](CHANGELOG.md)

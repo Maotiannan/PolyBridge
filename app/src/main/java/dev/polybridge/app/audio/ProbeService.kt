@@ -76,7 +76,7 @@ class ProbeService : Service() {
     }
 
     private fun stopSession(request: ProbeRequest) {
-        if (request.kind == Kind.CAPTIONS) {
+        if (request.kind.streaming) {
             captions?.close()
             if (request.sampling.value) { request.end.compareAndSet(null, End.RELEASED); return }
         }

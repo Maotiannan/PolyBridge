@@ -23,7 +23,8 @@ enum class Region(val label: String, private val regionalHost: String, private v
 data class QwenOptions(val region: Region = Region.BEIJING, val workspace: String = "",
     val asrModel: String = "qwen3-asr-flash", val translationModel: String = "qwen-mt-flash",
     val voiceModel: String = "qwen3-tts-flash", val voice: String = "Cherry",
-    val liveModel: String = "qwen3.5-livetranslate-flash-realtime")
+    val liveModel: String = "qwen3.5-livetranslate-flash-realtime",
+    val conversationPauseMs: Int = 1200, val mediaPauseMs: Int = 1800)
 
 class QwenSpeech internal constructor(private val key: String, private val endpoint: URL,
     private val options: QwenOptions = QwenOptions()) : SpeechTranslation, VoiceSynthesis {
