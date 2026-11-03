@@ -58,6 +58,27 @@ class DuplexAudioTest {
         }
     }
 
+    @Test fun backgroundHumAndAChangingEchoLevelDoNotSendThePlaybackBackToRecognition() {
+        val pcm = speech("train-zh")
+        val echo = PlaybackEcho(212.0).apply { start(pcm) }
+        var original = 0.0
+        var leaked = 0.0
+        for (t in 0 until pcm.size / 48 + 150 step 20) {
+            if (t % 100 == 0) echo.position(t, t.toLong())
+            val far = IntArray(320) { i -> (sample(pcm, (t - 100) * 24 + i * 3 / 2) * (if (t < 700) .48 else .12)).toInt() }
+            val input = ShortArray(320) { i -> (far[i] + 300 * sin((t * 16 + i) * 2 * PI * 140 / 16000)).toInt().toShort() }
+            echo.filter(input, input.size, 16000, t + 20L)
+            if (t < 700) continue
+            for (i in far.indices) {
+                original += far[i].toDouble() * far[i]
+                if (echo.weakVoice) leaked += abs(input[i].toDouble() * far[i])
+            }
+        }
+        val fraction = leaked / original
+        println("background-hum correlated playback fraction=$fraction")
+        assertTrue("correlated playback sent as speech=$fraction", fraction < .045)
+    }
+
     @Test fun lowRoomNoiseUnderPlaybackIsKeptOutOfRecognitionAndNewSpeechSurvivesTheTail() {
         val noise = RoomNoise()
         val fan = ShortArray(320) { (sin(it * 2 * PI * 300 / 16000) * 420).toInt().toShort() }

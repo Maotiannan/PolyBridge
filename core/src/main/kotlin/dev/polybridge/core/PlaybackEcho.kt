@@ -101,12 +101,18 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
         // The Android playhead is quantized and can jump when a Bluetooth route settles. The
         // matching waveform and its acoustic gain survive that jump; the old numeric delay does not.
         val plausibleGain = abs(scale - pathGain) <= max(.025, abs(pathGain) * .55)
-        val consistent = previous == null || (plausibleGain && (abs(delay - previous) <= 32 || fraction >= .87))
-        if (fraction >= .90 && consistent && abs(scale) <= 2.0) {
+        val room = backgroundRms * 1.25 + 18
+        val roomPower = room * room * n
+        // The output level may change while the acoustic path stays in place. Relearn its gain
+        // when the same delayed waveform accounts for everything above the measured room noise.
+        val samePath = previous != null && abs(delay - previous) <= 32 && fraction >= .55 && power - best <= roomPower
+        val consistent = previous == null || samePath || fraction >= .98 ||
+            (plausibleGain && (abs(delay - previous) <= 32 || fraction >= .87))
+        if ((fraction >= .90 && consistent || samePath) && abs(scale) <= 2.0) {
             pathDelay = delay
             matchedAt = nowMs
             matchedOffset = bestOffset
-            pathGain = if (previous == null) scale else .8 * pathGain + .2 * scale
+            pathGain = if (previous == null || !plausibleGain) scale else .8 * pathGain + .2 * scale
             // Learn one reflected path from the remainder only on a frame dominated by our own voice.
             var residualPower = 0.0
             for (i in 0 until n) {
@@ -127,7 +133,7 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
                 }
             }
         }
-        val offset = if (consistent && fraction >= .75) bestOffset else predicted
+        val offset = if (samePath || consistent && fraction >= .75) bestOffset else predicted
         var remainder = power
         if (pathDelay != null) {
             remainder = 0.0
@@ -141,7 +147,8 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
             }
         }
         val floor = max(90.0, backgroundRms * 1.65 + 18)
-        val matchedEcho = pathDelay != null && (remainder < power * .12 || (consistent && fraction >= .92))
+        val knownEchoAboveNoise = remainder <= roomPower && remainder < power * .75
+        val matchedEcho = pathDelay != null && (remainder < power * .12 || consistent && fraction >= .92 || knownEchoAboveNoise)
         // Quiet vowels can sit below the local interruption threshold. Send their residual to ASR
         // so a new language/utterance can still take the floor. A steady tone alone is insufficient.
         weakVoice = !matchedEcho && rms >= max(42.0, backgroundRms * .65) && voicedShape(n, rms)

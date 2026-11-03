@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-03",
+  "version": "0.5.1",
+  "versionCode": 5001,
+  "appSha256": "5f961b4995a66d0df38e56659445854cc1a7c0fa09b6a554e373b6645bc56d29",
+  "testAppSha256": "c384158196c89f541f32a3800cead98440ccf820794eefb79f89c191131a7394",
+  "v2VerifiedAndMatchedIsolatedDevice": true,
+  "host": {
+    "coreTests": 19,
+    "providerTests": 5,
+    "appTests": 21,
+    "failures": 0,
+    "androidLintErrors": 0,
+    "androidLintWarnings": 29
+  },
+  "changingAcousticGainRegression": {
+    "fixture": "train-zh.wav, 16 kHz mic input, 100 ms delayed playback, 140 Hz hum with PCM amplitude 300, acoustic gain changed from 0.48 to 0.12 at 700 ms",
+    "metric": "Absolute projection of retained samples on the known playback, normalized by the echo's energy after the level change. This is not a transcription accuracy or loudness metric.",
+    "before": 1.0174645952679007,
+    "after": 0.018305192062295774,
+    "passBelow": 0.045
+  },
+  "isolatedAndroid15": {
+    "input": "Known overlapping recordings, real Android playback, deterministic translation events",
+    "defaultAndEnabledSuite": {"discovered": 24, "executed": 11, "skippedByExplicitDeviceOrCloudRequirement": 13, "failures": 0},
+    "additionalChecks": ["compact dialog saved with IME open", "expanded dialog saved with IME open", "expanded hold controls and live meter"],
+    "threeConsecutiveDuplexRuns": [
+      {"frStopMs": 244, "zhStopMs": 383, "frResidualEchoPowerFraction": 0.0000001249, "zhResidualEchoPowerFraction": 0.01532},
+      {"frStopMs": 241, "zhStopMs": 383, "frResidualEchoPowerFraction": 0.0000001249, "zhResidualEchoPowerFraction": 0.00974},
+      {"frStopMs": 243, "zhStopMs": 382, "frResidualEchoPowerFraction": 0.01398, "zhResidualEchoPowerFraction": 0.00974}
+    ],
+    "retainedOpeningInBothDirections": true
+  },
+  "fold5": {
+    "installedAndConfirmedVersionAtDisconnection": "0.5.0",
+    "realCloudRerunOfThisPatch": "pending USB reconnection",
+    "naturalConversation": "unverified"
+  }
+}
