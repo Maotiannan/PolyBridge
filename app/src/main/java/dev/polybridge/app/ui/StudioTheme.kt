@@ -100,6 +100,8 @@ internal enum class Mark(val path: String) {
 
 internal enum class Page(val title: String, val mark: Mark) {
     TALK("对话", Mark.TALK), BOOK("常用表达", Mark.BOOK), HISTORY("历史", Mark.HISTORY),
+    LIVE("自由监听", Mark.AUDIO), CALL("通话辅助", Mark.TALK),
+    TOOLS("工具", Mark.TYPE),
     SETTINGS("设置", Mark.SETTINGS), DIAGNOSTICS("设备诊断", Mark.AUDIO)
 }
 
@@ -126,13 +128,13 @@ internal enum class Page(val title: String, val mark: Mark) {
     HorizontalDivider(color = Line)
     Row(Modifier.fillMaxWidth().heightIn(min = 59.dp).padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly) {
-        for (page in listOf(Page.TALK, Page.BOOK, Page.HISTORY)) {
+        for (page in listOf(Page.TALK, Page.BOOK, Page.HISTORY, Page.TOOLS)) {
             val selected = page == current
             Row(Modifier.weight(1f).heightIn(min = 48.dp).clip(CircleShape)
                 .clickable(role = Role.Tab) { navigate(page) }, verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center) {
                 Row(Modifier.background(if (selected) Mint else Color.Transparent, CircleShape)
-                    .padding(horizontal = 11.dp, vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    .padding(horizontal = 5.dp, vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Glyph(page.mark, if (selected) Forest else Muted, 18.dp)
                     Text(page.title, color = if (selected) Forest else Muted, fontSize = 13.sp,

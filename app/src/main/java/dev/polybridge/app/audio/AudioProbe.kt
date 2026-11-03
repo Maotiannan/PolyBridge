@@ -7,6 +7,7 @@ import android.media.*
 import android.media.projection.MediaProjection
 import android.os.SystemClock
 import dev.polybridge.app.ProbeRequest
+import dev.polybridge.app.PolyBridgeApp
 import dev.polybridge.core.*
 import kotlin.math.PI
 import kotlin.math.sin
@@ -18,7 +19,9 @@ interface AudioOutputSink {
     fun play(preferredId: Int?, stopped: () -> Boolean): ToneResult
 }
 
-class AndroidAudioInput(private val context: Context, private val onUtterance: ((ByteArray) -> Unit)? = null) : AudioInputSource {
+class AndroidAudioInput(private val context: Context,
+    private val onFrame: ((ShortArray, Int, Int) -> Unit)? = null,
+    private val onUtterance: ((ByteArray) -> Unit)? = null) : AudioInputSource {
     override fun measure(request: ProbeRequest, projection: MediaProjection?, onStarted: () -> Unit): ProbeEntry {
         fun ended(): ProbeEntry? = request.end.get()?.let {
             request.empty(assess(SignalStats(), 0, null, it))
@@ -30,7 +33,7 @@ class AndroidAudioInput(private val context: Context, private val onUtterance: (
             it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || it.type == AudioDeviceInfo.TYPE_BLE_HEADSET
         }?.let { HeadsetRoute(context.getSystemService(AudioManager::class.java), it) }
         return try {
-            val config = if (request.kind == Kind.PLAYBACK) {
+            val config = if (request.kind.playbackCapture) {
                 if (projection == null) return request.empty(Verdict.DENIED, "NO_PROJECTION")
                 val pkg = request.target.packageName ?: context.packageName
                 val uid = context.packageManager.getApplicationInfo(pkg, 0).uid
@@ -82,9 +85,11 @@ class AndroidAudioInput(private val context: Context, private val onUtterance: (
 
     private fun capture(record: AudioRecord, request: ProbeRequest, onStarted: () -> Unit): ProbeEntry {
         val hold = request.kind == Kind.HOLD
-        val duration = if (hold) 30_000L else 10_000L
+        val message = request.kind == Kind.MESSAGE
+        val live = request.kind == Kind.LISTEN
+        val duration = when { live -> 60 * 60_000L; message -> 60_000L; hold -> 30_000L; else -> 10_000L }
         val meter = SignalMeter()
-        val clip = if (hold && onUtterance != null) MonoWave(record.sampleRate) else null
+        val clip = if ((hold || message) && onUtterance != null) MonoWave(record.sampleRate, if (message) 60 else 30) else null
         val buffer = ShortArray(record.sampleRate / 50)
         var route: Route? = null
         var systemSilenced: Boolean? = null
@@ -114,14 +119,16 @@ class AndroidAudioInput(private val context: Context, private val onUtterance: (
             if (read == 0) SystemClock.sleep(8) else {
                 meter.add(buffer, read)
                 clip?.append(buffer, read)
+                if (live && (request.inputId == null || request.inputId == route?.portId) && systemSilenced != true)
+                    onFrame?.invoke(buffer, read, record.sampleRate)
             }
         }
         val elapsed = SystemClock.elapsedRealtime() - start
         val stats = meter.snapshot()
-        val expected = if (hold) record.sampleRate / 10L else record.sampleRate * duration / 1000
+        val expected = if (hold || live || message) record.sampleRate / 10L else record.sampleRate * duration / 1000
         val signal = assess(stats, expected, systemSilenced, request.end.get() ?: end)
         val verdict = qualifyRoute(signal, request.inputId, route)
-        if (clip != null && verdict == Verdict.SIGNAL && request.end.get() == End.RELEASED) onUtterance?.invoke(clip.bytes())
+        if (clip != null && verdict == Verdict.SIGNAL && (message || request.end.get() == End.RELEASED)) onUtterance?.invoke(clip.bytes())
         return request.empty(verdict, reason).copy(inputRoute = route, sampleRateHz = record.sampleRate,
             channels = record.channelCount, elapsedMs = elapsed, signal = stats, systemSilenced = systemSilenced)
     }
@@ -147,12 +154,15 @@ class AndroidTestTone(private val context: Context) : AudioOutputSink {
                 .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
             .setTransferMode(AudioTrack.MODE_STATIC).setBufferSizeInBytes(samples.size * 2).build()
         try {
+            val adjust = PlaybackRouting(context, (context.applicationContext as PolyBridgeApp).settings).prepare(track)
             val preferred = preferredId?.let { id -> availablePorts(context).find { it.id == id && it.isSink } }
             val usable = preferredId == null || (preferred != null && track.setPreferredDevice(preferred))
             if (usable && !stopped() && track.write(samples, 0, samples.size) == samples.size) {
                 track.play()
+                adjust()
                 val start = SystemClock.elapsedRealtime()
                 while (!stopped() && SystemClock.elapsedRealtime() - start < 1500) {
+                    if (route == null) adjust()
                     optionalAudioInfo { track.routedDevice?.route() }?.let { route = it }
                     val frames = track.playbackHeadPosition
                     if (frames > 0) played = true

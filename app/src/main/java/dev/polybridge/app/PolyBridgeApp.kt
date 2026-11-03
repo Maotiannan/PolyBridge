@@ -9,12 +9,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import dev.polybridge.app.audio.TranslatedAudioShare
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 
 class PolyBridgeApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        CoroutineScope(Dispatchers.IO).launch { TranslatedAudioShare(this@PolyBridgeApp).clean() }
+    }
     val store by lazy { ProbeStore(this) }
     val settings by lazy { TranslationSettings(this) }
+    internal val live by lazy { dev.polybridge.app.audio.LiveDesk(this, store, settings) }
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val translator by lazy { ConversationTranslator(store, CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(2)), settings::provider) }
 }

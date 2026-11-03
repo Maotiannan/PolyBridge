@@ -3,7 +3,10 @@ package dev.polybridge.core
 import kotlin.math.abs
 import kotlin.math.log10
 
-enum class Kind(val label: String) { MICROPHONE("麦克风"), PLAYBACK("应用播放"), HOLD("按住说话") }
+enum class Kind(val label: String) {
+    MICROPHONE("麦克风"), PLAYBACK("应用播放"), HOLD("按住说话"), LISTEN("自由监听"), MESSAGE("语音消息");
+    val playbackCapture get() = this == PLAYBACK || this == MESSAGE
+}
 enum class PlaybackTarget(val label: String, val packageName: String?) {
     SELF("应用测试音", null), WECHAT("微信", "com.tencent.mm"),
     WHATSAPP("WhatsApp", "com.whatsapp"), WHATSAPP_BUSINESS("WhatsApp Business", "com.whatsapp.w4b")

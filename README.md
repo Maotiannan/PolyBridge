@@ -2,7 +2,7 @@
 
 面向 vivo X Fold5、OriginOS 6 的个人中法翻译应用。打开就是面对面对话。合屏时两种语言的说话键并排放在拇指附近；展开后法语和中文各占一半，分别朝向对坐的人。可以说话、打字、核对原文、修改译文和重播。
 
-0.1.1 已在一台 OriginOS 6 的 X Fold5 上验证机身麦克风、单副蓝牙耳机麦克风和本应用测试音的播放捕获。微信和 WhatsApp 的通话音频仍待分别验证。[真机验收矩阵](docs/AUDIO_PROBE_MATRIX.md)
+Fold5 已实测机身和单副蓝牙耳机收音、面对面双向千问翻译，以及自由监听的四句中法交替语音。新版增加自由监听断线恢复、语音消息工具、翻译键盘和耳机分配。微信和 WhatsApp 的通话声音需分别在两端验收。[设备与版本验收](docs/NEXT_TASKS.md)
 
 ## 从这里开始
 
@@ -10,6 +10,10 @@
 2. 按住「中文」或「Français」说一句，松手后看双语字幕。滑出按键可取消。也可以点「打字」直接翻译。点「纠错」可重新翻译原文或单独修改译文，「重播」会读出当前译文。
 3. 在「常用表达」选见面、沟通、出行或用餐。12 组表达的中法录音随包安装，离线可听。在「历史」点「开始新对话」可清空当前桌面，已有记录保留在手机。
 4. 在「设置」可选手机或蓝牙麦克风、自动朗读和对面朝向。「设备诊断」可测十秒收音、单独播放测试音、对指定应用申请播放共享、导出 JSON 或 Markdown 报告。诊断只保存音频统计，测试音及诊断录音不会发给千问。
+5. 点「自由监听」后，两人可以轮流说中文或法语。点「开始监听」才会把声音发往千问。实时服务同时连接中、法两个翻译方向，使用个人账号额度。监听中的对话页保持亮屏，译音播放时可点「打断朗读」。离开此页或手动锁屏会结束收音。
+6. 「工具」可导入最长两分钟的语音，再点「开始翻译」。也可以在系统允许时采集微信或 WhatsApp 播放的语音消息，最长一分钟。译文可以复制，译音文件可以分享到其他应用。「翻译键盘」可在输入框里翻译选区或语音，校对后点「插入译文」。
+7. 「轻声外放」和「中法分开播放」默认开启。连接耳机后，法语低声外放给对面的人，中文沿用耳机音量。在「我的耳机」可分别指定说话用的麦克风与两种译音的耳机。指定的接收耳机未匹配时，应用显示字幕并静音。设置显示系统上次报告的实际播放设备。
+8. 「通话辅助」按应用显示已安装版本，可翻译并复制文字回复。来电声音获取、译音送达远端和双耳机同时收音仍在验收清单中。
 
 ## 构建与自动化接口测试
 
@@ -40,6 +44,13 @@ adb -d shell am instrument -w -e class dev.polybridge.app.DiagnosticsInstrumente
 
 ```powershell
 adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.LiveTranslationTest -e liveQwen true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+已授权的同一台设备上，以下接口可独立复测自由监听、语音导入和键盘。第一条调用真实云服务，间隔 44 秒重复 20 句约需 16 分钟。键盘测试只操作本应用自己的编辑框，结束后恢复原输入法。
+
+```powershell
+adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.LiveListeningTest -e liveListen true -e turns 20 -e gapMs 44000 dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.VoiceToolsDeviceTest -e liveQwen true -e testKeyboard true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
 版本目录 `gradle/libs.versions.toml` 的同一版本号生成安装包版本、系统排序编号和设置中的版本。

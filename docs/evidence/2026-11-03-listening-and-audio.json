@@ -1,0 +1,46 @@
+{
+  "testedOn": "2026-11-03",
+  "model": "qwen3.5-livetranslate-flash-realtime",
+  "input": "Bundled bilingual tickets and station recordings, streamed as timed 16 kHz PCM",
+  "phoneShortSession": {
+    "device": "vivo X Fold5",
+    "appVersion": "0.3.0",
+    "elapsedMs": 12045,
+    "captionUpdates": 102,
+    "completed": [
+      {"source": "我想买两张票。", "target": "Je voudrais acheter deux billets.", "audioBytes": 69120},
+      {"source": "Je voudrais deux billets.", "target": "我想要两张票。", "audioBytes": 65280},
+      {"source": "请问火车站在哪里？", "target": "Où se trouve la gare, s'il vous plaît ?", "audioBytes": 107520},
+      {"source": "Excusez-moi, où est la gare?", "target": "不好意思，请问车站在哪里？", "audioBytes": 126720}
+    ]
+  },
+  "phoneLongSessionBeforeReconnectFix": {"appVersion": "0.3.0", "testRunSeconds": 330.788, "terminalIssue": "NETWORK"},
+  "phoneLongSessionAfterReconnectFix": {
+    "appVersion": "0.3.1", "elapsedMs": 1821578, "completed": 20, "distinctUtterances": 20, "captionUpdates": 448,
+    "chineseToFrench": 10, "frenchToChinese": 10, "orderedDirectionsMatched": true,
+    "reconnectAttemptNumbers": [1, 1, 1], "screenLockedAndUnlockedDuringRun": true,
+    "hardwareMicrophone": false, "localPlayback": false
+  },
+  "hostLongSessionAfterReconnectFix": {
+    "elapsedMs": 961147, "completed": 20, "captionUpdates": 451,
+    "chineseToFrench": 10, "frenchToChinese": 10, "orderedDirectionsMatched": true, "reconnects": 0,
+    "hardwareMicrophone": false, "localPlayback": false
+  },
+  "physicalMediaVolume": {"speakerIndex": 1, "speakerMaximum": 150, "bluetoothBefore": 35, "bluetoothAfter": 35, "bluetoothMaximum": 150},
+  "fold5PlaybackRoutes": {
+    "appVersion": "0.3.1", "sequentialPlaybacks": true, "fr-FR": {"deviceType": 2, "matched": true},
+    "zh-CN": {"deviceType": 8, "matched": true}, "speakerAfter": 1, "bluetoothAfter": 35,
+    "finalApkWithoutAvailableHeadset": {"fr-FR": 2, "zh-CN": 2, "speakerIndex": 1, "storedBluetoothIndex": 35}
+  },
+  "fold5VoiceTools": {
+    "testRunSeconds": 5.824, "passed": 3, "readOnlyAudioSharedAndDecoded": true,
+    "fileTranscription": "Je voudrais deux billets.", "fileTranslation": "我想要两张票。",
+    "editedImeCandidate": "Bonjour, deux billets.", "insertedIntoAppEditor": true, "originalImeRestored": true
+  },
+  "isolatedAndroid35": {"checked": 6, "passed": 6, "cloudOrHardwareOptInsSkipped": 8, "userCloudKeyOnVm": false},
+  "releaseApkSha256": "b767e648171e331143972c72caab156ea7382d66447342b3c46cb21505ba407b",
+  "testApkSha256": "29dda3f7639daf8a7ae6bf07ab5f08ec5b26904f6704dd7777e518994e5ad2f3",
+  "installedApkHashesMatch": true,
+  "usbStayAwakeRestored": true,
+  "remainingPhysicalChecks": ["two-person natural speech with barge-in and acoustic echo", "headset disconnects during active playback", "two independent headsets", "separate WeChat and WhatsApp call endpoints"]
+}

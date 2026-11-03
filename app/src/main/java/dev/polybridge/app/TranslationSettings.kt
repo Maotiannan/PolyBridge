@@ -16,16 +16,31 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 enum class Microphone(val label: String) { AUTO("系统自动选择"), PHONE("手机麦克风"), HEADSET("蓝牙耳机麦克风") }
-data class TranslatorSettings(val configured: Boolean, val cloud: QwenOptions, val autoSpeak: Boolean, val opposed: Boolean, val mic: Microphone)
+data class TranslatorSettings(val configured: Boolean, val cloud: QwenOptions, val autoSpeak: Boolean, val opposed: Boolean,
+    val mic: Microphone, val quietSpeaker: Boolean, val splitPlayback: Boolean)
 
 class TranslationSettings(context: Context) {
+    internal val headsets by lazy { dev.polybridge.app.audio.HeadsetPreferences(context.applicationContext) }
     private val prefs = context.getSharedPreferences("translator", Context.MODE_PRIVATE)
     private fun snapshot() = TranslatorSettings(prefs.contains("credential"),
         QwenOptions(runCatching { Region.valueOf(prefs.getString("region", "")!!) }.getOrDefault(Region.BEIJING),
             prefs.getString("workspace", "").orEmpty()), prefs.getBoolean("autoSpeak", true), prefs.getBoolean("opposed", true),
-        runCatching { Microphone.valueOf(prefs.getString("mic", "")!!) }.getOrDefault(Microphone.AUTO))
+        runCatching { Microphone.valueOf(prefs.getString("mic", "")!!) }.getOrDefault(Microphone.AUTO),
+        prefs.getBoolean("quietSpeaker", true), prefs.getBoolean("splitPlayback", true))
     private val values = MutableStateFlow(snapshot())
     val state = values.asStateFlow()
+    data class PlaybackObservation(val type: Int, val matchedPreference: Boolean?)
+    private val routes = MutableStateFlow<Map<String, PlaybackObservation>>(emptyMap())
+    val lastRoutes = routes.asStateFlow()
+    @Synchronized fun noteRoute(language: String?, type: Int, matched: Boolean?) {
+        if (language != null) routes.value = routes.value + (language to PlaybackObservation(type, matched))
+    }
+    @Synchronized fun quietSpeaker(enabled: Boolean) {
+        prefs.edit().putBoolean("quietSpeaker",enabled).apply(); values.value = snapshot()
+    }
+    @Synchronized fun splitPlayback(enabled: Boolean) {
+        prefs.edit().putBoolean("splitPlayback",enabled).apply(); values.value = snapshot()
+    }
 
     @Synchronized fun save(region: Region, workspace: String, newKey: String) {
         region.endpoint(workspace)

@@ -38,13 +38,13 @@ fun playableWave(bytes: ByteArray): ByteArray {
 }
 
 /** One user-held utterance, 16-bit signed little-endian mono, bounded to the recorder's limit. */
-class MonoWave(private val rate: Int) {
+class MonoWave(private val rate: Int, private val maxSeconds: Int = 30) {
     private val pcm = ByteArrayOutputStream()
-    init { require(rate in 8000..48000) }
+    init { require(rate in 8000..48000 && maxSeconds in 1..300) }
 
     fun append(samples: ShortArray, count: Int) {
         require(count in 0..samples.size)
-        val remaining = (rate * 30 - pcm.size() / 2).coerceAtLeast(0)
+        val remaining = (rate * maxSeconds - pcm.size() / 2).coerceAtLeast(0)
         val n = minOf(count, remaining)
         for (i in 0 until n) {
             val sample = samples[i].toInt()
@@ -53,14 +53,17 @@ class MonoWave(private val rate: Int) {
         }
     }
 
-    fun bytes(): ByteArray {
-        val size = pcm.size()
-        val buffer = ByteBuffer.allocate(44 + size).order(ByteOrder.LITTLE_ENDIAN)
-        fun tag(value: String) { buffer.put(value.toByteArray(Charsets.US_ASCII)) }
-        tag("RIFF"); buffer.putInt(36 + size); tag("WAVE"); tag("fmt ")
-        buffer.putInt(16); buffer.putShort(1); buffer.putShort(1); buffer.putInt(rate)
-        buffer.putInt(rate * 2); buffer.putShort(2); buffer.putShort(16)
-        tag("data"); buffer.putInt(size); buffer.put(pcm.toByteArray())
-        return buffer.array()
-    }
+    fun bytes(): ByteArray = waveFromPcm(rate, pcm.toByteArray())
+}
+
+/** Wrap an already bounded 16-bit mono recording without truncating a translated sentence. */
+fun waveFromPcm(rate: Int, pcm: ByteArray): ByteArray {
+    require(rate in 8000..48000 && pcm.size % 2 == 0)
+    val buffer = ByteBuffer.allocate(44 + pcm.size).order(ByteOrder.LITTLE_ENDIAN)
+    fun tag(value: String) { buffer.put(value.toByteArray(Charsets.US_ASCII)) }
+    tag("RIFF"); buffer.putInt(36 + pcm.size); tag("WAVE"); tag("fmt ")
+    buffer.putInt(16); buffer.putShort(1); buffer.putShort(1); buffer.putInt(rate)
+    buffer.putInt(rate * 2); buffer.putShort(2); buffer.putShort(16)
+    tag("data"); buffer.putInt(pcm.size); buffer.put(pcm)
+    return buffer.array()
 }

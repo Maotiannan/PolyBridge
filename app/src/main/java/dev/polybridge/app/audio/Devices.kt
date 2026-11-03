@@ -9,10 +9,21 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import dev.polybridge.core.Route
+import dev.polybridge.app.Microphone
+import dev.polybridge.app.PolyBridgeApp
 import kotlinx.coroutines.flow.MutableStateFlow
 
 fun availablePorts(context: Context): List<AudioDeviceInfo> = context.getSystemService(AudioManager::class.java)
     .getDevices(AudioManager.GET_DEVICES_INPUTS or AudioManager.GET_DEVICES_OUTPUTS).toList()
+
+internal fun preferredMic(ports: List<AudioDeviceInfo>, choice: Microphone, headsets: HeadsetPreferences): AudioDeviceInfo? = ports.firstOrNull {
+    it.isSource && when (choice) {
+        Microphone.AUTO -> false
+        Microphone.PHONE -> it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC
+        Microphone.HEADSET -> (it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || it.type == AudioDeviceInfo.TYPE_BLE_HEADSET) &&
+            headsets.matches(HeadsetRole.MICROPHONE, it.address)
+    }
+}
 
 fun AudioDeviceInfo.route() = Route(type, id)
 
@@ -31,7 +42,7 @@ fun typeLabel(type: Int): String = when (type) {
 }
 fun Route?.label(): String = this?.let { "${typeLabel(it.type)} #${it.portId}" } ?: "未观测"
 
-data class Headset(val name: String, val connected: Boolean?)
+data class Headset(val name: String, val connected: Boolean?, val identity: String? = null)
 data class Hardware(val ports: List<AudioDeviceInfo>, val paired: List<Headset>, val hasBluetoothAccess: Boolean)
 
 class DeviceMonitor(private val context: Context) {
@@ -69,12 +80,16 @@ class DeviceMonitor(private val context: Context) {
                 if (adapter?.getProfileProxy(context, listener, it) != true) requested.remove(it)
             }
             val connected = profiles.values.flatMap { it.connectedDevices }.toSet()
-            adapter?.bondedDevices.orEmpty().map { device ->
+            val headsets = (context.applicationContext as PolyBridgeApp).settings.headsets
+            adapter?.bondedDevices.orEmpty().filter { device ->
+                device in connected || device.bluetoothClass?.majorDeviceClass == BluetoothClass.Device.Major.AUDIO_VIDEO ||
+                    endpoints.any { headphoneType(it.type) && it.address.equals(device.address, ignoreCase = true) }
+            }.map { device ->
                 Headset(device.name ?: "已配对设备", when {
                     device in connected -> true
                     profiles.keys.containsAll(ids) -> false
                     else -> null
-                })
+                }, headsets.identity(device.address))
             }
         }.getOrDefault(emptyList()) else emptyList()
         state.value = Hardware(endpoints, paired, allowed)

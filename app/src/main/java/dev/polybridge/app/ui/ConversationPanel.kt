@@ -32,10 +32,17 @@ internal val Side.label get() = if (this == Side.CHINESE) "中文" else "França
 internal class TalkActions(val start: (Side) -> String?, val end: (String, Boolean) -> Unit,
     val speak: (Turn) -> Unit, val edit: (Turn) -> Unit, val type: (Side) -> Unit)
 
-@Composable internal fun CompactTalk(chat: Conversation, active: ProbeRequest?, actions: TalkActions, book: () -> Unit) {
+@Composable internal fun CompactTalk(chat: Conversation, active: ProbeRequest?, actions: TalkActions,
+    book: () -> Unit, live: () -> Unit, call: () -> Unit) {
     val visible = chat.currentTurns
     Column(Modifier.fillMaxSize()) {
-        PageHeading("FACE À FACE", "面对面")
+        Box(Modifier.fillMaxWidth()) {
+            PageHeading("FACE À FACE", "面对面")
+            Row(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)) {
+                TextButton(onClick = live) { Text("自由监听") }
+                TextButton(onClick = call) { Text("通话辅助") }
+            }
+        }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp)) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val showCover = visible.isEmpty() && maxHeight >= 260.dp
@@ -101,8 +108,11 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             Spacer(Modifier.width(10.dp)); Kicker("FACE À FACE", Leaf)
             Spacer(Modifier.weight(1f))
             ToolButton(Mark.FLIP, "翻转对面方向", flip, Paper)
+            ToolButton(Mark.AUDIO, "自由监听", { navigate(Page.LIVE) }, Paper)
+            ToolButton(Mark.TALK, "通话辅助", { navigate(Page.CALL) }, Paper)
             ToolButton(Mark.BOOK, "常用表达", { navigate(Page.BOOK) }, Paper)
             ToolButton(Mark.HISTORY, "历史", { navigate(Page.HISTORY) }, Paper)
+            ToolButton(Mark.TYPE, "工具", { navigate(Page.TOOLS) }, Paper)
             ToolButton(Mark.SETTINGS, "设置", { navigate(Page.SETTINGS) }, Paper)
         }
         SidePane(Side.CHINESE, chat, active, actions, Modifier.fillMaxWidth().weight(1f))

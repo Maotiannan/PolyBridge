@@ -16,6 +16,16 @@ jobs:
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0"
       - name: Verify and build
         run: ./gradlew :core:test :provider:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Allow the runner to use its Android VM
+        run: sudo chown "$(id -u)" /dev/kvm
+      - name: Verify Android editors, media files and navigation
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.testKeyboard=true
       - uses: actions/upload-artifact@v4
         with:
           name: polybridge-debug

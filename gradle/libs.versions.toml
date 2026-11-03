@@ -1,5 +1,5 @@
 [versions]
-app = "0.2.0"
+app = "0.3.1"
 agp = "8.12.1"
 kotlin = "2.2.10"
 compose = "2025.08.01"
@@ -13,6 +13,7 @@ compose-foundation = { module = "androidx.compose.foundation:foundation" }
 compose-material = { module = "androidx.compose.material3:material3" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+okhttp = "com.squareup.okhttp3:okhttp:4.12.0"
 junit = "junit:junit:4.13.2"
 android-test-runner = "androidx.test:runner:1.6.1"
 android-test-junit = "androidx.test.ext:junit:1.2.1"

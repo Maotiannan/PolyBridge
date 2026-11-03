@@ -57,6 +57,19 @@ class StudioScreenTest {
         waitFor { it.text?.toString() == "麦克风" }
     }
 
+    @Test fun liveCallsAndVoiceToolsOpenWithoutStartingARecording() {
+        val app = openProjectLauncher().application as PolyBridgeApp
+        pick("自由监听")
+        waitFor { it.text?.toString() == "开始监听" }
+        assertNull(app.store.active.value)
+        test.uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
+        pick("通话辅助")
+        waitFor { it.text?.toString() == "用文字回复" }
+        pick("分享译音或使用翻译键盘")
+        waitFor { it.text?.toString() == "选择语音" }
+        assertNull(app.store.active.value)
+    }
+
     @Test fun sendsTheExactFrenchTextFromTheKeyboardDialog() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("liveQwen") == "true")
         val app = openProjectLauncher().application as PolyBridgeApp

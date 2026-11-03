@@ -24,11 +24,19 @@ class ProbeService : Service() {
         val request = store.active.value
         if (request == null) { stopSelf(startId); return START_NOT_STICKY }
         if (request.id != intent?.getStringExtra(ID)) return START_NOT_STICKY
-        if (intent.action == STOP) { request.end.compareAndSet(null, End.CANCELLED); return START_NOT_STICKY }
+        if (intent.action == STOP) {
+            request.end.compareAndSet(null, End.CANCELLED)
+            if (request.kind == Kind.LISTEN) (application as PolyBridgeApp).live.stopNow(request)
+            return START_NOT_STICKY
+        }
+        if (intent.action == FINISH_MESSAGE) {
+            if (request.kind == Kind.MESSAGE) request.end.compareAndSet(null, End.RELEASED)
+            return START_NOT_STICKY
+        }
         if (running != null) return START_NOT_STICKY
         running = request
         try {
-            val playback = request.kind == Kind.PLAYBACK
+            val playback = request.kind.playbackCapture
             startForeground(100, notification(request), if (playback) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
                 else ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
             if (playback) {
@@ -43,9 +51,10 @@ class ProbeService : Service() {
             scope.launch {
                 var wave: ByteArray? = null
                 val entry = withContext(Dispatchers.IO) {
-                    AndroidAudioInput(this@ProbeService) { wave = it }.measure(request, sessionProjection) {
+                    if (request.kind == Kind.LISTEN) (application as PolyBridgeApp).live.record(request)
+                    else AndroidAudioInput(this@ProbeService) { wave = it }.measure(request, sessionProjection) {
                         request.sampling.value = true
-                        if (playback && request.target == PlaybackTarget.SELF) playControlTone(request)
+                        if (request.kind == Kind.PLAYBACK && request.target == PlaybackTarget.SELF) playControlTone(request)
                     }
                 }
                 complete(entry)
@@ -76,6 +85,7 @@ class ProbeService : Service() {
     override fun onDestroy() {
         running?.let {
             it.end.compareAndSet(null, End.INTERRUPTED)
+            if (it.kind == Kind.LISTEN) (application as PolyBridgeApp).live.stopNow(it)
             store.finish(it.empty(Verdict.INTERRUPTED))
         }
         projection?.stop()
@@ -85,14 +95,19 @@ class ProbeService : Service() {
 
     private fun notification(request: ProbeRequest): Notification {
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(CHANNEL, "用户启动的音频测试", NotificationManager.IMPORTANCE_LOW))
+        manager.createNotificationChannel(NotificationChannel(CHANNEL, "收音与翻译", NotificationManager.IMPORTANCE_LOW))
         val stop = Intent(this, ProbeService::class.java).setAction(STOP).putExtra(ID, request.id)
         val action = PendingIntent.getService(this, request.id.hashCode(), stop, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val conversation = request.kind == Kind.HOLD
-        return Notification.Builder(this, CHANNEL).setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle(if (conversation) "面对面 · 正在收音" else "PolyBridge 正在采样")
-            .setContentText(if (conversation) "松开发送，或点停止取消本句" else "点“停止”可立即结束本次测试").setOngoing(true)
-            .addAction(Notification.Action.Builder(null, "停止", action).build()).build()
+        val builder = Notification.Builder(this, CHANNEL).setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentTitle(when { request.kind == Kind.MESSAGE -> "翻译语音消息 · ${request.target.label}"; request.kind == Kind.LISTEN -> "自由监听 · 中法翻译"; conversation -> "面对面 · 正在收音"; else -> "PolyBridge 正在采样" })
+            .setContentText(when { request.kind == Kind.MESSAGE -> "播放语音后可直接在此结束并翻译"; request.kind == Kind.LISTEN -> "点停止结束这次监听"; conversation -> "松开发送，或点停止取消本句"; else -> "点“停止”可立即结束本次测试" }).setOngoing(true)
+        if (request.kind == Kind.MESSAGE) {
+            val finish = Intent(this, ProbeService::class.java).setAction(FINISH_MESSAGE).putExtra(ID, request.id)
+            val pending = PendingIntent.getService(this, request.id.hashCode(), finish, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            builder.addAction(Notification.Action.Builder(null, "结束并翻译", pending).build())
+        }
+        return builder.addAction(Notification.Action.Builder(null, if (request.kind == Kind.MESSAGE) "取消" else "停止", action).build()).build()
     }
 
     companion object {
@@ -100,6 +115,7 @@ class ProbeService : Service() {
         private const val ID = "session"
         private const val TOKEN = "projection"
         private const val STOP = "dev.polybridge.STOP"
+        private const val FINISH_MESSAGE = "dev.polybridge.FINISH_MESSAGE"
         fun launch(context: Context, request: ProbeRequest, consent: Intent? = null) {
             context.startForegroundService(Intent(context, ProbeService::class.java).putExtra(ID, request.id).putExtra(TOKEN, consent))
         }

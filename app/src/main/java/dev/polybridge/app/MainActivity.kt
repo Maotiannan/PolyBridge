@@ -8,6 +8,7 @@ import android.media.projection.MediaProjectionManager
 import android.media.AudioDeviceInfo
 import android.os.Build
 import android.os.Bundle
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -30,15 +31,26 @@ class MainActivity : ComponentActivity() {
     private val app get() = application as PolyBridgeApp
     private val store get() = app.store
     private val monitor by lazy { DeviceMonitor(this) }
+    private var sharedAudio by mutableStateOf<String?>(null)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        readShare(intent)
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
         setContent { StudioTheme { Home() } }
     }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); readShare(intent) }
+    private fun readShare(intent: Intent) {
+        if (intent.action != Intent.ACTION_SEND || intent.type?.startsWith("audio/") != true) return
+        @Suppress("DEPRECATION") val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        sharedAudio = uri?.takeIf { it.scheme == "content" }?.toString()
+    }
     override fun onStart() { super.onStart(); monitor.start() }
     override fun onStop() {
-        if (!isChangingConfigurations) store.active.value?.takeIf { it.kind == Kind.HOLD }?.end?.compareAndSet(null, End.CANCELLED)
+        if (!isChangingConfigurations) store.active.value?.let {
+            if (it.kind == Kind.HOLD || it.kind == Kind.LISTEN) it.end.compareAndSet(null, End.CANCELLED)
+            if (it.kind == Kind.LISTEN) app.live.stopNow(it)
+        }
         monitor.stop()
         super.onStop()
     }
@@ -70,16 +82,17 @@ class MainActivity : ComponentActivity() {
         var pendingKind by rememberSaveable { mutableStateOf(Kind.MICROPHONE) }
         var pendingTarget by rememberSaveable { mutableStateOf(PlaybackTarget.SELF) }
         var pendingInput by rememberSaveable { mutableStateOf<Int?>(null) }
+        var pendingSide by rememberSaveable { mutableStateOf<Side?>(null) }
         var toneBusy by remember { mutableStateOf(false) }
         val projectionManager = getSystemService(MediaProjectionManager::class.java)
         val projection = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode == Activity.RESULT_OK && it.data != null)
-                start(Kind.PLAYBACK, pendingTarget, null, token = it.data)
-            else rejected(Kind.PLAYBACK, pendingTarget, null, Verdict.DENIED, "PROJECTION_CONSENT")
+                start(pendingKind, pendingTarget, null, pendingSide, token = it.data)
+            else { rejected(pendingKind, pendingTarget, null, Verdict.DENIED, "PROJECTION_CONSENT"); notice("本次未获播放共享授权") }
         }
         fun startConsented(kind: Kind, chosen: PlaybackTarget, selectedInput: Int?, side: Side?): String? {
-            if (kind == Kind.PLAYBACK) {
-                if (version(chosen) == null) rejected(kind, chosen, null, Verdict.FAILED, "TARGET_NOT_INSTALLED")
+            if (kind.playbackCapture) {
+                if (version(chosen) == null) { rejected(kind, chosen, null, Verdict.FAILED, "TARGET_NOT_INSTALLED"); notice("手机未安装所选应用") }
                 else projection.launch(projectionManager.createScreenCaptureIntent())
                 return null
             }
@@ -90,11 +103,11 @@ class MainActivity : ComponentActivity() {
                 rejected(pendingKind, pendingTarget, pendingInput, Verdict.DENIED, "RECORD_AUDIO")
                 notice("本次未获麦克风授权")
             } else if (pendingKind == Kind.HOLD) notice("麦克风已授权，请重新按住说话")
-            else startConsented(pendingKind, pendingTarget, pendingInput, null)
+            else startConsented(pendingKind, pendingTarget, pendingInput, pendingSide)
         }
         fun userStart(kind: Kind, chosen: PlaybackTarget, selectedInput: Int?, side: Side? = null): String? {
             if (store.active.value != null || toneBusy) return null
-            pendingKind = kind; pendingTarget = chosen; pendingInput = selectedInput
+            pendingKind = kind; pendingTarget = chosen; pendingInput = selectedInput; pendingSide = side
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
                 return startConsented(kind, chosen, selectedInput, side)
             val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
@@ -118,17 +131,16 @@ class MainActivity : ComponentActivity() {
         val json = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { export(it, false) }
         val md = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { export(it, true) }
 
-        Studio(app, lifecycle, chat, active, start = { side ->
-            val selected = hardware.ports.filter { it.isSource }.firstOrNull {
-                when (settings.mic) {
-                    Microphone.AUTO -> false
-                    Microphone.PHONE -> it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC
-                    Microphone.HEADSET -> it.type in listOf(AudioDeviceInfo.TYPE_BLUETOOTH_SCO, AudioDeviceInfo.TYPE_BLE_HEADSET)
-                }
-            }
-            if (settings.mic != Microphone.AUTO && selected == null) { notice("所选麦克风未连接，请在设置中切换"); null }
-            else userStart(Kind.HOLD, PlaybackTarget.SELF, selected?.id, side)
-        }, end = { id, cancel ->
+        fun speechStart(kind: Kind, side: Side?): String? {
+            val selected = preferredMic(hardware.ports, settings.mic, app.settings.headsets)
+            if (settings.mic != Microphone.AUTO && selected == null) { notice("所选麦克风未连接，请在设置中切换"); return null }
+            return userStart(kind, PlaybackTarget.SELF, selected?.id, side)
+        }
+        Studio(app, lifecycle, chat, active, hardware, requestBluetooth = { bluetooth.launch(Manifest.permission.BLUETOOTH_CONNECT) },
+            installedVersion = ::version, incomingShare = sharedAudio, consumeShare = {
+            sharedAudio = null; if (intent.action == Intent.ACTION_SEND) setIntent(Intent(this, MainActivity::class.java))
+        }, start = { speechStart(Kind.HOLD, it) }, listen = { speechStart(Kind.LISTEN, null) },
+            captureMessage = { targetApp, direction -> userStart(Kind.MESSAGE, targetApp, null, direction) }, end = { id, cancel ->
             store.active.value?.takeIf { it.id == id }?.end?.compareAndSet(null, if (cancel) End.CANCELLED else End.RELEASED)
         }, notice = ::notice, inputLabel = settings.mic.label, inputPicker = { dismiss ->
             AlertDialog(onDismissRequest = dismiss, title = { Text("说话时的麦克风") }, text = {

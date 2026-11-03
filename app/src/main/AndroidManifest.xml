@@ -17,13 +17,27 @@
     <application android:name=".PolyBridgeApp" android:label="PolyBridge" android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules" android:icon="@drawable/ic_polybridge"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
-        <activity android:name=".MainActivity" android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
         </activity>
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.speechfiles"
+            android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/speech_paths" />
+        </provider>
         <service android:name=".audio.ProbeService" android:exported="false"
             android:foregroundServiceType="microphone|mediaProjection" />
+        <service android:name=".ime.TranslationKeyboard" android:exported="true" android:label="@string/translation_keyboard"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter><action android:name="android.view.InputMethod" /></intent-filter>
+            <meta-data android:name="android.view.im" android:resource="@xml/translation_keyboard" />
+        </service>
     </application>
 </manifest>

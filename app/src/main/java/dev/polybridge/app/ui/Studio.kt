@@ -17,19 +17,24 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import dev.polybridge.app.*
 import dev.polybridge.app.audio.ConversationVoice
+import dev.polybridge.app.audio.Hardware
 import dev.polybridge.core.*
 
 @Composable internal fun Studio(app: PolyBridgeApp, lifecycle: Lifecycle, chat: Conversation, active: ProbeRequest?,
-    start: (Side) -> String?, end: (String, Boolean) -> Unit, notice: (String) -> Unit,
+    hardware: Hardware, requestBluetooth: () -> Unit, installedVersion: (PlaybackTarget) -> String?,
+    incomingShare: String?, consumeShare: () -> Unit,
+    start: (Side) -> String?, listen: () -> String?, captureMessage: (PlaybackTarget, Side) -> Unit,
+    end: (String, Boolean) -> Unit, notice: (String) -> Unit,
     inputLabel: String, inputPicker: @Composable (() -> Unit) -> Unit, diagnostics: @Composable () -> Unit) {
     var page by rememberSaveable { mutableStateOf(Page.TALK) }
     var showCloud by rememberSaveable { mutableStateOf(false) }
     var showInput by rememberSaveable { mutableStateOf(false) }
     var typing by rememberSaveable { mutableStateOf<Side?>(null) }
     var editing by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedFile by rememberSaveable { mutableStateOf<String?>(null) }
     val config by app.settings.state.collectAsState()
     val context = LocalContext.current
-    val voice = remember(context) { ConversationVoice(context.applicationContext, app.settings::provider, notice) }
+    val voice = remember(context) { ConversationVoice(context.applicationContext, app.settings, notice) }
     DisposableEffect(context, lifecycle) {
         val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) voice.stop() }
         lifecycle.addObserver(observer)
@@ -46,9 +51,17 @@ import dev.polybridge.core.*
     }
     LaunchedEffect(app.translator) { app.translator.newTranslations.collect { autoPlay(it) } }
     fun navigate(next: Page) {
-        if (next != page) { voice.stop(); active?.takeIf { it.kind == Kind.HOLD }?.let { end(it.id, true) }; page = next }
+        if (next != page) {
+            voice.stop()
+            active?.takeIf { it.kind == Kind.HOLD || it.kind == Kind.LISTEN }?.let {
+                end(it.id, true)
+                if (it.kind == Kind.LISTEN) app.live.stopNow(it)
+            }
+            page = next
+        }
     }
     val back = { navigate(if (page == Page.DIAGNOSTICS) Page.SETTINGS else Page.TALK) }
+    LaunchedEffect(incomingShare) { if (incomingShare != null) { selectedFile = incomingShare; navigate(Page.TOOLS); consumeShare() } }
     BackHandler(page != Page.TALK, onBack = back)
     val actions = TalkActions(start = {
         if (!config.configured) { showCloud = true; null } else { voice.stop(); start(it) }
@@ -68,16 +81,22 @@ import dev.polybridge.core.*
                 } else Masthead(config.configured, { navigate(Page.SETTINGS) }, { showCloud = true })
                 Box(Modifier.fillMaxWidth().weight(1f)) {
                     when (page) {
-                        Page.TALK -> CompactTalk(chat, active, actions) { navigate(Page.BOOK) }
+                        Page.TALK -> CompactTalk(chat, active, actions, { navigate(Page.BOOK) }, { navigate(Page.LIVE) }, { navigate(Page.CALL) })
+                        Page.CALL -> CallAssistPanel(app, chat, installedVersion, { showCloud = true }, { navigate(Page.TOOLS) }, notice)
+                        Page.LIVE -> ListeningPanel(app, chat, active, actions, start = {
+                            if (!config.configured) showCloud = true else { voice.stop(); listen() }
+                        }, stop = { active?.let { end(it.id, false) } })
                         Page.BOOK -> Phrasebook { if (app.store.active.value == null) voice.phrase(it) else notice("收音结束后可播放词本") }
+                        Page.TOOLS -> VoiceTools(app, chat, selectedFile, { selectedFile = it }, actions, active, captureMessage, { showCloud = true }, notice)
                         Page.HISTORY -> HistoryPanel(chat, actions, active == null, fresh = {
                             app.store.changeChat { it.newSession() }; navigate(Page.TALK)
                         }, remove = { id -> app.store.changeChat { it.copy(turns = it.turns.filterNot { turn -> turn.id == id }) } })
-                        Page.SETTINGS -> SettingsPanel(app.settings, { showCloud = true }, { navigate(Page.DIAGNOSTICS) }, inputLabel, { showInput = true })
+                        Page.SETTINGS -> SettingsPanel(app.settings, { showCloud = true }, { navigate(Page.DIAGNOSTICS) },
+                            inputLabel, { showInput = true }, hardware, requestBluetooth)
                         Page.DIAGNOSTICS -> Column(Modifier.fillMaxSize().padding(horizontal = 14.dp)) { diagnostics() }
                     }
                 }
-                if (page in listOf(Page.TALK, Page.BOOK, Page.HISTORY)) Navigation(page, ::navigate)
+                if (page in listOf(Page.TALK, Page.BOOK, Page.HISTORY, Page.LIVE, Page.TOOLS, Page.CALL)) Navigation(page, ::navigate)
             }
         }
     }
