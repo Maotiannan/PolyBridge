@@ -1,0 +1,44 @@
+# PolyBridge · 折叠屏中法翻译
+
+面向 vivo X Fold5、OriginOS 6 的个人翻译应用。当前版本提供音频诊断和中文／法语面对面交互。展开手机后可上下分区，其中一侧可以旋转 180°。面对面的录音是真实输入，显示与重播的是明确标注的固定示例。
+
+## 从这里开始
+
+1. 安装调试包，打开「诊断 → 麦克风」，默认输入，对手机说话十秒。检查有效样本、音量和实际输入设备。
+2. 连接一副蓝牙耳机，在「设备总览」授权查看配对状态，再选择耳机输入，重复测试。用短测试音单独确认实际输出。
+3. 在「播放捕获」先选「应用测试音」，逐次同意系统共享。控制测试通过后，再选微信或 WhatsApp 播放一条已知的语音消息。
+4. 在「联调报告」通过系统文件选择器导出 JSON 或 Markdown。原始声音只在采样内存中短暂存在。普通版无需 Root 或云端密钥。
+
+## 构建与自动化接口测试
+
+需要 JDK 17、Android SDK 平台 36 和 Build Tools 35.0.0 / 36.0.0。将 SDK 位置设为环境变量 `ANDROID_HOME`，或写入忽略提交的 `local.properties`。在 Windows 项目目录执行以下命令。
+
+```powershell
+.\gradlew.bat :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+```
+
+macOS / Linux 使用 `./gradlew`。主程序位于 `app/build/outputs/apk/debug/app-debug.apk`。核心测试调用信号、报告和对话接口。安卓主机测试通过 Robolectric 运行应用和合成音频，无需手机。两者都不能替代真机听音。
+
+手机下次接好并授权调试后，确认只连接了一台目标设备，再执行以下命令。
+
+```powershell
+.\gradlew.bat :app:connectedDebugAndroidTest
+adb -d install -r app/build/outputs/apk/debug/app-debug.apk
+adb -d shell am start -n dev.polybridge.app/.MainActivity
+```
+
+默认设备测试检查启动与只读状态，并列出输入端口。需要自动实测收音时，先在应用内授权麦克风，再明确执行下面的命令。测试会打开可见界面和前台采样通知，十秒后在命令输出中返回脱敏 JSON。加上 `-e inputPort 编号` 可指定耳机，编号来自本次设备枚举。系统播放共享仍需逐次点选授权。
+
+```powershell
+adb -d install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb -d shell am instrument -w -e class dev.polybridge.app.DiagnosticsInstrumentedTest#tenSecondMicProbeWithExplicitOptIn -e captureMic true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+版本目录 `gradle/libs.versions.toml` 的同一版本号生成安装包版本、系统排序编号和首页版本。
+
+## 文档导航
+
+- [需求原文](PRD_XFold5_Translation_App_v1.0.md) · [原始启动说明](CODEX_START_PROMPT.md)
+- [实施计划](docs/IMPLEMENTATION_PLAN.md) · [模块与数据流](docs/ARCHITECTURE.md) · [决策记录](docs/DECISION_LOG.md)
+- [真机兼容性](docs/DEVICE_COMPATIBILITY.md) · [音频测试矩阵](docs/AUDIO_PROBE_MATRIX.md)
+- [验收进度与下一步](docs/NEXT_TASKS.md) · [版本记录](CHANGELOG.md)
