@@ -6,11 +6,17 @@ import android.os.Build
 import dev.polybridge.core.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 
 class PolyBridgeApp : Application() {
     val store by lazy { ProbeStore(this) }
+    val settings by lazy { TranslationSettings(this) }
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val translator by lazy { ConversationTranslator(store, CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(2)), settings::provider) }
 }
 
 data class ProbeRequest(val id: String, val kind: Kind, val target: PlaybackTarget, val inputId: Int?,
@@ -20,8 +26,8 @@ data class ProbeRequest(val id: String, val kind: Kind, val target: PlaybackTarg
         verdict, requestedInputId = inputId, targetVersion = targetVersion, errorCode = reason)
 }
 
-class ProbeStore(context: Context) {
-    private val prefs = context.getSharedPreferences("diagnostics", Context.MODE_PRIVATE)
+class ProbeStore(context: Context, preferencesName: String = "diagnostics") {
+    private val prefs = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
     private val device = DeviceFacts(Build.MODEL, Build.DISPLAY, Build.VERSION.RELEASE, Build.VERSION.SDK_INT,
         Build.VERSION.SECURITY_PATCH, fingerprintHash(Build.FINGERPRINT), BuildConfig.VERSION_NAME)
     private val currentReport = MutableStateFlow(runCatching {
@@ -48,7 +54,7 @@ class ProbeStore(context: Context) {
         val request = current.value ?: return
         if (request.id != entry.id) return
         currentReport.value = append(currentReport.value, entry)
-        if (request.side != null) conversation.value = conversation.value.finish(entry.id, entry.verdict, DemoTranslation)
+        if (request.side != null) conversation.value = conversation.value.captureEnded(entry.id, entry.verdict)
         current.value = null
         persist()
     }
@@ -56,6 +62,14 @@ class ProbeStore(context: Context) {
     @Synchronized fun tone(result: ToneResult) {
         currentReport.value = currentReport.value.copy(lastTone = result)
         persist()
+    }
+
+    @Synchronized fun changeChat(update: (Conversation) -> Conversation): Boolean {
+        val next = update(conversation.value)
+        if (next == conversation.value) return false
+        conversation.value = next
+        persist()
+        return true
     }
 
     private fun append(report: ProbeReport, entry: ProbeEntry) =

@@ -1,0 +1,224 @@
+{
+  "date": "2026-11-03",
+  "version": "0.2.0",
+  "device": "vivo X Fold5 / V2436A, Android 16",
+  "provider": "Alibaba Cloud Model Studio, Beijing",
+  "models": [
+    "qwen3-asr-flash",
+    "qwen-mt-flash",
+    "qwen3-tts-flash"
+  ],
+  "fixtures": "Packaged synthetic Chinese and French phrase audio, converted to 16 kHz mono PCM; isolated test history.",
+  "corpus": {
+    "completed": 20,
+    "medianMs": 701.0,
+    "minMs": 541,
+    "maxMs": 1129,
+    "results": [
+      {
+        "sample": "greeting",
+        "direction": "zh",
+        "expectedSource": "你好。",
+        "recognized": "你好。",
+        "translated": "Bonjour.",
+        "elapsedMs": 782
+      },
+      {
+        "sample": "greeting",
+        "direction": "fr",
+        "expectedSource": "Bonjour.",
+        "recognized": "D'où je?",
+        "translated": "我在哪里？",
+        "elapsedMs": 580
+      },
+      {
+        "sample": "meeting",
+        "direction": "zh",
+        "expectedSource": "很高兴认识你。",
+        "recognized": "很高兴认识你。",
+        "translated": "Ravi de vous rencontrer.",
+        "elapsedMs": 566
+      },
+      {
+        "sample": "meeting",
+        "direction": "fr",
+        "expectedSource": "Ça me fait plaisir de vous rencontrer.",
+        "recognized": "Ça me fait plaisir de vous rencontrer.",
+        "translated": "很高兴见到您。",
+        "elapsedMs": 611
+      },
+      {
+        "sample": "thanks",
+        "direction": "zh",
+        "expectedSource": "谢谢你的帮助。",
+        "recognized": "谢谢你的帮助。",
+        "translated": "Merci pour ton aide.",
+        "elapsedMs": 639
+      },
+      {
+        "sample": "thanks",
+        "direction": "fr",
+        "expectedSource": "Merci pour votre aide.",
+        "recognized": "Merci pour votre aide.",
+        "translated": "谢谢您的帮助。",
+        "elapsedMs": 674
+      },
+      {
+        "sample": "slower",
+        "direction": "zh",
+        "expectedSource": "请说慢一点。",
+        "recognized": "请说慢一点。",
+        "translated": "Veuillez parler plus lentement.",
+        "elapsedMs": 541
+      },
+      {
+        "sample": "slower",
+        "direction": "fr",
+        "expectedSource": "Pouvez-vous parler plus lentement ?",
+        "recognized": "Pouvez vous parler plus lentement?",
+        "translated": "您能说得慢一点吗？",
+        "elapsedMs": 869
+      },
+      {
+        "sample": "repeat",
+        "direction": "zh",
+        "expectedSource": "你能再说一遍吗？",
+        "recognized": "你能再说一遍吗？",
+        "translated": "Tu peux le répéter ?",
+        "elapsedMs": 647
+      },
+      {
+        "sample": "repeat",
+        "direction": "fr",
+        "expectedSource": "Pouvez-vous répéter ?",
+        "recognized": "Deux, pouvez vous répéter?",
+        "translated": "二，您能再说一遍吗？",
+        "elapsedMs": 755
+      },
+      {
+        "sample": "translate",
+        "direction": "zh",
+        "expectedSource": "我可以用翻译软件吗？",
+        "recognized": "我可以用翻译软件吗？",
+        "translated": "Puis-je utiliser un logiciel de traduction ?",
+        "elapsedMs": 1129
+      },
+      {
+        "sample": "translate",
+        "direction": "fr",
+        "expectedSource": "Est-ce que je peux utiliser une application de traduction ?",
+        "recognized": "Est ce que je peux utiliser une application de traduction",
+        "translated": "我可以使用翻译应用程序吗？",
+        "elapsedMs": 666
+      },
+      {
+        "sample": "station",
+        "direction": "zh",
+        "expectedSource": "请问，火车站在哪里？",
+        "recognized": "请问火车站在哪里？",
+        "translated": "Où se trouve la gare ?",
+        "elapsedMs": 799
+      },
+      {
+        "sample": "station",
+        "direction": "fr",
+        "expectedSource": "Excusez-moi, où est la gare ?",
+        "recognized": "Excusez moi, où est la gare ?",
+        "translated": "请问，火车站在哪里？",
+        "elapsedMs": 707
+      },
+      {
+        "sample": "tickets",
+        "direction": "zh",
+        "expectedSource": "我想买两张票。",
+        "recognized": "我想买两张票。",
+        "translated": "Je voudrais acheter deux billets.",
+        "elapsedMs": 592
+      },
+      {
+        "sample": "tickets",
+        "direction": "fr",
+        "expectedSource": "Je voudrais deux billets.",
+        "recognized": "Je voudrais deux billets.",
+        "translated": "我想要两张票。",
+        "elapsedMs": 695
+      },
+      {
+        "sample": "train",
+        "direction": "zh",
+        "expectedSource": "下一班车几点出发？",
+        "recognized": "下一班车几点出发？",
+        "translated": "À quelle heure part le prochain bus ?",
+        "elapsedMs": 809
+      },
+      {
+        "sample": "train",
+        "direction": "fr",
+        "expectedSource": "À quelle heure part le prochain train ?",
+        "recognized": "À quelle heure part le prochain train ?",
+        "translated": "下一班火车几点开？",
+        "elapsedMs": 715
+      },
+      {
+        "sample": "water",
+        "direction": "zh",
+        "expectedSource": "请给我一杯水。",
+        "recognized": "请给我一杯水。",
+        "translated": "Veuillez me donner un verre d'eau.",
+        "elapsedMs": 781
+      },
+      {
+        "sample": "water",
+        "direction": "fr",
+        "expectedSource": "Un verre d’eau, s’il vous plaît.",
+        "recognized": "Un verre d'eau, s'il vous plaît.",
+        "translated": "请给我一杯水。",
+        "elapsedMs": 811
+      }
+    ]
+  },
+  "accuracyNotes": [
+    "Short French Bonjour was recognized as D’où je. The French repetition request gained an extra number on this run.",
+    "The Chinese departure question does not identify a vehicle; the reference French says train and the model chose bus. These repeated fixed requests do not measure cold or general latency."
+  ],
+  "heldMicrophone": [
+    {
+      "language": "zh-CN",
+      "recognized": "我想买两张票。",
+      "translated": "Je voudrais acheter deux billets.",
+      "samples": 24958,
+      "input": "built-in microphone",
+      "fixtureOutput": "built-in speaker"
+    },
+    {
+      "language": "fr-FR",
+      "recognized": "Je voudrais deux billets.",
+      "translated": "我想要两张票。",
+      "samples": 34558,
+      "input": "built-in microphone",
+      "fixtureOutput": "built-in speaker"
+    }
+  ],
+  "typed": [
+    [
+      "Le train part demain matin.",
+      "火车明天早上发车。"
+    ]
+  ],
+  "synthesizedPlayback": [
+    [
+      "fr-FR",
+      "duration=880 ms, routeType=8"
+    ],
+    [
+      "zh-CN",
+      "duration=720 ms, routeType=8"
+    ]
+  ],
+  "screenPixels": {
+    "external": "1172x2748",
+    "inner": "2200x2480"
+  },
+  "screenMethod": "External display physically closed; inner display activated via temporary Android OPENED state, restored to base.",
+  "apkSha256": "55d538a5f333081ee4bc3792b8acd8f88ee3f3e810ec9efa537c05eb44c55b66"
+}

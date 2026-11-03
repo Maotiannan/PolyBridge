@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "PolyBridge"
-include(":app", ":core")
+include(":app", ":core", ":provider:qwen")

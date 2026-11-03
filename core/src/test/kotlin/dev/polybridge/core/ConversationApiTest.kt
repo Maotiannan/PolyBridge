@@ -17,21 +17,20 @@ class ConversationApiTest {
         assertTrue(turns.cancel("a").turns.isEmpty())
     }
 
-    @Test fun repeatedCompletionCannotDuplicateTheDemoTranslation() {
-        val open = Conversation().press("a", Side.FRENCH)
-        val complete = open.finish("a", Verdict.SIGNAL, DemoTranslation)
-        assertEquals(1, complete.turns.size)
-        val turn = complete.turns.single()
-        assertEquals(TurnStatus.DEMO_READY, turn.status)
-        assertTrue(turn.sourceText.isNotBlank())
-        assertTrue(turn.translatedText.isNotBlank())
-        assertEquals(complete, complete.finish("a", Verdict.SIGNAL, DemoTranslation))
+    @Test fun repeatedReleaseCannotSubmitTwiceAndLegacyExamplesKeepTheirLabel() {
+        val pending = Conversation().press("a", Side.FRENCH).captureEnded("a", Verdict.SIGNAL)
+        assertEquals(TurnStatus.TRANSCRIBING, pending.turns.single().status)
+        assertEquals(pending, pending.captureEnded("a", Verdict.SIGNAL))
+        val legacy = """{"turns":[{"id":"old","side":"FRENCH","status":"DEMO_READY","sourceText":"Merci","translatedText":"谢谢"}]}"""
+        val restored = ReportCodec.readChat(legacy).recoverInterrupted().turns.single()
+        assertEquals(TurnStatus.DEMO_READY, restored.status)
+        assertEquals("Merci", restored.sourceText)
     }
 
-    @Test fun silenceAndInterruptionsNeverPublishDemoSuccess() {
+    @Test fun silenceAndInterruptionsNeverPublishSuccess() {
         val open = Conversation().press("b", Side.CHINESE)
-        assertEquals(TurnStatus.FAILED, open.finish("b", Verdict.SILENT, DemoTranslation).turns.single().status)
+        assertEquals(TurnStatus.FAILED, open.captureEnded("b", Verdict.SILENT).turns.single().status)
         assertEquals(TurnStatus.FAILED, open.recoverInterrupted().turns.single().status)
-        assertTrue(open.finish("b", Verdict.CANCELLED, DemoTranslation).turns.isEmpty())
+        assertTrue(open.captureEnded("b", Verdict.CANCELLED).turns.isEmpty())
     }
 }

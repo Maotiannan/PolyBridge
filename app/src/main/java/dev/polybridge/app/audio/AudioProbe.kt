@@ -18,7 +18,7 @@ interface AudioOutputSink {
     fun play(preferredId: Int?, stopped: () -> Boolean): ToneResult
 }
 
-class AndroidAudioInput(private val context: Context) : AudioInputSource {
+class AndroidAudioInput(private val context: Context, private val onUtterance: ((ByteArray) -> Unit)? = null) : AudioInputSource {
     override fun measure(request: ProbeRequest, projection: MediaProjection?, onStarted: () -> Unit): ProbeEntry {
         fun ended(): ProbeEntry? = request.end.get()?.let {
             request.empty(assess(SignalStats(), 0, null, it))
@@ -84,6 +84,7 @@ class AndroidAudioInput(private val context: Context) : AudioInputSource {
         val hold = request.kind == Kind.HOLD
         val duration = if (hold) 30_000L else 10_000L
         val meter = SignalMeter()
+        val clip = if (hold && onUtterance != null) MonoWave(record.sampleRate) else null
         val buffer = ShortArray(record.sampleRate / 50)
         var route: Route? = null
         var systemSilenced: Boolean? = null
@@ -110,13 +111,17 @@ class AndroidAudioInput(private val context: Context) : AudioInputSource {
             }
             val read = record.read(buffer, 0, buffer.size, AudioRecord.READ_NON_BLOCKING)
             if (read < 0) { end = End.READ_ERROR; reason = "READ_$read"; break }
-            if (read == 0) SystemClock.sleep(8) else meter.add(buffer, read)
+            if (read == 0) SystemClock.sleep(8) else {
+                meter.add(buffer, read)
+                clip?.append(buffer, read)
+            }
         }
         val elapsed = SystemClock.elapsedRealtime() - start
         val stats = meter.snapshot()
         val expected = if (hold) record.sampleRate / 10L else record.sampleRate * duration / 1000
         val signal = assess(stats, expected, systemSilenced, request.end.get() ?: end)
         val verdict = qualifyRoute(signal, request.inputId, route)
+        if (clip != null && verdict == Verdict.SIGNAL && request.end.get() == End.RELEASED) onUtterance?.invoke(clip.bytes())
         return request.empty(verdict, reason).copy(inputRoute = route, sampleRateHz = record.sampleRate,
             channels = record.channelCount, elapsedMs = elapsed, signal = stats, systemSilenced = systemSilenced)
     }

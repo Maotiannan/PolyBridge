@@ -26,25 +26,6 @@ import org.junit.runner.RunWith
 class DiagnosticsInstrumentedTest {
     private val context: Context get() = InstrumentationRegistry.getInstrumentation().targetContext
 
-    private fun openLauncher(): MainActivity {
-        // The ROM may refuse a background activity start by the instrumented app. Launch as the test driver.
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val component = ComponentName(context, MainActivity::class.java).flattenToShortString()
-        val command = "am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n $component"
-        val output = ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command))
-            .bufferedReader().use { it.readText() }
-        val deadline = SystemClock.elapsedRealtime() + 10_000
-        do {
-            var activity: MainActivity? = null
-            instrumentation.runOnMainSync {
-                activity = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED)
-                    .filterIsInstance<MainActivity>().firstOrNull()
-            }
-            activity?.let { return it }
-            SystemClock.sleep(50)
-        } while (SystemClock.elapsedRealtime() < deadline)
-        error("应用未进入前台。$output")
-    }
 
     @Test fun appExposesDeviceSnapshotWithoutStartingAudio() {
         val app = context.applicationContext as PolyBridgeApp
@@ -58,7 +39,7 @@ class DiagnosticsInstrumentedTest {
 
     @Test fun launcherStartsWithoutMicOrProjectionConsent() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val activity = openLauncher()
+        val activity = openProjectLauncher()
         try {
             instrumentation.waitForIdleSync()
             assertFalse(activity.isFinishing)
@@ -76,7 +57,7 @@ class DiagnosticsInstrumentedTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val store = (context.applicationContext as PolyBridgeApp).store
         val input = args.getString("inputPort")?.toInt()
-        val activity = openLauncher()
+        val activity = openProjectLauncher()
         var session: ProbeRequest? = null
         try {
             instrumentation.waitForIdleSync()

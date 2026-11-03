@@ -5,10 +5,13 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
+import android.media.AudioDeviceInfo
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,7 +20,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.polybridge.app.audio.*
 import dev.polybridge.app.ui.*
@@ -25,14 +27,14 @@ import dev.polybridge.core.*
 import kotlinx.coroutines.*
 
 class MainActivity : ComponentActivity() {
-    private val store get() = (application as PolyBridgeApp).store
+    private val app get() = application as PolyBridgeApp
+    private val store get() = app.store
     private val monitor by lazy { DeviceMonitor(this) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF126461),
-                secondary = Color(0xFF455F77), surface = Color(0xFFFAFBF8))) { Home() }
-        }
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
+        setContent { StudioTheme { Home() } }
     }
     override fun onStart() { super.onStart(); monitor.start() }
     override fun onStop() {
@@ -61,7 +63,7 @@ class MainActivity : ComponentActivity() {
         val chat by store.chat.collectAsState()
         val active by store.active.collectAsState()
         val hardware by monitor.state.collectAsState()
-        var page by rememberSaveable { mutableStateOf("诊断") }
+        val settings by app.settings.state.collectAsState()
         var input by rememberSaveable { mutableStateOf<Int?>(null) }
         var output by rememberSaveable { mutableStateOf<Int?>(null) }
         var target by rememberSaveable { mutableStateOf(PlaybackTarget.SELF) }
@@ -116,17 +118,28 @@ class MainActivity : ComponentActivity() {
         val json = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { export(it, false) }
         val md = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { export(it, true) }
 
-        Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text("PolyBridge", style = MaterialTheme.typography.titleLarge)
-                    Text("v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium)
+        Studio(app, lifecycle, chat, active, start = { side ->
+            val selected = hardware.ports.filter { it.isSource }.firstOrNull {
+                when (settings.mic) {
+                    Microphone.AUTO -> false
+                    Microphone.PHONE -> it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC
+                    Microphone.HEADSET -> it.type in listOf(AudioDeviceInfo.TYPE_BLUETOOTH_SCO, AudioDeviceInfo.TYPE_BLE_HEADSET)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (name in listOf("诊断", "面对面")) FilterChip(selected = page == name, onClick = { page = name }, label = { Text(name) })
-                }
-                if (page == "诊断") DiagnosticsPanel(hardware, report, active, input, output, target, toneBusy,
+            }
+            if (settings.mic != Microphone.AUTO && selected == null) { notice("所选麦克风未连接，请在设置中切换"); null }
+            else userStart(Kind.HOLD, PlaybackTarget.SELF, selected?.id, side)
+        }, end = { id, cancel ->
+            store.active.value?.takeIf { it.id == id }?.end?.compareAndSet(null, if (cancel) End.CANCELLED else End.RELEASED)
+        }, notice = ::notice, inputLabel = settings.mic.label, inputPicker = { dismiss ->
+            AlertDialog(onDismissRequest = dismiss, title = { Text("说话时的麦克风") }, text = {
+                Column { Microphone.entries.forEach { choice ->
+                    TextButton(onClick = { app.settings.microphone(choice); dismiss() }) {
+                        Text((if (settings.mic == choice) "✓  " else "") + choice.label)
+                    }
+                } }
+            }, confirmButton = { TextButton(onClick = dismiss) { Text("返回") } })
+        }) {
+                DiagnosticsPanel(hardware, report, active, input, output, target, toneBusy,
                     onInput = { input = it }, onOutput = { output = it }, onTarget = { target = it },
                     onBluetooth = { bluetooth.launch(Manifest.permission.BLUETOOTH_CONNECT) },
                     onMic = { userStart(Kind.MICROPHONE, PlaybackTarget.SELF, input) },
@@ -147,10 +160,6 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     onJson = { json.launch("polybridge-report.json") }, onMarkdown = { md.launch("polybridge-report.md") })
-                else ConversationPanel(chat, active, onStart = { userStart(Kind.HOLD, PlaybackTarget.SELF, input, it) },
-                    onEnd = { id, cancelled -> store.active.value?.takeIf { it.id == id }?.end
-                        ?.compareAndSet(null, if (cancelled) End.CANCELLED else End.RELEASED) }, onNotice = ::notice)
-            }
         }
     }
 }

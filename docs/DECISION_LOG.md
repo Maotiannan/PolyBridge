@@ -12,3 +12,8 @@
 ## 2026-11-03 · Fold5 单耳机收音
 
 0.1.0 在真机上可以从内置麦克风采样。仅向录音器指定已连接的耳机时，系统返回启动状态 -22，当时的蓝牙通话通道未打开。0.1.1 使用公开的通信设备接口选择耳机输出，等待系统确认后从配套的通信输入采样。收到有效声音仍须核对录音器报告的实际输入。已有通话时保留系统当前选择，取消、失败与正常结束都会释放本应用取得的通道。[Android 通信设备接口](https://developer.android.com/reference/android/media/AudioManager#setCommunicationDevice(android.media.AudioDeviceInfo))
+## 2026-11-03 · 面对面对话与音频验证
+
+已按机主选择将面对面设为默认。云账号由机主在本机配置，诊断不使用云服务。双向语音、打字和重播走独立接口，断网或识别不准时保留文本供校对。词本的声音在发布时合成，随应用安装。千问合成返回的 WAV 可能携带流式长度占位值，收到完整音频后按实际字节数修正，避免手机误判播放时长。
+
+面对面选用百炼北京或新加坡地区的独立语音识别、文本翻译与语音合成接口。[语音识别](https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference) · [机器翻译](https://help.aliyun.com/zh/model-studio/qwen-mt-api) · [语音合成](https://help.aliyun.com/zh/model-studio/qwen-tts-api)

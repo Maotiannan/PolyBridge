@@ -41,13 +41,15 @@ class ProbeService : Service() {
             }
             val sessionProjection = projection
             scope.launch {
+                var wave: ByteArray? = null
                 val entry = withContext(Dispatchers.IO) {
-                    AndroidAudioInput(this@ProbeService).measure(request, sessionProjection) {
+                    AndroidAudioInput(this@ProbeService) { wave = it }.measure(request, sessionProjection) {
                         request.sampling.value = true
                         if (playback && request.target == PlaybackTarget.SELF) playControlTone(request)
                     }
                 }
                 complete(entry)
+                if (request.side != null) (application as PolyBridgeApp).translator.recorded(request.id, wave)
             }
         } catch (_: SecurityException) { complete(request.empty(Verdict.DENIED, "SERVICE_PERMISSION")) }
           catch (_: RuntimeException) { complete(request.empty(Verdict.FAILED, "SERVICE_START")) }
@@ -86,8 +88,10 @@ class ProbeService : Service() {
         manager.createNotificationChannel(NotificationChannel(CHANNEL, "用户启动的音频测试", NotificationManager.IMPORTANCE_LOW))
         val stop = Intent(this, ProbeService::class.java).setAction(STOP).putExtra(ID, request.id)
         val action = PendingIntent.getService(this, request.id.hashCode(), stop, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        return Notification.Builder(this, CHANNEL).setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("PolyBridge 正在采样")
-            .setContentText("点“停止”可立即结束本次测试").setOngoing(true)
+        val conversation = request.kind == Kind.HOLD
+        return Notification.Builder(this, CHANNEL).setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentTitle(if (conversation) "面对面 · 正在收音" else "PolyBridge 正在采样")
+            .setContentText(if (conversation) "松开发送，或点停止取消本句" else "点“停止”可立即结束本次测试").setOngoing(true)
             .addAction(Notification.Action.Builder(null, "停止", action).build()).build()
     }
 
