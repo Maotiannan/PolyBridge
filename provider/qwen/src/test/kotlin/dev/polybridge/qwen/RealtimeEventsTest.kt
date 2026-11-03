@@ -37,4 +37,19 @@ class RealtimeEventsTest {
         for (code in listOf("fr", "", "en"))
             assertFalse(events(Side.CHINESE, code, false).any { it is LiveUpdate.Caption || it is LiveUpdate.Finished })
     }
+
+    @Test fun textOnlyFrenchPlaybackShowsChineseBeforeTheSentenceFinishes() {
+        val updates = mutableListOf<LiveUpdate>()
+        val stream = RealtimeEvents(Side.FRENCH) { updates += it }
+        listOf(
+            """{"type":"input_audio_buffer.speech_started","item_id":"f"}""",
+            """{"type":"conversation.item.input_audio_transcription.completed","item_id":"f","language":"fr","transcript":"Je voudrais deux billets."}""",
+            """{"type":"response.created","response":{"id":"r"}}""",
+            """{"type":"response.text.text","response_id":"r","text":"我想","stash":"要"}""",
+            """{"type":"response.text.done","response_id":"r","text":"我想要两张票。"}""",
+            """{"type":"response.done","response":{"id":"r","status":"completed"}}"""
+        ).forEach(stream::accept)
+        assertTrue(updates.filterIsInstance<LiveUpdate.Caption>().any { it.target == "我想要" })
+        assertEquals("我想要两张票。", updates.filterIsInstance<LiveUpdate.Finished>().single().target)
+    }
 }

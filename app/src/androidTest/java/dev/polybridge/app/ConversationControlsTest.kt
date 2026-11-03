@@ -21,7 +21,8 @@ class ConversationControlsTest {
     private val inst get() = InstrumentationRegistry.getInstrumentation()
     @Before fun exposeControlIds() {
         val service = inst.uiAutomation.serviceInfo
-        service.flags = service.flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+        service.flags = service.flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+            android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
         inst.uiAutomation.serviceInfo = service
     }
 
@@ -53,12 +54,20 @@ class ConversationControlsTest {
     private fun click(label: String, id: String? = null) {
         // Use the touch path a person uses. Compose can expose the label as a separate text node.
         val bounds = Rect()
-        waitUntil { bounds.setEmpty(); labelled(label, id)?.getBoundsInScreen(bounds); !bounds.isEmpty }
-        val t = SystemClock.uptimeMillis()
-        for (action in listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP)) {
-            val e = MotionEvent.obtain(t, SystemClock.uptimeMillis(), action, bounds.exactCenterX(), bounds.exactCenterY(), 0)
-            try { check(inst.uiAutomation.injectInputEvent(e, true)) } finally { e.recycle() }
+        var since = 0L
+        waitUntil {
+            val next = Rect()
+            labelled(label, id)?.getBoundsInScreen(next)
+            val now = SystemClock.uptimeMillis()
+            if (next != bounds) { bounds.set(next); since = now }
+            !bounds.isEmpty && now - since >= 300
         }
+        tap(bounds)
+    }
+
+    private fun tap(bounds: Rect) {
+        val command = "input -d 0 tap ${bounds.centerX()} ${bounds.centerY()}"
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(inst.uiAutomation.executeShellCommand(command)).use { it.readBytes() }
     }
 
     private fun type(index: Int, value: String) {
@@ -102,6 +111,29 @@ class ConversationControlsTest {
         waitUntil { nodes().count { it.isEditable } == 2 }
         type(0, "下一站")
         type(1, "Le prochain arrêt.")
+        fun capture(name: String) {
+            if (InstrumentationRegistry.getArguments().getString("captureQaScreens") != "true") return
+            inst.uiAutomation.waitForIdle(180, 2000)
+            val shot = inst.uiAutomation.takeScreenshot()
+            app.cacheDir.resolve(name).outputStream().use { shot.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            shot.recycle()
+        }
+        capture("qa-edit.png")
+        if (InstrumentationRegistry.getArguments().getString("dialogIme") == "true") {
+            val field = Rect()
+            nodes().last { it.isEditable }.getBoundsInScreen(field)
+            tap(field)
+            val keyboard = Rect()
+            val save = Rect()
+            waitUntil {
+                inst.uiAutomation.windows.firstOrNull { it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+                    ?.getBoundsInScreen(keyboard)
+                labelled("保存修改")?.getBoundsInScreen(save)
+                !keyboard.isEmpty && !save.isEmpty && save.bottom <= keyboard.top
+            }
+            capture("qa-edit-ime.png")
+            inst.sendStatus(0, Bundle().apply { putString("dialogIme", "saveBottom=" + save.bottom + " keyboardTop=" + keyboard.top) })
+        }
         click("保存修改")
         waitUntil { labelled("Le prochain arrêt.") != null }
         val saved = ProbeStore(app).chat.value.turns.single { it.id == "qa-22" }

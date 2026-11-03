@@ -31,19 +31,11 @@ class MainActivity : ComponentActivity() {
     private val app get() = application as PolyBridgeApp
     private val store get() = app.store
     private val monitor by lazy { DeviceMonitor(this) }
-    private var sharedAudio by mutableStateOf<String?>(null)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        readShare(intent)
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
         setContent { StudioTheme { Home() } }
-    }
-    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); readShare(intent) }
-    private fun readShare(intent: Intent) {
-        if (intent.action != Intent.ACTION_SEND || intent.type?.startsWith("audio/") != true) return
-        @Suppress("DEPRECATION") val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-        sharedAudio = uri?.takeIf { it.scheme == "content" }?.toString()
     }
     override fun onStart() { super.onStart(); monitor.start() }
     override fun onStop() {
@@ -59,14 +51,14 @@ class MainActivity : ComponentActivity() {
         runCatching { packageManager.getPackageInfo(it, 0).versionName }.getOrNull()
     } ?: if (target == PlaybackTarget.SELF) BuildConfig.VERSION_NAME else null
 
-    private fun start(kind: Kind, target: PlaybackTarget, input: Int?, side: Side? = null, token: Intent? = null): String? {
-        val request = store.begin(kind, target, input, side, version(target)) ?: return null
+    private fun start(kind: Kind, target: PlaybackTarget, input: Int?, side: Side? = null, token: Intent? = null, source: String? = null): String? {
+        val request = store.begin(kind, target, input, side, version(target), source) ?: return null
         try { ProbeService.launch(this, request, token) }
         catch (_: RuntimeException) { store.finish(request.empty(Verdict.FAILED, "FOREGROUND_START")); return null }
         return request.id
     }
-    private fun rejected(kind: Kind, target: PlaybackTarget, input: Int?, verdict: Verdict, reason: String) {
-        store.begin(kind, target, input, null, version(target))?.let { store.finish(it.empty(verdict, reason)) }
+    private fun rejected(kind: Kind, target: PlaybackTarget, input: Int?, verdict: Verdict, reason: String, source: String? = null) {
+        store.begin(kind, target, input, null, version(target), source)?.let { store.finish(it.empty(verdict, reason)) }
     }
 
     @Composable private fun Home() {
@@ -83,16 +75,22 @@ class MainActivity : ComponentActivity() {
         var pendingTarget by rememberSaveable { mutableStateOf(PlaybackTarget.SELF) }
         var pendingInput by rememberSaveable { mutableStateOf<Int?>(null) }
         var pendingSide by rememberSaveable { mutableStateOf<Side?>(null) }
+        var pendingPackage by rememberSaveable { mutableStateOf<String?>(null) }
+        var openWhenReady by rememberSaveable { mutableStateOf<String?>(null) }
         var toneBusy by remember { mutableStateOf(false) }
         val projectionManager = getSystemService(MediaProjectionManager::class.java)
         val projection = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == Activity.RESULT_OK && it.data != null)
-                start(pendingKind, pendingTarget, null, pendingSide, token = it.data)
-            else { rejected(pendingKind, pendingTarget, null, Verdict.DENIED, "PROJECTION_CONSENT"); notice("本次未获播放共享授权") }
+            if (it.resultCode == Activity.RESULT_OK && it.data != null) {
+                val id = start(pendingKind, pendingTarget, null, pendingSide, token = it.data, source = pendingPackage)
+                if (pendingKind == Kind.CAPTIONS) openWhenReady = id
+            }
+            else { rejected(pendingKind, pendingTarget, null, Verdict.DENIED, "PROJECTION_CONSENT", pendingPackage); notice("本次未获播放共享授权") }
         }
         fun startConsented(kind: Kind, chosen: PlaybackTarget, selectedInput: Int?, side: Side?): String? {
             if (kind.playbackCapture) {
-                if (version(chosen) == null) { rejected(kind, chosen, null, Verdict.FAILED, "TARGET_NOT_INSTALLED"); notice("手机未安装所选应用") }
+                if (kind == Kind.CAPTIONS) {
+                    projection.launch(projectionManager.createScreenCaptureIntent())
+                } else if (version(chosen) == null) { rejected(kind, chosen, null, Verdict.FAILED, "TARGET_NOT_INSTALLED"); notice("手机未安装所选应用") }
                 else projection.launch(projectionManager.createScreenCaptureIntent())
                 return null
             }
@@ -100,7 +98,7 @@ class MainActivity : ComponentActivity() {
         }
         val mic = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                rejected(pendingKind, pendingTarget, pendingInput, Verdict.DENIED, "RECORD_AUDIO")
+                rejected(pendingKind, pendingTarget, pendingInput, Verdict.DENIED, "RECORD_AUDIO", pendingPackage)
                 notice("本次未获麦克风授权")
             } else if (pendingKind == Kind.HOLD) notice("麦克风已授权，请重新按住说话")
             else startConsented(pendingKind, pendingTarget, pendingInput, pendingSide)
@@ -116,6 +114,20 @@ class MainActivity : ComponentActivity() {
             return null
         }
         val bluetooth = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { monitor.refresh() }
+        val overlayPermission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (android.provider.Settings.canDrawOverlays(this) && pendingPackage != null)
+                userStart(Kind.CAPTIONS, PlaybackTarget.SELECTED, null)
+            else notice("要在其他应用上看字幕，请允许 PolyBridge 显示悬浮窗")
+        }
+        val reading = active?.sampling?.collectAsState()?.value == true
+        LaunchedEffect(active?.id, reading, openWhenReady) {
+            val session = active ?: return@LaunchedEffect
+            if (reading && session.kind == Kind.CAPTIONS && session.id == openWhenReady) {
+                openWhenReady = null
+                val launch = session.sourcePackage?.let(packageManager::getLaunchIntentForPackage)
+                if (launch == null || runCatching { startActivity(launch) }.isFailure) notice("字幕已开启，请切到所选应用播放语音")
+            }
+        }
         fun export(uri: android.net.Uri?, markdown: Boolean) {
             if (uri == null) return
             val current = store.report.value
@@ -137,17 +149,23 @@ class MainActivity : ComponentActivity() {
             return userStart(kind, PlaybackTarget.SELF, selected?.id, side)
         }
         Studio(app, lifecycle, chat, active, hardware, requestBluetooth = { bluetooth.launch(Manifest.permission.BLUETOOTH_CONNECT) },
-            installedVersion = ::version, incomingShare = sharedAudio, consumeShare = {
-            sharedAudio = null; if (intent.action == Intent.ACTION_SEND) setIntent(Intent(this, MainActivity::class.java))
-        }, start = { speechStart(Kind.HOLD, it) }, listen = { speechStart(Kind.LISTEN, null) },
-            captureMessage = { targetApp, direction -> userStart(Kind.MESSAGE, targetApp, null, direction) }, end = { id, cancel ->
+            start = { speechStart(Kind.HOLD, it) }, listen = { speechStart(Kind.LISTEN, null) },
+            captureApp = { pkg ->
+                pendingPackage = pkg
+                if (android.provider.Settings.canDrawOverlays(this)) userStart(Kind.CAPTIONS, PlaybackTarget.SELECTED, null)
+                else runCatching { overlayPermission.launch(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + packageName))) }
+                    .onFailure { notice("请在系统设置中允许 PolyBridge 显示悬浮窗") }
+            }, end = { id, cancel ->
             store.active.value?.takeIf { it.id == id }?.end?.compareAndSet(null, if (cancel) End.CANCELLED else End.RELEASED)
         }, notice = ::notice, inputLabel = settings.mic.label, inputPicker = { dismiss ->
-            AlertDialog(onDismissRequest = dismiss, title = { Text("说话时的麦克风") }, text = {
+            StudioDialog(onDismissRequest = dismiss, title = { Text("说话时的麦克风") }, text = {
                 Column { Microphone.entries.forEach { choice ->
-                    TextButton(onClick = { app.settings.microphone(choice); dismiss() }) {
-                        Text((if (settings.mic == choice) "✓  " else "") + choice.label)
-                    }
+                    ChoiceRow(choice.label, settings.mic == choice, { app.settings.microphone(choice); dismiss() },
+                        when (choice) {
+                            Microphone.AUTO -> "由手机选择当前可用的输入"
+                            Microphone.PHONE -> "适合让身边两个人轮流说话"
+                            Microphone.HEADSET -> "只听佩戴耳机的人说话"
+                        })
                 } }
             }, confirmButton = { TextButton(onClick = dismiss) { Text("返回") } })
         }) {

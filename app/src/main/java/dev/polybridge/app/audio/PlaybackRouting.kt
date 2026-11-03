@@ -6,19 +6,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Build
 import dev.polybridge.app.TranslationSettings
-import kotlin.math.pow
-
-internal fun playbackGain(quietSpeaker: Boolean, deviceType: Int?, index: Int, minIndex: Int,
-    volumeDb: (Int) -> Float): Float {
-    if (!quietSpeaker) return 1f
-    if (deviceType == null) return 0f
-    if (deviceType != AudioDeviceInfo.TYPE_BUILTIN_SPEAKER && deviceType != AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE) return 1f
-    if (index <= 0) return 0f
-    val lowestAudible = maxOf(1, minIndex)
-    if (index <= lowestAudible) return 1f
-    val difference = volumeDb(lowestAudible) - volumeDb(index)
-    return if (difference.isFinite()) 10.0.pow(difference.coerceAtMost(0f) / 20.0).toFloat() else 0f
-}
 
 internal fun headphoneType(type: Int?) = type in setOf(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
     AudioDeviceInfo.TYPE_BLE_HEADSET, AudioDeviceInfo.TYPE_WIRED_HEADSET, AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
@@ -29,16 +16,6 @@ internal class PlaybackRouting(context: Context, private val settings: Translati
     private val main = Handler(Looper.getMainLooper())
     val attributes: AudioAttributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
-
-    private fun gain(device: AudioDeviceInfo?): Float {
-        val stream = AudioManager.STREAM_MUSIC
-        return runCatching {
-            val speaker = if (device?.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE) AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE
-                else AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
-            playbackGain(settings.state.value.quietSpeaker, device?.type, audio.getStreamVolume(stream),
-                audio.getStreamMinVolume(stream)) { audio.getStreamVolumeDb(stream, it, speaker) }
-        }.getOrDefault(0f)
-    }
 
     private fun preferred(language: String?, personal: Boolean): AudioDeviceInfo? {
         if (language == null) return null
@@ -75,7 +52,7 @@ internal class PlaybackRouting(context: Context, private val settings: Translati
                     else -> null
                 }
                 val requireMatch = assigned || (personal && requested != null)
-                val level = if (requireMatch && matched != true) 0f else gain(actual)
+                val level = if (requireMatch && matched != true) 0f else 1f
                 val ducked = isDucked() && level > 0
                 TranslationSettings.PlaybackObservation(actual.type, matched, if (ducked) 0f else level, position, manual, playbackId, ducked)
                     .also { settings.noteRoute(language, it) }
@@ -117,7 +94,7 @@ internal class PlaybackRouting(context: Context, private val settings: Translati
 
     fun prepare(track: AudioTrack): () -> Unit {
         track.setVolume(0f)
-        val adjust: () -> Unit = { runCatching { track.setVolume(gain(track.routedDevice)) }; Unit }
+        val adjust: () -> Unit = { track.setVolume(if (track.routedDevice != null) 1f else 0f); Unit }
         track.addOnRoutingChangedListener(AudioRouting.OnRoutingChangedListener { adjust() }, main)
         return adjust
     }

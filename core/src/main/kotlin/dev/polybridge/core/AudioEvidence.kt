@@ -4,12 +4,13 @@ import kotlin.math.abs
 import kotlin.math.log10
 
 enum class Kind(val label: String) {
-    MICROPHONE("麦克风"), PLAYBACK("应用播放"), HOLD("按住说话"), LISTEN("自由监听"), MESSAGE("语音消息");
-    val playbackCapture get() = this == PLAYBACK || this == MESSAGE
+    MICROPHONE("麦克风"), PLAYBACK("应用播放"), HOLD("按住说话"), LISTEN("自由监听"), MESSAGE("语音消息"), CAPTIONS("屏幕字幕");
+    val playbackCapture get() = this == PLAYBACK || this == MESSAGE || this == CAPTIONS
+    val streaming get() = this == LISTEN || this == CAPTIONS
 }
 enum class PlaybackTarget(val label: String, val packageName: String?) {
     SELF("应用测试音", null), WECHAT("微信", "com.tencent.mm"),
-    WHATSAPP("WhatsApp", "com.whatsapp"), WHATSAPP_BUSINESS("WhatsApp Business", "com.whatsapp.w4b")
+    WHATSAPP("WhatsApp", "com.whatsapp"), WHATSAPP_BUSINESS("WhatsApp Business", "com.whatsapp.w4b"), SELECTED("所选应用", null)
 }
 enum class Capability { UNVERIFIED, SUPPORTED, UNSUPPORTED }
 enum class End { TIMED, RELEASED, CANCELLED, DENIED, PROJECTION_STOPPED, ROUTE_LOST, READ_ERROR, INTERRUPTED }

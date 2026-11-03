@@ -29,8 +29,11 @@
 | core / LiveConversation、ReconnectingLiveSession | 实时字幕、最终译文、终止原因和有上限的连接恢复。旧连接的迟到事件与中断期间的声音不进入新会话 |
 | provider / qwen / QwenLiveSession、RealtimeEvents | 16 kHz 音频经两个固定目标语言的连接发送。结合源语言识别、句子和响应编号归集译文与 24 kHz 译音，只提交匹配的翻译方向 |
 | app / audio / LiveDesk、PlaybackFloor | 按实播语音消除回声并暂存开头几个音节。发现另一种声音时先短暂调低朗读，从设备真正静音的时刻计时。持续的新声音或与本句无关的识别结果可以打断朗读，疑似微弱人声也会送交识别 |
-| app / audio / PlaybackRouting、HeadsetPreferences | 对实际机身路由按系统音量曲线衰减，其他输出保持原音量。设备分配使用每次安装独有的散列标识。指定耳机不匹配时不播放该句 |
-| core / ImportedAudio，app / audio / AudioFileDecoder、TranslatedAudioShare | 系统选中的音频重采样为 16 kHz，原录音只在内存处理。分享时在私有缓存创建译音文件并仅授予读取权限，启动或下次分享时清理超过一天的文件 |
-| app / ime、ui / VoiceTools、CallAssistPanel | 校对并插入当前编辑框，显式共享媒体，查看目标应用和复制文字回复。输入法独立按系统生命周期处理，私密编辑框禁用翻译 |
+| app / audio / PlaybackRouting、HeadsetPreferences | 确认实际输出后按系统媒体音量播放。手动指定的耳机未匹配时保持静音。设备分配使用每次安装独有的散列标识 |
+| app / audio / CaptionApps、ProbeService、LiveDesk | 用户选择可启动的来源应用。前台服务持有本次播放共享许可，按来源 UID 和媒体用途过滤 PCM，送入中法两个自动识别方向。字幕使用纯文本输出，不通过扬声器读回所听内容 |
+| app / ui / ScreenCaptions、AppCaptionPanel | 前台服务管理悬浮窗。显示部分原文、逐步更新的译文、最近完整一句和无声状态。字幕卡的位置与来源应用分别保存，关闭或系统撤回许可时释放窗口和音频会话 |
+| app / ui / CallAssistPanel、audio / TranslatedAudioShare | 机主说中文后生成法语，可在本机播放，或显式分享私有缓存中的只读语音。通话上行仍须另行验证 |
 
 自由监听、长按和系统播放共享互斥。语音消息共享只申请所选应用允许采集的媒体用途，通话音轨仍须单独验收。
+
+音量图形的输入取自回声处理前的 20 毫秒 PCM，界面最多每 65 毫秒接收一次新值。按住说话期间，手势由第一次按下的指针持有。跨过按钮上边缘的取消区只改变松手行为，回到按钮恢复发送。折叠屏下半区预留系统手势空间，面对面页单独管理临时系统栏。应用弹窗共用窄屏底部面板和宽屏居中面板，系统授权仍通过 Android 本身完成。

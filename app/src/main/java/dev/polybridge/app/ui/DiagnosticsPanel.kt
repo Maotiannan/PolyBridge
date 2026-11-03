@@ -67,7 +67,7 @@ import java.util.Locale
             }
             2 -> {
                 Text("先选本应用测试音做对照。测试语音消息时，开始后在目标应用播放一段已知内容。每次测试都需要系统授权，10 秒后自动停止。")
-                PlaybackTarget.entries.forEach { item ->
+                PlaybackTarget.entries.filter { it != PlaybackTarget.SELECTED }.forEach { item ->
                     FilterChip(selected = target == item, enabled = idle, onClick = { onTarget(item) }, label = { Text(item.label) })
                 }
                 Button(enabled = idle, onClick = onPlayback) { Text("申请授权并测试 10 秒") }
@@ -94,10 +94,12 @@ import java.util.Locale
         OutlinedButton(enabled = enabled, onClick = { open = true }) {
             Text("$label · " + (ports.find { it.id == selected }?.route()?.label() ?: if (selected == null) "系统自动选择" else "设备已断开"))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(text = { Text("系统自动选择") }, onClick = { onSelect(null); open = false })
-            ports.forEach { DropdownMenuItem(text = { Text(it.route().label()) }, onClick = { onSelect(it.id); open = false }) }
-        }
+        if (open) StudioDialog(onDismissRequest = { open = false }, title = { Text("选择" + label) }, text = {
+            Column {
+                TextButton(onClick = { onSelect(null); open = false }) { Text("系统自动选择") }
+                ports.forEach { port -> TextButton(onClick = { onSelect(port.id); open = false }) { Text(port.route().label()) } }
+            }
+        }, confirmButton = { TextButton(onClick = { open = false }) { Text("返回") } })
     }
 }
 

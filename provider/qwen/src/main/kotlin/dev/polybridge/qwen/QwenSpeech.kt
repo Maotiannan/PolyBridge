@@ -31,7 +31,10 @@ class QwenSpeech internal constructor(private val key: String, private val endpo
     private val gson = Gson()
 
     fun live(update: (LiveUpdate) -> Unit): LiveSpeechSession =
-        ReconnectingLiveSession({ receiver -> QwenLiveSession(key, options, receiver) }, update)
+        live(false, update)
+
+    fun live(textOnly: Boolean, update: (LiveUpdate) -> Unit): LiveSpeechSession =
+        ReconnectingLiveSession({ receiver -> QwenLiveSession(key, options, textOnly, receiver) }, update)
 
     override fun transcribe(side: Side, wave: ByteArray): String {
         val data = "data:audio/wav;base64," + Base64.getEncoder().encodeToString(wave)

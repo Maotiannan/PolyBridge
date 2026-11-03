@@ -70,10 +70,11 @@ class StudioScreenTest {
         waitFor { it.text?.toString() == "开始监听" }
         assertNull(app.store.active.value)
         test.uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
-        pick("通话辅助")
-        waitFor { it.text?.toString() == "用文字回复" }
-        pick("分享译音或使用翻译键盘")
-        waitFor { it.text?.toString() == "选择语音" }
+        pick("中文转法语")
+        waitFor { it.text?.toString() == "按住说中文，松手出法语" }
+        pick("去看屏幕字幕")
+        waitFor { it.text?.toString() == "从应用播放中采集" }
+        assertNull(find { it.text?.toString() in listOf("选择语音", "切换键盘", "Français → 中文") })
         assertNull(app.store.active.value)
     }
 

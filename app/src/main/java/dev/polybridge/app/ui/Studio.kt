@@ -24,18 +24,17 @@ import dev.polybridge.app.audio.Hardware
 import dev.polybridge.core.*
 
 @Composable internal fun Studio(app: PolyBridgeApp, lifecycle: Lifecycle, chat: Conversation, active: ProbeRequest?,
-    hardware: Hardware, requestBluetooth: () -> Unit, installedVersion: (PlaybackTarget) -> String?,
-    incomingShare: String?, consumeShare: () -> Unit,
-    start: (Side) -> String?, listen: () -> String?, captureMessage: (PlaybackTarget, Side) -> Unit,
+    hardware: Hardware, requestBluetooth: () -> Unit,
+    start: (Side) -> String?, listen: () -> String?, captureApp: (String) -> Unit,
     end: (String, Boolean) -> Unit, notice: (String) -> Unit,
     inputLabel: String, inputPicker: @Composable (() -> Unit) -> Unit, diagnostics: @Composable () -> Unit) {
-    var page by rememberSaveable { mutableStateOf(Page.TALK) }
+    var page by rememberSaveable { mutableStateOf(if (active?.kind == Kind.CAPTIONS) Page.TOOLS else Page.TALK) }
     var showCloud by rememberSaveable { mutableStateOf(false) }
     var showInput by rememberSaveable { mutableStateOf(false) }
     var typing by rememberSaveable { mutableStateOf<Side?>(null) }
     var editing by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedFile by rememberSaveable { mutableStateOf<String?>(null) }
     val config by app.settings.state.collectAsState()
+    ImmersiveTalk(config.immersiveTalk && page == Page.TALK)
     val context = LocalContext.current
     val voice = remember(context) { ConversationVoice(context.applicationContext, app.settings, app.clips, notice) }
     val playback by voice.state.collectAsState()
@@ -67,7 +66,6 @@ import dev.polybridge.core.*
         }
     }
     val back = { navigate(if (page == Page.DIAGNOSTICS) Page.SETTINGS else Page.TALK) }
-    LaunchedEffect(incomingShare) { if (incomingShare != null) { selectedFile = incomingShare; navigate(Page.TOOLS); consumeShare() } }
     BackHandler(page != Page.TALK, onBack = back)
     val actions = TalkActions(start = {
         if (!config.configured) { showCloud = true; null } else { voice.stop(); start(it) }
@@ -88,12 +86,12 @@ import dev.polybridge.core.*
                 Box(Modifier.fillMaxWidth().weight(1f)) {
                     when (page) {
                         Page.TALK -> CompactTalk(chat, active, actions, { navigate(Page.BOOK) }, { navigate(Page.LIVE) }, { navigate(Page.CALL) })
-                        Page.CALL -> CallAssistPanel(app, chat, installedVersion, { showCloud = true }, { navigate(Page.TOOLS) }, notice)
+                        Page.CALL -> CallAssistPanel(app, chat, active, actions, { voice.translation(it, manual = false) }, { navigate(Page.TOOLS) }, notice)
                         Page.LIVE -> ListeningPanel(app, chat, active, actions, start = {
                             if (!config.configured) showCloud = true else { voice.stop(); listen() }
-                        }, stop = { active?.let { end(it.id, false) } })
+                        }, stop = { active?.let { end(it.id, false) } }, captions = { navigate(Page.TOOLS) })
                         Page.BOOK -> Phrasebook { if (app.store.active.value == null) voice.phrase(it) else notice("收音结束后可播放词本") }
-                        Page.TOOLS -> VoiceTools(app, chat, selectedFile, { selectedFile = it }, actions, active, captureMessage, { showCloud = true }, notice)
+                        Page.TOOLS -> AppCaptionPanel(app, active, captureApp, { active?.let { dev.polybridge.app.audio.ProbeService.stop(context, it.id) } }, { showCloud = true })
                         Page.HISTORY -> HistoryPanel(chat, actions, active == null, fresh = {
                             app.store.changeChat { it.newSession() }; navigate(Page.TALK)
                         }, remove = { id -> voice.stop(); app.store.changeChat(durable = true) { it.copy(turns = it.turns.filterNot { turn -> turn.id == id }) } },
@@ -158,7 +156,7 @@ import dev.polybridge.core.*
         }
     }
     chat.turns.find { it.id == deleting }?.let { turn ->
-        AlertDialog(onDismissRequest = { deleting = null }, title = { Text("删除这句对话？") },
+        StudioDialog(onDismissRequest = { deleting = null }, title = { Text("删除这句对话？") },
             text = { Text(turn.sourceText.ifBlank { "这条记录将从本机移除。" }) },
             confirmButton = { TextButton(onClick = { remove(turn.id); deleting = null }) { Text("删除") } },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text("保留") } })
@@ -169,15 +167,15 @@ import dev.polybridge.core.*
     var side by rememberSaveable { mutableStateOf(initial) }
     var source by rememberSaveable { mutableStateOf(turn?.sourceText.orEmpty()) }
     var target by rememberSaveable { mutableStateOf(turn?.translatedText.orEmpty()) }
-    AlertDialog(onDismissRequest = dismiss, title = { Text(if (turn == null) "打字翻译" else "校对这句话") }, text = {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+    StudioDialog(onDismissRequest = dismiss, title = { Text(if (turn == null) "打字翻译" else "校对这句话") }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
             if (turn == null) Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 Side.entries.forEach { lang -> FilterChip(side == lang, { side = lang }, {
                     Text(if (lang == Side.CHINESE) "中文 → 法语" else "Français → 中文")
                 }) }
             }
-            OutlinedTextField(source, { source = it.take(4000) }, label = { Text("原文 · ${side.label}") }, minLines = 2, maxLines = 5)
-            if (turn != null) OutlinedTextField(target, { target = it.take(4000) }, label = { Text("译文") }, minLines = 2, maxLines = 5)
+            OutlinedTextField(source, { source = it.take(4000) }, Modifier.fillMaxWidth(), label = { Text("原文 · ${side.label}") }, minLines = 2, maxLines = 5)
+            if (turn != null) OutlinedTextField(target, { target = it.take(4000) }, Modifier.fillMaxWidth(), label = { Text("译文") }, minLines = 2, maxLines = 5)
             if (retry != null) TextButton(onClick = { retry(source.trim()) }, enabled = source.isNotBlank()) { Text("用原文重新翻译") }
         }
     }, confirmButton = { Button(onClick = { submit(side, source.trim(), target.trim()) },

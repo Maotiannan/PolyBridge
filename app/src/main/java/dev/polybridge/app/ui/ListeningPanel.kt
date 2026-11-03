@@ -1,6 +1,15 @@
 package dev.polybridge.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,7 +23,7 @@ import dev.polybridge.app.ProbeRequest
 import dev.polybridge.core.*
 
 @Composable internal fun ListeningPanel(app: PolyBridgeApp, chat: Conversation, active: ProbeRequest?,
-    actions: TalkActions, start: () -> Unit, stop: () -> Unit) {
+    actions: TalkActions, start: () -> Unit, stop: () -> Unit, captions: () -> Unit) {
     val state by app.live.view.collectAsState()
     val on = active?.kind == Kind.LISTEN
     val view = LocalView.current
@@ -23,9 +32,9 @@ import dev.polybridge.core.*
         if (on) view.keepScreenOn = true
         onDispose { if (on) view.keepScreenOn = previous }
     }
-    val turns = chat.turns.filter { it.id in state.turnIds }
+    val turns = chat.turns.filter { state.kind == Kind.LISTEN && it.id in state.turnIds }
     val title = when {
-        !on -> "轮流说，自在聊。"
+        !on -> "听身边的人"
         state.reconnecting -> "正在重新连接…"
         !state.ready -> "正在连接千问…"
         state.speaking -> "正在朗读译文"
@@ -60,15 +69,29 @@ import dev.polybridge.core.*
             }
             if (turns.isNotEmpty()) Timeline(turns, null, actions, Modifier.weight(1f))
             else Text(if (on) "两人轮流说话，双语字幕会出现在这里。" else
-                "开始后，本机麦克风会向千问的中、法两个翻译方向传送声音。请让对方知道你在使用翻译。离开此页会结束监听。",
+                "用麦克风听身边的对话，中文和法语自动互译。请先告诉对方你在使用翻译。离开此页会结束监听。",
                 color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 8.dp))
         }
         Column(Modifier.padding(horizontal = 20.dp, vertical = 9.dp)) {
+            if (!on) TextButton(onClick = captions) { Text("听的是其他应用？看屏幕字幕") }
             if (state.speaking) TextButton(onClick = app.live::interrupt) { Text("打断朗读，继续说话") }
             Button(onClick = if (on) stop else start, enabled = on || active == null,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)) {
-                Glyph(Mark.AUDIO, Paper); Spacer(Modifier.width(10.dp)); Text(if (on) "结束监听" else "开始监听")
+                if (on) InputBars(active!!.level.collectAsState().value) else Glyph(Mark.AUDIO, Paper)
+                Spacer(Modifier.width(10.dp)); Text(if (on) "结束监听" else "开始监听")
             }
+        }
+    }
+}
+
+@Composable private fun InputBars(level: Float) {
+    val value by animateFloatAsState(level, tween(80), label = "输入音量")
+    Canvas(Modifier.size(28.dp).testTag("input_level").semantics { progressBarRangeInfo = ProgressBarRangeInfo(level, 0f..1f) }) {
+        for (i in 0..4) {
+            val weight = 1f - kotlin.math.abs(2 - i) * .23f
+            val half = size.height * (.055f + value * .40f * weight)
+            val x = size.width * (i + .5f) / 5
+            drawLine(Paper, Offset(x, center.y - half), Offset(x, center.y + half), 2.6.dp.toPx(), StrokeCap.Round)
         }
     }
 }

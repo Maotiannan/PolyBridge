@@ -36,7 +36,6 @@ import dev.polybridge.app.audio.HeadsetRole
             Kicker("对话与声音")
             SettingRow(Mark.MIC, "说话时的麦克风", inputLabel, selectInput)
             SettingRow(Mark.SPEAK, "自动朗读译文", "打开对话页时，读出刚完成的译文", { settings.playback(!config.autoSpeak) }, config.autoSpeak)
-            SettingRow(Mark.SPEAK, "轻声外放", "机身扬声器按最低档朗读，耳机沿用系统音量", { settings.quietSpeaker(!config.quietSpeaker) }, config.quietSpeaker)
             SettingRow(Mark.AUDIO, "中法分开播放", "连接耳机时尝试法语外放、中文进耳机，以实际路由为准", { settings.splitPlayback(!config.splitPlayback) }, config.splitPlayback)
             SettingRow(Mark.SPEAK, "手动重播优先用耳机", "点重播时，两种语言都读到耳机。关闭后按对话的分路设置播放。", { settings.privateReplay(!config.privateReplay) }, config.privateReplay)
             SettingRow(Mark.AUDIO, "我的耳机", "查看连接状态，为麦克风和两种译音选择耳机", { showHeadsets = true })
@@ -46,6 +45,7 @@ import dev.polybridge.app.audio.HeadsetRole
             }, color = Muted, style = MaterialTheme.typography.bodySmall)
             SettingRow(Mark.FLIP, "对坐阅读", "展开时，法语一侧朝向对面的人", { settings.orientation(!config.opposed) }, config.opposed)
             Kicker("关于")
+            SettingRow(Mark.FLIP, "面对面沉浸模式", "收起系统栏，轻扫先显示系统手势", { settings.immersiveTalk(!config.immersiveTalk) }, config.immersiveTalk)
             SettingRow(Mark.AUDIO, "设备诊断", "测试手机、耳机与应用播放，导出报告", diagnostics)
             Text("PolyBridge   v${BuildConfig.VERSION_NAME}", Modifier.padding(vertical = 10.dp), color = Muted, style = MaterialTheme.typography.labelMedium)
         }
@@ -56,8 +56,8 @@ import dev.polybridge.app.audio.HeadsetRole
 @Composable private fun HeadsetDialog(settings: TranslationSettings, hardware: Hardware, request: () -> Unit, close: () -> Unit) {
     val assignments by settings.headsets.assignments.collectAsState()
     var choosing by remember { mutableStateOf<HeadsetRole?>(null) }
-    AlertDialog(onDismissRequest = close, title = { Text("我的耳机") }, text = {
-        Column(Modifier.verticalScroll(rememberScrollState())) {
+    StudioDialog(onDismissRequest = close, title = { Text("我的耳机") }, text = {
+        Column {
             if (!hardware.hasBluetoothAccess) TextButton(onClick = request) { Text("允许查看附近的耳机") }
             else if (hardware.paired.isEmpty()) Text("尚未找到耳机，请先在手机蓝牙设置中配对。")
             hardware.paired.forEach { headset ->
@@ -105,17 +105,17 @@ import dev.polybridge.app.audio.HeadsetRole
     var key by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
     var advanced by remember { mutableStateOf(workspace.isNotBlank()) }
-    AlertDialog(onDismissRequest = dismiss, title = { Text("连接千问") }, text = {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    StudioDialog(onDismissRequest = dismiss, title = { Text("连接千问") }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("松开说话键会把这一句发给阿里云百炼识别、翻译。凭据加密保存在这台手机，服务费用按你的账号结算。", color = Muted)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Region.entries.forEach { item -> FilterChip(region == item, { region = item }, { Text(item.label) }) }
             }
-            OutlinedTextField(key, { key = it; error = "" }, label = { Text(if (config.configured) "替换密钥（可留空）" else "百炼 API Key") },
+            OutlinedTextField(key, { key = it; error = "" }, Modifier.fillMaxWidth(), label = { Text(if (config.configured) "替换密钥（可留空）" else "百炼 API Key") },
                 singleLine = true, visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
             TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "收起业务空间" else "指定业务空间（可选）") }
-            if (advanced) OutlinedTextField(workspace, { workspace = it; error = "" }, singleLine = true,
+            if (advanced) OutlinedTextField(workspace, { workspace = it; error = "" }, Modifier.fillMaxWidth(), singleLine = true,
                 label = { Text("业务空间 ID") }, supportingText = { Text("留空使用本地区公共域名") })
             if (error.isNotEmpty()) Text(error, color = MaterialTheme.colorScheme.error)
             if (config.configured) TextButton(onClick = {

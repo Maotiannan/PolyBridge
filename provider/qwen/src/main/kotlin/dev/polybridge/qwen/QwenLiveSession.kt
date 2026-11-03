@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-internal class QwenLiveSession(private val token: String, private val options: QwenOptions,
+internal class QwenLiveSession(private val token: String, private val options: QwenOptions, private val textOnly: Boolean,
     private val update: (LiveUpdate) -> Unit) : LiveSpeechSession {
     private val ready = CountDownLatch(2)
     private val ended = CountDownLatch(2)
@@ -37,7 +37,7 @@ internal class QwenLiveSession(private val token: String, private val options: Q
                         val json = JsonParser.parseString(text).asJsonObject
                         when (json["type"]?.asString) {
                             "session.created" -> {
-                                val config = mapOf("modalities" to listOf("text", "audio"),
+                                val config = mapOf("modalities" to (if (textOnly) listOf("text") else listOf("text", "audio")),
                                     "translation" to mapOf("language" to side.target.substringBefore('-')),
                                     "input_audio_transcription" to mapOf("model" to "qwen3-asr-flash-realtime"))
                                 webSocket.send(gson.toJson(mapOf("type" to "session.update", "session" to config)))

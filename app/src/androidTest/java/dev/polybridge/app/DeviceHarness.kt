@@ -18,9 +18,9 @@ internal fun openProjectLauncher(): MainActivity {
         var activity: MainActivity? = null
         instrumentation.runOnMainSync {
             activity = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED)
-                .filterIsInstance<MainActivity>().firstOrNull()
+                .filterIsInstance<MainActivity>().firstOrNull { it.hasWindowFocus() && !it.isFinishing }
         }
-        activity?.let { return it }
+        activity?.let { instrumentation.uiAutomation.waitForIdle(180, 2500); return it }
         SystemClock.sleep(50)
     } while (SystemClock.elapsedRealtime() < deadline)
     error("应用未进入前台。$output")

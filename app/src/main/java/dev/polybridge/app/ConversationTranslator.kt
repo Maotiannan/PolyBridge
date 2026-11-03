@@ -33,13 +33,6 @@ class ConversationTranslator(private val store: ProbeStore, private val scope: C
         return id
     }
 
-    fun imported(side: Side, wave: ByteArray): String {
-        val id = UUID.randomUUID().toString()
-        store.changeChat { it.importing(id, side) }
-        recorded(id, wave)
-        return id
-    }
-
     fun retry(id: String, source: String) {
         val changed = store.changeChat { it.retranslate(id, source) }
         if (changed) run(id) { translate(it, id) }

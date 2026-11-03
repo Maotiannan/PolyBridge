@@ -46,10 +46,14 @@ internal class RealtimeEvents(private val side: Side, private val update: (LiveU
                 line.response = event.getAsJsonObject("response").string("id")
                 outputs[line.response] = line
             }
-            "response.audio_transcript.text", "response.audio_transcript.done" -> {
+            "response.audio_transcript.text", "response.audio_transcript.done", "response.text.text", "response.text.delta", "response.text.done" -> {
                 val line = outputs[event.string("response_id")] ?: return
                 line.targetDone = type.endsWith(".done")
-                line.target = if (line.targetDone) event.string("transcript") else event.string("text") + event.string("stash")
+                line.target = when {
+                    line.targetDone -> event.string("transcript").ifBlank { event.string("text") }.ifBlank { line.target }
+                    type.endsWith(".delta") -> line.target + event.string("delta")
+                    else -> event.string("text") + event.string("stash")
+                }
                 publish(line)
             }
             "response.audio.delta" -> {

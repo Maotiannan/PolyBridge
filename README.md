@@ -6,14 +6,14 @@ Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动�
 
 ## 从这里开始
 
-1. 在顶栏点「连接千问」，选择百炼账号所属地区，保存个人 API Key。它由 Android 系统密钥加密。录音只在松手且收到有效声音后发送给百炼。识别、翻译和合成使用个人账号的额度。
-2. 按住「中文」或「Français」说一句，松手后看双语字幕。滑出按键可取消。也可以点「打字」直接翻译。点「纠错」可重新翻译原文或单独修改译文，「重播」会读出当前译文。
+1. 在顶栏点「连接千问」，选择百炼账号所属地区，保存个人 API Key。它由 Android 系统密钥加密。长按说话在松手后发送这句话，自由监听和屏幕字幕在显式启动后逐段发送声音。识别、翻译和合成使用个人账号的额度。
+2. 按住「中文」或「Français」说一句，松手后看双语字幕。手指可以在键上移动，上滑到取消区会变红，在红区松手取消，移回按钮再松手发送。展开后底部留有手势空区。面对面默认使用沉浸模式，可在设置里关闭。打字、纠错和手动重播都在对话页。
 3. 在「常用表达」选见面、沟通、出行或用餐。12 组表达的中法录音随包安装，离线可听。「历史」在内屏并排显示双语。点「新对话」保留历史、换一页继续聊。点「清空历史」一次移除所有对话，六秒内可撤销。
 4. 在「设置」可选手机或蓝牙麦克风、自动朗读和对面朝向。「设备诊断」可测十秒收音、单独播放测试音、对指定应用申请播放共享、导出 JSON 或 Markdown 报告。诊断只保存音频统计，测试音及诊断录音不会发给千问。
-5. 点「自由监听」后，两人可以轮流说中文或法语。点「开始监听」才会把声音发往千问。实时服务同时连接中、法两个翻译方向，使用个人账号额度。监听中的对话页保持亮屏，译音播放时可点「打断朗读」。离开此页或手动锁屏会结束收音。
-6. 「工具」可导入最长两分钟的语音，再点「开始翻译」。也可以在系统允许时采集微信或 WhatsApp 播放的语音消息，最长一分钟。译文可以复制，译音文件可以分享到其他应用。「翻译键盘」可在输入框里翻译选区或语音，校对后点「插入译文」。
-7. 「轻声外放」和「中法分开播放」默认开启。连接耳机后，法语低声外放给对面的人，中文沿用耳机音量。在「我的耳机」可分别指定说话用的麦克风与两种译音的耳机。指定的接收耳机未匹配时，应用显示字幕并静音。设置显示系统上次报告的实际播放设备。
-8. 「通话辅助」按应用显示已安装版本，可翻译并复制文字回复。来电声音获取、译音送达远端和双耳机同时收音仍在验收清单中。
+5. 在「自由监听」点「开始监听」，两人可以轮流说中文或法语。结束按钮上的音量条跟着麦克风输入变化。监听页保持亮屏，译音播放时可以打断。离开此页或手动锁屏会结束麦克风监听。
+6. 要听其他应用，打开「屏幕字幕」。检查声音来源，点「从应用播放中采集」。首次使用允许 PolyBridge 显示悬浮窗，每次按系统提示共享选定的应用。播放语音或视频即可看到原文和另一种语言的译文。字幕条的标题可以上下拖动，点「停止」立即关窗。只采集所选应用允许共享的媒体声音，不会采集画面。遇到禁止共享的音频，应用会提示没有收到声音。[安卓播放采集规则](https://developer.android.com/media/platform/av-capture)
+7. 音量用手机的媒体音量键调节。默认开启「中法分开播放」。连接耳机后，法语从机身扬声器播放给对面的人，中文从耳机播放。在「我的耳机」可分别指定说话用的麦克风与两种译音的耳机。指定的接收耳机未匹配时，应用显示字幕并静音。设置显示系统上次报告的实际播放设备。
+8. 在「中文转法语」按住说中文、松手看法语。可以点「在本机播放法语」，也可以手动分享法语语音文件。普通电话、微信和 WhatsApp 通话的对端目前不能直接听到本机的合成法语。0.5.0 已移除翻译输入法和选择录音文件的入口。
 
 手动重播和当场自动朗读有各自的用途。戴着耳机点「重播」时，中文、法语默认都在耳机里听。自动朗读沿用上面的分路。「纠错」同时显示两栏，点「保存修改」即在本机生效。希望千问重译时点「用原文重新翻译」。自由监听直接复用千问返回的译音，修改文字后使用新文字生成声音。
 
@@ -48,11 +48,12 @@ adb -d shell am instrument -w -e class dev.polybridge.app.DiagnosticsInstrumente
 adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.LiveTranslationTest -e liveQwen true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
-已授权的同一台设备上，以下接口可独立复测自由监听、语音导入和键盘。第一条调用真实云服务，间隔 44 秒重复 20 句约需 16 分钟。键盘测试只操作本应用自己的编辑框，结束后恢复原输入法。
+在已授权的同一台设备上，第一条以固定录音复测双向千问，间隔 44 秒重复 20 句约需 16 分钟。第二条需先允许本应用悬浮，使用独立测试播放器和真实千问验证双向字幕。第三条在展开状态检查两侧按键、音量波动和系统边缘手势。
 
 ```powershell
 adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.LiveListeningTest -e liveListen true -e turns 20 -e gapMs 44000 dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
-adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.VoiceToolsDeviceTest -e liveQwen true -e testKeyboard true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.ScreenCaptionsDeviceTest -e cloudCaptions true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.InputInteractionDeviceTest -e inputInteractions true -e verifyVivoDock true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
 0.4.0 可以分别复测耳机重播、云端抢话和房间收音。戴一副耳机，在已配置千问的 Fold5 上运行下面的接口。第二条使用固定录音，加入 `-e softDuplex true` 会降低第二个人的音量并叠入背景声。第三条让 Windows 的独立扬声器在最低测试电平播放另一句录音，房间麦克风的采样只在手机上处理，输出仅含测量值。

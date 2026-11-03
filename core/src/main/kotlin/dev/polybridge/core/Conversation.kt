@@ -26,9 +26,6 @@ data class Conversation(val turns: List<Turn> = emptyList(), val session: String
         return append(Turn(id, side, TurnStatus.TRANSLATING, text.trim(), atMs = System.currentTimeMillis()))
     }
 
-    fun importing(id: String, side: Side): Conversation =
-        if (turns.any { it.id == id }) this else append(Turn(id, side, TurnStatus.TRANSCRIBING, atMs = System.currentTimeMillis()))
-
     fun cancel(id: String) = copy(turns = turns.filterNot { it.id == id && it.status == TurnStatus.CAPTURING })
 
     fun captureEnded(id: String, verdict: Verdict): Conversation {

@@ -103,8 +103,8 @@ internal enum class Mark(val path: String) {
 
 internal enum class Page(val title: String, val mark: Mark) {
     TALK("对话", Mark.TALK), BOOK("常用表达", Mark.BOOK), HISTORY("历史", Mark.HISTORY),
-    LIVE("自由监听", Mark.AUDIO), CALL("通话辅助", Mark.TALK),
-    TOOLS("工具", Mark.TYPE),
+    LIVE("自由监听", Mark.AUDIO), CALL("中文转法语", Mark.TALK),
+    TOOLS("屏幕字幕", Mark.AUDIO),
     SETTINGS("设置", Mark.SETTINGS), DIAGNOSTICS("设备诊断", Mark.AUDIO)
 }
 

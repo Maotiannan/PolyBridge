@@ -43,7 +43,7 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             PageHeading("FACE À FACE", "面对面")
             Row(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)) {
                 TextButton(onClick = live) { Text("自由监听") }
-                TextButton(onClick = call) { Text("通话辅助") }
+                TextButton(onClick = call) { Text("中文转法语") }
             }
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp)) {
@@ -112,13 +112,14 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             Spacer(Modifier.weight(1f))
             ToolButton(Mark.FLIP, "翻转对面方向", flip, Paper)
             ToolButton(Mark.AUDIO, "自由监听", { navigate(Page.LIVE) }, Paper)
-            ToolButton(Mark.TALK, "通话辅助", { navigate(Page.CALL) }, Paper)
+            ToolButton(Mark.TALK, "中文转法语", { navigate(Page.CALL) }, Paper)
             ToolButton(Mark.BOOK, "常用表达", { navigate(Page.BOOK) }, Paper)
             ToolButton(Mark.HISTORY, "历史", { navigate(Page.HISTORY) }, Paper)
-            ToolButton(Mark.TYPE, "工具", { navigate(Page.TOOLS) }, Paper)
+            TextButton(onClick = { navigate(Page.TOOLS) }) { Text("屏幕字幕", color = Paper) }
             ToolButton(Mark.SETTINGS, "设置", { navigate(Page.SETTINGS) }, Paper)
         }
         SidePane(Side.CHINESE, chat, active, actions, Modifier.fillMaxWidth().weight(1f))
+        Spacer(Modifier.fillMaxWidth().height(maxOf(48.dp, WindowInsets.mandatorySystemGestures.asPaddingValues().calculateBottomPadding() + 12.dp)).background(Paper))
     }
 }
 
@@ -146,24 +147,29 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
     }
 }
 
-@Composable private fun HoldButton(side: Side, active: ProbeRequest?, actions: TalkActions,
+@Composable internal fun HoldButton(side: Side, active: ProbeRequest?, actions: TalkActions,
     modifier: Modifier, compact: Boolean = false) {
     val latest by rememberUpdatedState(actions)
     val current by rememberUpdatedState(active)
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     val held = active?.side == side
     val sampling = active?.sampling?.collectAsState()?.value == true
     val chinese = side == Side.CHINESE
+    var cancelling by remember(side) { mutableStateOf(false) }
     val bg = if (chinese) Forest else Peach
     val fg = if (chinese) Paper else Clay
     val hint = when {
+        held && cancelling -> if (chinese) "松开取消" else "Relâcher pour annuler"
         held && !sampling -> if (chinese) "正在准备…" else "Un instant…"
-        held -> if (chinese) "松开发送" else "Relâchez"
+        held -> if (chinese) "松开发送 · 上滑取消" else "Relâcher pour envoyer"
         active != null -> if (chinese) "对方正在说话" else "À son tour"
         chinese -> "按住说话"
         else -> "Maintenez"
     }
-    Row(modifier.heightIn(min = if (compact) 49.dp else 64.dp).clip(RoundedCornerShape(18.dp))
-        .background(if (held && chinese) Color(0xFF28594B) else bg)
+    val cancelRed = Color(0xFFAC3439)
+    Box(modifier) {
+    Row(Modifier.fillMaxWidth().heightIn(min = if (compact) 49.dp else 64.dp).clip(RoundedCornerShape(18.dp))
+        .background(if (held && cancelling) cancelRed else if (held && chinese) Color(0xFF28594B) else bg)
         .semantics(mergeDescendants = true) {
             role = Role.Button
             contentDescription = if (chinese) "中文，按住说话" else "Français, maintenir pour parler"
@@ -174,21 +180,23 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             }
         }.pointerInput(side) {
             awaitEachGesture {
-                val down = awaitFirstDown()
+                val down = awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
                 if (current != null) return@awaitEachGesture
                 val id = latest.start(side) ?: return@awaitEachGesture
                 var send = false
+                val slide = HoldSlide()
                 try {
+                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     down.consume()
                     while (true) {
-                        val change = awaitPointerEvent().changes.find { it.id == down.id } ?: break
-                        val p = change.position
-                        if (change.isConsumed || (p - down.position).getDistance() > 64.dp.toPx() ||
-                            p.x !in 0f..size.width.toFloat() || p.y !in 0f..size.height.toFloat()) break
-                        if (!change.pressed) { send = true; change.consume(); break }
+                        val change = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial).changes.find { it.id == down.id } ?: break
+                        val red = slide.move(change.position.y.toDp().value)
+                        if (red != cancelling) haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                        cancelling = red
+                        if (!change.pressed) { send = !cancelling && !change.isConsumed; change.consume(); break }
                         change.consume()
                     }
-                } finally { latest.end(id, !send) }
+                } finally { cancelling = false; latest.end(id, !send) }
             }
         }.padding(horizontal = 13.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(if (compact) 34.dp else 37.dp).background(if (chinese) Leaf else Color(0xFFE9C8B6), CircleShape),
@@ -196,11 +204,18 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
         Spacer(Modifier.width(9.dp))
         if (compact) {
             Text(side.label, color = fg, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.weight(1f)); Text(hint, color = fg, style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.weight(1f)); Text(hint, color = if (held && cancelling) Paper else fg, style = MaterialTheme.typography.bodyMedium)
         } else Column {
             Text(side.label, color = fg, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(hint, color = fg, style = MaterialTheme.typography.labelMedium)
+            Text(hint, color = if (held && cancelling) Paper else fg, style = MaterialTheme.typography.labelMedium)
         }
+    }
+    if (held) Surface(Modifier.align(Alignment.TopCenter).offset(y = (-46).dp),
+        shape = RoundedCornerShape(15.dp), color = if (cancelling) cancelRed else Forest, shadowElevation = 3.dp) {
+        Text(if (chinese) (if (cancelling) "松开取消 · 移回继续" else "↑  上滑到这里取消")
+            else (if (cancelling) "Relâchez pour annuler" else "↑  Glissez pour annuler"),
+            Modifier.padding(horizontal = 12.dp, vertical = 8.dp), color = Paper, style = MaterialTheme.typography.labelLarge)
+    }
     }
 }
 

@@ -36,7 +36,7 @@ class AndroidAudioInput(private val context: Context,
         return try {
             val config = if (request.kind.playbackCapture) {
                 if (projection == null) return request.empty(Verdict.DENIED, "NO_PROJECTION")
-                val pkg = request.target.packageName ?: context.packageName
+                val pkg = if (request.kind == Kind.CAPTIONS) requireNotNull(request.sourcePackage) else request.target.packageName ?: context.packageName
                 val uid = context.packageManager.getApplicationInfo(pkg, 0).uid
                 AudioPlaybackCaptureConfiguration.Builder(projection).addMatchingUid(uid)
                     .addMatchingUsage(AudioAttributes.USAGE_MEDIA).addMatchingUsage(AudioAttributes.USAGE_GAME)
@@ -92,7 +92,7 @@ class AndroidAudioInput(private val context: Context,
     private fun capture(record: AudioRecord, request: ProbeRequest, onStarted: () -> Unit): ProbeEntry {
         val hold = request.kind == Kind.HOLD
         val message = request.kind == Kind.MESSAGE
-        val live = request.kind == Kind.LISTEN
+        val live = request.kind.streaming
         val duration = when { live -> 60 * 60_000L; message -> 60_000L; hold -> 30_000L; else -> 10_000L }
         val meter = SignalMeter()
         val clip = if ((hold || message) && onUtterance != null) MonoWave(record.sampleRate, if (message) 60 else 30) else null

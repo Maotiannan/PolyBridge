@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 internal data class ListeningState(val id: String? = null, val ready: Boolean = false,
     val partial: LiveUpdate.Caption? = null, val turnIds: List<String> = emptyList(), val speaking: Boolean = false,
     val isolatedOutput: Boolean = false, val issue: TranslationIssue? = null, val reconnecting: Boolean = false,
-    val interruptions: Int = 0, val playbackStoppedAt: Long = 0)
+    val interruptions: Int = 0, val playbackStoppedAt: Long = 0, val lastLine: LiveUpdate.Caption? = null, val kind: Kind? = null)
 
 internal typealias MicFrames = (ShortArray, Int, Int) -> Unit
 
@@ -21,7 +21,10 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     private val clips: VoiceClips,
     private val connect: ((LiveUpdate) -> Unit) -> LiveSpeechSession = {
         settings.provider()?.live(it) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL)
-    }, private val microphone: (MicFrames) -> AudioInputSource = { AndroidAudioInput(context, onFrame = it) }) {
+    }, private val microphone: (MicFrames) -> AudioInputSource = { AndroidAudioInput(context, onFrame = it) },
+    private val captionConnection: ((LiveUpdate) -> Unit) -> LiveSpeechSession = {
+        settings.provider()?.live(true, it) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL)
+    }) {
     private val main = Handler(Looper.getMainLooper())
     private val routing = PlaybackRouting(context, settings)
     private val state = MutableStateFlow(ListeningState())
@@ -36,23 +39,29 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     private val inputUs = java.util.concurrent.atomic.AtomicLong()
     private val spoken = SpokenEchoes()
 
-    fun record(request: ProbeRequest): ProbeEntry {
+    fun record(request: ProbeRequest, projection: android.media.projection.MediaProjection? = null): ProbeEntry {
         synchronized(this) {
-            state.value = ListeningState(id = request.id); background = RoomNoise(); echo = null
+            state.value = ListeningState(id = request.id, kind = request.kind); background = RoomNoise(); echo = null
             spoken.reset(); inputUs.set(0)
         }
         var live: LiveSpeechSession? = null
         return try {
-            val connection = connect { event -> receive(request, event) }
+            val captions = request.kind == Kind.CAPTIONS
+            val connection = (if (captions) captionConnection else connect) { event -> receive(request, event) }
             live = connection
             synchronized(this) { session = connection }
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
             connection.connect()
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
             val floor = PlaybackFloor()
-            val input = microphone { samples, n, rate ->
+            val meter = InputLevel()
+            var publishedAt = -100L
+            val input = microphone inputFrame@{ samples, n, rate ->
                 val now = SystemClock.elapsedRealtime()
+                val level = meter.read(samples, n)
+                if (now - publishedAt >= 65) { request.level.value = level; publishedAt = now }
                 inputUs.addAndGet(n * 1_000_000L / rate)
+                if (captions) { connection.send(samples, n, rate); return@inputFrame }
                 if (!state.value.speaking && (state.value.playbackStoppedAt == 0L ||
                         SystemClock.elapsedRealtime() - state.value.playbackStoppedAt > 350)) background.observe(samples, n, rate)
                 val current = echo
@@ -66,7 +75,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                     } }
                 })
             }
-            val measured = input.measure(request, null) {
+            val measured = input.measure(request, projection) {
                 request.sampling.value = true
                 synchronized(this) { state.value = state.value.copy(ready = true) }
             }
@@ -79,6 +88,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
             synchronized(this) { state.value = state.value.copy(issue = TranslationIssue.SERVICE) }
             request.empty(Verdict.FAILED, "LIVE_SERVICE")
         } finally {
+            request.level.value = 0f
             live?.close()
             synchronized(this) {
                 session = null
@@ -94,7 +104,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     }
 
     @Synchronized private fun receive(request: ProbeRequest, event: LiveUpdate) {
-        if (state.value.id != request.id || request.end.get() == End.CANCELLED) return
+        if (state.value.id != request.id || request.end.get()?.let { it != End.RELEASED } == true) return
         when (event) {
             is LiveUpdate.Reconnecting -> {
                 state.value.partial?.takeIf { it.source.isNotBlank() }?.let { line ->
@@ -128,8 +138,9 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                 }
                 if (added) {
                     state.value = state.value.copy(partial = state.value.partial?.takeUnless { it.id == event.id },
-                        turnIds = (state.value.turnIds + id).takeLast(100))
-                    if (event.pcm.isNotEmpty()) {
+                        turnIds = (state.value.turnIds + id).takeLast(100),
+                        lastLine = LiveUpdate.Caption(event.id, event.side, event.source, event.target, event.startedMs))
+                    if (event.pcm.isNotEmpty() && request.kind != Kind.CAPTIONS) {
                         val wave = waveFromPcm(24000, event.pcm)
                         val turn = store.chat.value.turns.firstOrNull { it.id == id } ?: return
                         clips.put(clips.key(turn, settings.state.value.cloud), wave)

@@ -1,7 +1,6 @@
 package dev.polybridge.app.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,59 +12,54 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.polybridge.app.PolyBridgeApp
+import dev.polybridge.app.*
+import dev.polybridge.app.audio.TranslatedAudioShare
 import dev.polybridge.core.*
+import kotlinx.coroutines.*
 
-@Composable internal fun CallAssistPanel(app: PolyBridgeApp, chat: Conversation, version: (PlaybackTarget) -> String?,
-    cloud: () -> Unit, tools: () -> Unit, notice: (String) -> Unit) {
+@Composable internal fun CallAssistPanel(app: PolyBridgeApp, chat: Conversation, active: ProbeRequest?, actions: TalkActions,
+    playFrench: (Turn) -> Unit, captions: () -> Unit, notice: (String) -> Unit) {
+    var recent by rememberSaveable { mutableStateOf<String?>(null) }
+    val turn = chat.turns.lastOrNull { it.id == recent }
     val context = LocalContext.current
-    val service by app.settings.state.collectAsState()
-    var target by rememberSaveable { mutableStateOf(PlaybackTarget.WECHAT) }
-    var menu by remember { mutableStateOf(false) }
-    var side by rememberSaveable { mutableStateOf(Side.CHINESE) }
-    var draft by rememberSaveable { mutableStateOf("") }
-    var resultId by rememberSaveable { mutableStateOf<String?>(null) }
-    val turn = chat.turns.firstOrNull { it.id == resultId }
-    val sending = turn?.status in setOf(TurnStatus.TRANSCRIBING, TurnStatus.TRANSLATING)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        PageHeading("PENDANT L’APPEL", "通话辅助")
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box {
-                OutlinedButton(onClick = { menu = true }) { Text(target.label + "  ▾") }
-                DropdownMenu(menu, { menu = false }) {
-                    PlaybackTarget.entries.filter { it.packageName != null }.forEach {
-                        DropdownMenuItem({ Text(it.label) }, onClick = { target = it; menu = false })
-                    }
+    val scope = rememberCoroutineScope()
+    var sharing by remember { mutableStateOf(false) }
+    val controls = TalkActions({ actions.start(Side.CHINESE)?.also { recent = it } }, actions.end, actions.speak, actions.edit, actions.type, actions.playback)
+    Column(Modifier.fillMaxSize()) {
+        PageHeading("PARLER FRANÇAIS", "中文转法语")
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth().background(Mint, Round).padding(18.dp)) {
+                Kicker("我说中文  →  对方看法语")
+                Text("按住说中文，松手出法语", color = Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                Text("可以在本机播放，也可以把这句法语作为语音文件分享给对方。", color = Muted)
+            }
+            if (turn != null) {
+                TurnCard(turn, null, controls)
+                if (turn.status == TurnStatus.READY) {
+                    Button(enabled = active == null, onClick = { playFrench(turn) }) { Text("在本机播放法语") }
+                    OutlinedButton(enabled = active == null && !sharing, onClick = {
+                        sharing = true
+                        scope.launch {
+                            try {
+                                val share = withContext(Dispatchers.IO) {
+                                    val key = app.clips.key(turn, app.settings.state.value.cloud)
+                                    val wave = app.clips[key] ?: requireNotNull(app.settings.provider()).synthesize(turn.side.target, turn.translatedText)
+                                    TranslatedAudioShare(context).create(wave)
+                                }
+                                context.startActivity(Intent.createChooser(share, "分享法语语音"))
+                            } catch (e: CancellationException) { throw e }
+                              catch (_: Exception) { notice("这句语音暂时无法分享，请重试") }
+                            finally { sharing = false }
+                        }
+                    }) { Text(if (sharing) "正在准备…" else "分享法语语音") }
                 }
             }
-            Column(Modifier.fillMaxWidth().background(Mint, Round).padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Kicker(version(target)?.let { "本机版本  $it" } ?: "本机未找到此应用")
-                Text("听到对方的通话声音", color = Ink, fontWeight = FontWeight.SemiBold)
-                Text("待双方通话实测。", color = Muted)
-                Text("让对方听到合成译音", color = Ink, fontWeight = FontWeight.SemiBold)
-                Text("待对端设备确认。当前可以发文字或分享译音文件。", color = Muted)
-            }
-            Kicker("RÉPONSE ÉCRITE")
-            Text("用文字回复", color = Ink, style = MaterialTheme.typography.titleLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Side.entries.forEach { lang -> FilterChip(side == lang, { side = lang }, {
-                    Text(if (lang == Side.CHINESE) "中文 → 法语" else "Français → 中文")
-                }) }
-            }
-            OutlinedTextField(draft, { draft = it.take(1500) }, Modifier.fillMaxWidth(),
-                label = { Text("想告诉对方什么？") }, maxLines = 5)
-            Button(enabled = draft.isNotBlank() && !sending, onClick = {
-                if (service.configured) resultId = app.translator.typed(side, draft) else cloud()
-            }) { Text(if (sending) "翻译中…" else "翻译这句话") }
-            if (turn?.status == TurnStatus.READY) {
-                Text(turn.translatedText, color = Ink, style = MaterialTheme.typography.titleMedium)
-                OutlinedButton(onClick = {
-                    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("PolyBridge", turn.translatedText))
-                    notice("已复制，可粘贴到" + target.label)
-                }) { Text("复制译文") }
-            } else if (turn?.status == TurnStatus.FAILED) Text("翻译未完成，可检查连接后重试。", color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = tools) { Text("分享译音或使用翻译键盘") }
-            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = Line)
+            Text("正在打电话？", color = Ink, fontWeight = FontWeight.Bold)
+            Text("普通电话、微信和 WhatsApp 通话目前不能直接把这段法语送进对方的听筒。听聊天里的语音消息，可以开启屏幕字幕。", color = Muted)
+            TextButton(onClick = captions) { Text("去看屏幕字幕") }
         }
+        HoldButton(Side.CHINESE, active, controls, Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 9.dp))
     }
 }

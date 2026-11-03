@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-03",
+  "version": "0.5.0",
+  "handset": "vivo X Fold5, V2436A, Android 16, OriginOS 6, one Bluetooth headset",
+  "handsetPackages": {
+    "appSha256": "ba9d62ae55770cba29aa37f4ec4a548904db6aa63494c489caa174409777840a",
+    "instrumentationSha256": "0c818417f8ba5aac35ba946c327a5e3dd4c048fcbebef279d24ef8709a2d06eb",
+    "bothVerifiedV2AndMatchedInstalledBytes": true,
+    "registeredPolyBridgeInputMethods": 0
+  },
+  "screenCaptions": {
+    "source": "Separate-UID Android test player, chosen in the system single-app sharing picker",
+    "provider": "qwen3.5-livetranslate-flash-realtime, text output",
+    "linesAbovePlayer": [
+      {"from": "fr", "source": "Je voudrais deux billets.", "target": "我想要两张票。", "partialDuringPlayback": true},
+      {"from": "zh", "source": "请问火车站在哪里？", "target": "Où se trouve la gare, s'il vous plaît ?", "partialDuringPlayback": true}
+    ],
+    "captureProhibitedSampleTurns": 0,
+    "totalFinalTurns": 2,
+    "spokenOutput": false,
+    "floatingStopReleasedSession": true,
+    "realChatMessagesOrCallsTested": false
+  },
+  "touch": {
+    "displayPx": [2200, 2480],
+    "source": "Native touch events on the phone with the inner display selected through the Android device-state interface",
+    "heldAtLeastMs": 1000,
+    "sidewaysDriftDp": 75,
+    "releaseOutcomesForChineseThenOppositeFrench": ["send after returning", "cancel in red", "send after returning", "cancel in red"],
+    "resumedAfterConsecutiveBottomSwipes": ["PolyBridge", "vivo launcher"]
+  },
+  "listeningButton": {"input": "timed PCM through LiveDesk", "visibleLevels": [0, 0.4002, 0.9424, 0]},
+  "volumeAndReplay": {
+    "speakerSystemIndexInOffice": 1,
+    "applicationGainSpeakerAndBluetooth": [1.0, 1.0],
+    "autoFrenchRoute": "built-in speaker",
+    "autoChineseRoute": "Bluetooth A2DP",
+    "bothManualReplaysPerLanguageUsedHeadset": true,
+    "manualReplayPositionMs": [160, 158, 198, 158],
+    "correctedSourceAndTranslationPersistedAndNewAudioPlayed": true,
+    "androidVmSystemVolumeIndicesTested": [1, 15]
+  },
+  "dialogAndHistoryOnIsolatedAndroid15": {
+    "compact": {"sizePx": [1172, 2748], "shortBilingualRowsVisible": 13, "saveBottomPx": 1787, "keyboardTopPx": 1890},
+    "expanded": {"sizePx": [2200, 2480], "shortBilingualRowsVisible": 12, "saveBottomPx": 1203, "keyboardTopPx": 1351},
+    "savedBothEditsByTouchWithImeVisible": true,
+    "clearPerformedOnIsolatedFixtureOnly": true
+  },
+  "echo": {
+    "normalOverlap": {"controlledInputRealProvider": true, "turns": 2, "interruptions": 1, "releaseMs": 336},
+    "quietOverlapWithHum": {"expectedTurns": 2, "actualTurnsInFailingRun": 3, "unexpectedTurn": "或者，先开。"},
+    "roomConversationVerified": false
+  },
+  "hostTests": {"core": 19, "provider": 5, "app": 20, "failures": 0, "androidLintErrors": 0, "androidLintWarnings": 29}
+}

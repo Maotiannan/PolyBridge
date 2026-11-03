@@ -28,8 +28,10 @@ class PolyBridgeApp : Application() {
 }
 
 data class ProbeRequest(val id: String, val kind: Kind, val target: PlaybackTarget, val inputId: Int?,
-    val side: Side?, val startedAt: Long, val targetVersion: String?, val end: AtomicReference<End?> = AtomicReference(null)) {
+    val side: Side?, val startedAt: Long, val targetVersion: String?, val end: AtomicReference<End?> = AtomicReference(null),
+    val sourcePackage: String? = null) {
     val sampling = MutableStateFlow(false)
+    val level = MutableStateFlow(0f)
     fun empty(verdict: Verdict, reason: String? = null) = ProbeEntry(id, kind, target, startedAt,
         verdict, requestedInputId = inputId, targetVersion = targetVersion, errorCode = reason)
 }
@@ -49,9 +51,10 @@ class ProbeStore(context: Context, preferencesName: String = "diagnostics") {
     val chat = conversation.asStateFlow()
     val active = current.asStateFlow()
 
-    @Synchronized fun begin(kind: Kind, target: PlaybackTarget, inputId: Int?, side: Side?, targetVersion: String?): ProbeRequest? {
+    @Synchronized fun begin(kind: Kind, target: PlaybackTarget, inputId: Int?, side: Side?, targetVersion: String?, sourcePackage: String? = null): ProbeRequest? {
         if (current.value != null) return null
-        val request = ProbeRequest(UUID.randomUUID().toString(), kind, target, inputId, side, System.currentTimeMillis(), targetVersion)
+        if (kind == Kind.CAPTIONS && (sourcePackage.isNullOrBlank() || side != null)) return null
+        val request = ProbeRequest(UUID.randomUUID().toString(), kind, target, inputId, side, System.currentTimeMillis(), targetVersion, sourcePackage = sourcePackage)
         if (side != null) conversation.value = conversation.value.press(request.id, side)
         current.value = request
         persist()

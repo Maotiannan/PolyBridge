@@ -17,18 +17,23 @@ import javax.crypto.spec.GCMParameterSpec
 
 enum class Microphone(val label: String) { AUTO("系统自动选择"), PHONE("手机麦克风"), HEADSET("蓝牙耳机麦克风") }
 data class TranslatorSettings(val configured: Boolean, val cloud: QwenOptions, val autoSpeak: Boolean, val opposed: Boolean,
-    val mic: Microphone, val quietSpeaker: Boolean, val splitPlayback: Boolean, val privateReplay: Boolean)
+    val mic: Microphone, val splitPlayback: Boolean, val privateReplay: Boolean,
+    val captionApp: String? = null, val immersiveTalk: Boolean = true)
 
 class TranslationSettings(context: Context) {
     internal val headsets by lazy { dev.polybridge.app.audio.HeadsetPreferences(context.applicationContext) }
     private val prefs = context.getSharedPreferences("translator", Context.MODE_PRIVATE)
+    init { if (prefs.contains("quietSpeaker")) prefs.edit().remove("quietSpeaker").apply() }
     private fun snapshot() = TranslatorSettings(prefs.contains("credential"),
         QwenOptions(runCatching { Region.valueOf(prefs.getString("region", "")!!) }.getOrDefault(Region.BEIJING),
             prefs.getString("workspace", "").orEmpty()), prefs.getBoolean("autoSpeak", true), prefs.getBoolean("opposed", true),
         runCatching { Microphone.valueOf(prefs.getString("mic", "")!!) }.getOrDefault(Microphone.AUTO),
-        prefs.getBoolean("quietSpeaker", true), prefs.getBoolean("splitPlayback", true), prefs.getBoolean("privateReplay", true))
+        prefs.getBoolean("splitPlayback", true), prefs.getBoolean("privateReplay", true),
+        prefs.getString("captionApp", null), prefs.getBoolean("immersiveTalk", true))
     private val values = MutableStateFlow(snapshot())
     val state = values.asStateFlow()
+    @Synchronized fun captionApp(pkg: String?) { prefs.edit().putString("captionApp", pkg).apply(); values.value = snapshot() }
+    @Synchronized fun immersiveTalk(enabled: Boolean) { prefs.edit().putBoolean("immersiveTalk", enabled).apply(); values.value = snapshot() }
     data class PlaybackObservation(val type: Int, val matchedPreference: Boolean?, val gain: Float, val positionMs: Int,
         val manual: Boolean, val playbackId: Long, val ducked: Boolean = false)
     private val routes = MutableStateFlow<Map<String, PlaybackObservation>>(emptyMap())
@@ -38,9 +43,6 @@ class TranslationSettings(context: Context) {
     }
     @Synchronized fun privateReplay(enabled: Boolean) {
         prefs.edit().putBoolean("privateReplay", enabled).apply(); values.value = snapshot()
-    }
-    @Synchronized fun quietSpeaker(enabled: Boolean) {
-        prefs.edit().putBoolean("quietSpeaker",enabled).apply(); values.value = snapshot()
     }
     @Synchronized fun splitPlayback(enabled: Boolean) {
         prefs.edit().putBoolean("splitPlayback",enabled).apply(); values.value = snapshot()
