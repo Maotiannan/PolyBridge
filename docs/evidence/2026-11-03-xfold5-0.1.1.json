@@ -1,0 +1,97 @@
+{
+  "device": {
+    "android": "16",
+    "appVersion": "0.1.1",
+    "fingerprintHash": "b98450bbf1ca428f72e3af4a9b7712cd0e282478ed00d37d0a98332b0b6e2ec8",
+    "model": "V2436A",
+    "os": "PD2436G_A_16.1.17.12.W10",
+    "patch": "2026-07-01",
+    "sdk": 36
+  },
+  "independentBluetoothMics": "UNVERIFIED",
+  "lastTone": {
+    "actualOutput": {
+      "portId": 859,
+      "type": 8
+    },
+    "atMs": 1793683413686,
+    "played": true,
+    "requestedId": null
+  },
+  "probes": [
+    {
+      "channels": 1,
+      "elapsedMs": 10004,
+      "errorCode": null,
+      "id": "4fcddcbe-7013-4fa7-aa7f-ee077567eabe",
+      "inputRoute": {
+        "portId": 869,
+        "type": 7
+      },
+      "kind": "MICROPHONE",
+      "requestedInputId": 869,
+      "sampleRateHz": 16000,
+      "signal": {
+        "nonZeroSamples": 32143,
+        "peakDbfs": -25.669418162564273,
+        "rmsDbfs": -66.08529000633655,
+        "samples": 159360
+      },
+      "startedAtMs": 1793683267298,
+      "systemSilenced": false,
+      "target": "SELF",
+      "targetVersion": "0.1.1",
+      "verdict": "SIGNAL"
+    },
+    {
+      "channels": 1,
+      "elapsedMs": 10002,
+      "errorCode": null,
+      "id": "1b5a7079-cd1a-40d8-aab5-e48944bb956b",
+      "inputRoute": {
+        "portId": 883,
+        "type": 25
+      },
+      "kind": "PLAYBACK",
+      "requestedInputId": null,
+      "sampleRateHz": 16000,
+      "signal": {
+        "nonZeroSamples": 9698,
+        "peakDbfs": -22.01287310917411,
+        "rmsDbfs": -37.18400893751446,
+        "samples": 159744
+      },
+      "startedAtMs": 1793683411681,
+      "systemSilenced": false,
+      "target": "SELF",
+      "targetVersion": "0.1.1",
+      "verdict": "SIGNAL"
+    },
+    {
+      "channels": 1,
+      "elapsedMs": 10007,
+      "errorCode": null,
+      "id": "a68b2565-3bfd-47af-8611-def5f0c8e3e4",
+      "inputRoute": {
+        "portId": 19,
+        "type": 15
+      },
+      "kind": "MICROPHONE",
+      "requestedInputId": 19,
+      "sampleRateHz": 16000,
+      "signal": {
+        "nonZeroSamples": 157413,
+        "peakDbfs": -11.636216448695858,
+        "rmsDbfs": -42.73215533010959,
+        "samples": 159038
+      },
+      "startedAtMs": 1793683466462,
+      "systemSilenced": false,
+      "target": "SELF",
+      "targetVersion": "0.1.1",
+      "verdict": "SIGNAL"
+    }
+  ],
+  "schemaVersion": 1,
+  "simultaneousBluetoothOutput": "UNVERIFIED"
+}

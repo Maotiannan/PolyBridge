@@ -26,6 +26,9 @@ class AndroidAudioInput(private val context: Context) : AudioInputSource {
         ended()?.let { return it }
         val preferred = request.inputId?.let { id -> availablePorts(context).find { it.isSource && it.id == id }
             ?: return request.empty(Verdict.ROUTE_LOST) }
+        val headset = preferred?.takeIf {
+            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || it.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+        }?.let { HeadsetRoute(context.getSystemService(AudioManager::class.java), it) }
         return try {
             val config = if (request.kind == Kind.PLAYBACK) {
                 if (projection == null) return request.empty(Verdict.DENIED, "NO_PROJECTION")
@@ -35,15 +38,19 @@ class AndroidAudioInput(private val context: Context) : AudioInputSource {
                     .addMatchingUsage(AudioAttributes.USAGE_MEDIA).addMatchingUsage(AudioAttributes.USAGE_GAME)
                     .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN).build()
             } else null
-            val record = open(config) ?: return request.empty(Verdict.FAILED, "RECORDER_INIT")
-            try {
-                ended()?.let { return it }
-                if (preferred != null && !record.setPreferredDevice(preferred))
-                    return request.empty(Verdict.FAILED, "ROUTE_REQUEST_REJECTED")
-                capture(record, request, onStarted)
-            } finally {
-                runCatching { if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) record.stop() }
-                record.release()
+            headset.use { route ->
+                route?.connect(request)?.let { return it }
+                val source = if (route == null) MediaRecorder.AudioSource.MIC else MediaRecorder.AudioSource.VOICE_COMMUNICATION
+                val record = open(config, source) ?: return request.empty(Verdict.FAILED, "RECORDER_INIT")
+                try {
+                    ended()?.let { return it }
+                    if (preferred != null && route == null && !record.setPreferredDevice(preferred))
+                        return request.empty(Verdict.FAILED, "ROUTE_REQUEST_REJECTED")
+                    capture(record, request, onStarted)
+                } finally {
+                    runCatching { if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) record.stop() }
+                    record.release()
+                }
             }
         } catch (_: PackageManager.NameNotFoundException) {
             request.empty(Verdict.FAILED, "TARGET_NOT_INSTALLED")
@@ -54,7 +61,7 @@ class AndroidAudioInput(private val context: Context) : AudioInputSource {
         }
     }
 
-    private fun open(playback: AudioPlaybackCaptureConfiguration?): AudioRecord? {
+    private fun open(playback: AudioPlaybackCaptureConfiguration?, source: Int): AudioRecord? {
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
             throw SecurityException("Microphone permission is required")
         for (rate in listOf(16000, 48000)) {
@@ -64,7 +71,7 @@ class AndroidAudioInput(private val context: Context) : AudioInputSource {
                 .setChannelMask(AudioFormat.CHANNEL_IN_MONO).setSampleRate(rate).build()
             val builder = AudioRecord.Builder().setContext(context).setAudioFormat(format)
                 .setBufferSizeInBytes(maxOf(min * 2, rate / 5 * 2))
-            if (playback == null) builder.setAudioSource(MediaRecorder.AudioSource.MIC)
+            if (playback == null) builder.setAudioSource(source)
             else builder.setAudioPlaybackCaptureConfig(playback)
             val record = try { builder.build() } catch (_: UnsupportedOperationException) { continue }
             if (record.state == AudioRecord.STATE_INITIALIZED) return record

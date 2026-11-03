@@ -1,15 +1,19 @@
 package dev.polybridge.app
 
 import android.content.Context
-import android.content.Intent
+import android.content.ComponentName
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.SystemClock
+import android.os.ParcelFileDescriptor
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import dev.polybridge.app.audio.availablePorts
 import dev.polybridge.app.audio.ProbeService
+import dev.polybridge.app.audio.HEADSET_SETUP_TIMEOUT_MS
 import dev.polybridge.app.audio.label
 import dev.polybridge.app.audio.route
 import dev.polybridge.core.*
@@ -21,6 +25,26 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class DiagnosticsInstrumentedTest {
     private val context: Context get() = InstrumentationRegistry.getInstrumentation().targetContext
+
+    private fun openLauncher(): MainActivity {
+        // The ROM may refuse a background activity start by the instrumented app. Launch as the test driver.
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val component = ComponentName(context, MainActivity::class.java).flattenToShortString()
+        val command = "am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n $component"
+        val output = ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command))
+            .bufferedReader().use { it.readText() }
+        val deadline = SystemClock.elapsedRealtime() + 10_000
+        do {
+            var activity: MainActivity? = null
+            instrumentation.runOnMainSync {
+                activity = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED)
+                    .filterIsInstance<MainActivity>().firstOrNull()
+            }
+            activity?.let { return it }
+            SystemClock.sleep(50)
+        } while (SystemClock.elapsedRealtime() < deadline)
+        error("应用未进入前台。$output")
+    }
 
     @Test fun appExposesDeviceSnapshotWithoutStartingAudio() {
         val app = context.applicationContext as PolyBridgeApp
@@ -34,8 +58,7 @@ class DiagnosticsInstrumentedTest {
 
     @Test fun launcherStartsWithoutMicOrProjectionConsent() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val intent = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val activity = instrumentation.startActivitySync(intent)
+        val activity = openLauncher()
         try {
             instrumentation.waitForIdleSync()
             assertFalse(activity.isFinishing)
@@ -53,7 +76,7 @@ class DiagnosticsInstrumentedTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val store = (context.applicationContext as PolyBridgeApp).store
         val input = args.getString("inputPort")?.toInt()
-        val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        val activity = openLauncher()
         var session: ProbeRequest? = null
         try {
             instrumentation.waitForIdleSync()
@@ -62,7 +85,7 @@ class DiagnosticsInstrumentedTest {
                 session = request
                 ProbeService.launch(activity, request)
             }
-            val deadline = SystemClock.elapsedRealtime() + 20_000
+            val deadline = SystemClock.elapsedRealtime() + HEADSET_SETUP_TIMEOUT_MS + 20_000
             while (store.active.value?.id == session?.id && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(100)
             val report = store.report.value
             val entry = checkNotNull(report.probes.lastOrNull { it.id == session?.id }) { "采样超时" }

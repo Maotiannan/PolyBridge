@@ -15,6 +15,7 @@ class PolyBridgeApp : Application() {
 
 data class ProbeRequest(val id: String, val kind: Kind, val target: PlaybackTarget, val inputId: Int?,
     val side: Side?, val startedAt: Long, val targetVersion: String?, val end: AtomicReference<End?> = AtomicReference(null)) {
+    val sampling = MutableStateFlow(false)
     fun empty(verdict: Verdict, reason: String? = null) = ProbeEntry(id, kind, target, startedAt,
         verdict, requestedInputId = inputId, targetVersion = targetVersion, errorCode = reason)
 }

@@ -43,6 +43,7 @@ class ProbeService : Service() {
             scope.launch {
                 val entry = withContext(Dispatchers.IO) {
                     AndroidAudioInput(this@ProbeService).measure(request, sessionProjection) {
+                        request.sampling.value = true
                         if (playback && request.target == PlaybackTarget.SELF) playControlTone(request)
                     }
                 }

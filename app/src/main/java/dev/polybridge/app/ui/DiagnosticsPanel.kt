@@ -29,7 +29,12 @@ import java.util.Locale
     key(tab) { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(tabs[tab], style = MaterialTheme.typography.headlineSmall)
         active?.let {
-            Text(if (it.kind == Kind.PLAYBACK) "正在捕获「${it.target.label}」的声音" else "麦克风采样中")
+            val sampling by it.sampling.collectAsState()
+            Text(when {
+                !sampling -> "正在准备音频设备…"
+                it.kind == Kind.PLAYBACK -> "正在捕获「${it.target.label}」的声音"
+                else -> "麦克风采样中"
+            })
             OutlinedButton(onClick = onStop) { Text("停止采样") }
         }
         when (tab) {
@@ -108,6 +113,9 @@ import java.util.Locale
             "PROJECTION_CONSENT", "NO_PROJECTION", "NO_CONSENT" -> "未收到系统的播放共享授权"
             "RECORD_AUDIO", "AUDIO_PERMISSION", "SERVICE_PERMISSION" -> "系统未允许本次录音"
             "ROUTE_REQUEST_REJECTED" -> "系统拒绝切换到所选的收音设备"
+            "COMMUNICATION_BUSY" -> "系统正在使用通话通道，请在通话结束后重试"
+            "NO_MATCHING_HEADSET" -> "无法确认对应的耳机，请检查蓝牙通话连接"
+            "HEADSET_SETUP_TIMEOUT" -> "等待耳机通话连接超时，请重新连接后再试"
             "FOREGROUND_START", "SERVICE_START" -> "无法启动采样，请返回应用后重试"
             else -> "音频设备未能完成采样，详细原因见导出报告"
         }

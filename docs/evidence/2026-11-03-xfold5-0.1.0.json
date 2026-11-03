@@ -1,0 +1,62 @@
+{
+  "device": {
+    "android": "16",
+    "appVersion": "0.1.0",
+    "fingerprintHash": "b98450bbf1ca428f72e3af4a9b7712cd0e282478ed00d37d0a98332b0b6e2ec8",
+    "model": "V2436A",
+    "os": "PD2436G_A_16.1.17.12.W10",
+    "patch": "2026-07-01",
+    "sdk": 36
+  },
+  "independentBluetoothMics": "UNVERIFIED",
+  "lastTone": null,
+  "probes": [
+    {
+      "channels": 1,
+      "elapsedMs": 10002,
+      "errorCode": null,
+      "id": "56fa5604-fd6e-481e-b1b5-54e77d4210af",
+      "inputRoute": {
+        "portId": 19,
+        "type": 15
+      },
+      "kind": "MICROPHONE",
+      "requestedInputId": null,
+      "sampleRateHz": 16000,
+      "signal": {
+        "nonZeroSamples": 157421,
+        "peakDbfs": -28.226087688114198,
+        "rmsDbfs": -45.50913261919195,
+        "samples": 159038
+      },
+      "startedAtMs": 1793682681048,
+      "systemSilenced": false,
+      "target": "SELF",
+      "targetVersion": "0.1.0",
+      "verdict": "SIGNAL"
+    },
+    {
+      "channels": null,
+      "elapsedMs": 0,
+      "errorCode": "START_FAILED",
+      "id": "b6120c51-4ee5-413d-952a-a05793a88a7d",
+      "inputRoute": null,
+      "kind": "MICROPHONE",
+      "requestedInputId": 869,
+      "sampleRateHz": null,
+      "signal": {
+        "nonZeroSamples": 0,
+        "peakDbfs": null,
+        "rmsDbfs": null,
+        "samples": 0
+      },
+      "startedAtMs": 1793682788094,
+      "systemSilenced": null,
+      "target": "SELF",
+      "targetVersion": "0.1.0",
+      "verdict": "FAILED"
+    }
+  ],
+  "schemaVersion": 1,
+  "simultaneousBluetoothOutput": "UNVERIFIED"
+}
