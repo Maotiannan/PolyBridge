@@ -102,9 +102,9 @@ class DuplexAudioTest {
     }
 
     @Test fun aQuietIndependentVoiceStillSurvivesAboveHumAndPlayback() {
-        for (language in listOf("zh", "fr")) {
+        for (language in listOf("zh", "fr")) for (gain in listOf(.15, .38)) {
             val pcm = speech("tickets-$language")
-            val other = speech("station-${if (language == "zh") "fr" else "zh"}")
+            val other = speech("train-${if (language == "zh") "fr" else "zh"}")
             val voiced = (0 until other.size / 2).first { abs(sample(other, it)) > 600 }
             val echo = PlaybackEcho(212.0).apply { start(pcm) }
             var expected = 0.0
@@ -112,7 +112,7 @@ class DuplexAudioTest {
             for (t in 0 until 1400 step 20) {
                 if (t % 100 == 0) echo.position(t, t.toLong())
                 val near = IntArray(320) { i -> if (t >= 460) (sample(other, (t - 460) * 24 + voiced + i * 3 / 2) * .14).toInt() else 0 }
-                val input = ShortArray(320) { i -> (near[i] + sample(pcm, (t - 100) * 24 + i * 3 / 2) * .15 +
+                val input = ShortArray(320) { i -> (near[i] + sample(pcm, (t - 100) * 24 + i * 3 / 2) * gain +
                     300 * sin((t * 16 + i) * 2 * PI * 140 / 16000)).toInt().toShort() }
                 echo.filter(input, input.size, 16000, t + 20L)
                 if (t in 460..960) for (i in near.indices) {
@@ -121,8 +121,8 @@ class DuplexAudioTest {
                 }
             }
             val fraction = retained / expected
-            println("quiet independent under $language playback retained=$fraction")
-            assertTrue("quiet person lost under $language playback=$fraction", fraction > .65)
+            println("quiet independent under $language playback gain=$gain retained=$fraction")
+            assertTrue("quiet person lost under $language playback gain=$gain retained=$fraction", fraction > .65)
         }
     }
 

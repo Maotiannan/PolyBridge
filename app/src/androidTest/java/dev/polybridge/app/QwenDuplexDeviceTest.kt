@@ -15,6 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.UUID
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
@@ -35,7 +36,16 @@ class QwenDuplexDeviceTest {
         val clips = VoiceClips()
         val trace = InstrumentationRegistry.getArguments().getString("captureDuplex") == "true"
         val transmitted = ByteArrayOutputStream()
-        var phase = "first-speech"
+        val rawInput = ByteArrayOutputStream()
+        val filteredInput = ByteArrayOutputStream()
+        val frames = StringBuilder("inputMs,phase,rawRms,filteredRms,speaking,interruptions\n")
+        val phase = AtomicReference("first-speech")
+        fun ByteArrayOutputStream.append(samples: ShortArray, length: Int) {
+            for (i in 0 until length) {
+                write(samples[i].toInt() and 255)
+                write(samples[i].toInt() shr 8 and 255)
+            }
+        }
         lateinit var desk: LiveDesk
         var release = -1L
         fun sample(pcm: ByteArray, n: Int): Int = if (n < 0 || 2 * n + 1 >= pcm.size) 0 else
@@ -43,19 +53,18 @@ class QwenDuplexDeviceTest {
         fun asset(name: String) = app.assets.open("phrasebook/$name.wav").use { val w = it.readBytes(); w.copyOfRange(44, w.size) }
         desk = LiveDesk(ctx, store, settings, clips, connect = { receive ->
             val link = requireNotNull(app.settings.provider()).live { event ->
+                if (trace && (event is LiveUpdate.Stopped || event is LiveUpdate.Reconnecting || event == LiveUpdate.Reconnected))
+                    inst.sendStatus(0, Bundle().apply { putString("duplexConnection", event.toString()) })
                 if (trace && event is LiveUpdate.Finished) {
                     inst.sendStatus(0, Bundle().apply { putString("duplexSentence",
-                        "phase=$phase startMs=${event.startedMs} source=${event.source} target=${event.target}") })
+                        "phase=${phase.get()} startMs=${event.startedMs} source=${event.source} target=${event.target} issue=${event.issue}") })
                     if (event.pcm.isNotEmpty()) app.cacheDir.resolve("qa-duplex-${event.side.name}.wav").writeBytes(waveFromPcm(24000, event.pcm))
                 }
                 receive(event)
             }
             object : LiveSpeechSession by link {
                 override fun send(samples: ShortArray, length: Int, rate: Int) {
-                    if (trace) for (i in 0 until length) {
-                        transmitted.write(samples[i].toInt() and 255)
-                        transmitted.write(samples[i].toInt() shr 8 and 255)
-                    }
+                    if (trace) transmitted.append(samples, length)
                     link.send(samples, length, rate)
                 }
             }
@@ -69,14 +78,22 @@ class QwenDuplexDeviceTest {
                             val hum = if (soft) (300 * kotlin.math.sin((clock + it) * 2 * Math.PI * 140 / 16000)).toInt() else 0
                             (block(it) + hum).coerceIn(-32768, 32767).toShort()
                         }
+                        val inputMs = clock / 16
+                        val before = if (trace) RoomNoise.rms(samples, samples.size, 16000) else 0.0
+                        if (trace) rawInput.append(samples, samples.size)
                         clock += samples.size
                         push(samples, samples.size, 16000)
+                        if (trace) {
+                            filteredInput.append(samples, samples.size)
+                            frames.append("$inputMs,${phase.get()},$before,${RoomNoise.rms(samples, samples.size, 16000)},${desk.view.value.speaking},${desk.view.value.interruptions}\n")
+                        }
                         SystemClock.sleep(20)
                     }
                     fun waitForTranslation(count: Int): Turn {
                         val until = SystemClock.elapsedRealtime() + 35000
                         while (store.chat.value.turns.size < count || !desk.view.value.speaking) {
-                            if (SystemClock.elapsedRealtime() > until) throw AssertionError("千问未返回第 $count 条译音，已收 ${store.chat.value.turns.size} 条")
+                            if (SystemClock.elapsedRealtime() > until) throw AssertionError("千问未返回第 $count 条译音：" +
+                                store.chat.value.turns.joinToString(" | ") { "${it.sourceText}/${it.translatedText}/${it.issue}" })
                             frame { 0 }
                         }
                         return store.chat.value.turns[count - 1]
@@ -96,14 +113,16 @@ class QwenDuplexDeviceTest {
                     val onset = SystemClock.elapsedRealtime() + 380
                     assertTrue("第一句译音太短", far.size / 48 > onset - start + 180)
                     var nextSample = voiced
-                    phase = "overlap"
+                    val firstLevels = ArrayDeque<Pair<Long, Boolean>>()
+                    phase.set("overlap")
                     while (nextSample < other.size / 2 + 8640) {
                         val now = SystemClock.elapsedRealtime()
-                        val stopped = desk.view.value.playbackStoppedAt
+                        firstLevels.addLast(now to (desk.view.value.speaking && settings.lastRoutes.value.getValue(first.side.target).gain > 0))
+                        while (firstLevels.size > 1 && firstLevels[1].first <= now - 85) firstLevels.removeFirst()
                         val fromFar = ((now - start - 85) * 24).toInt()
                         frame { i ->
                             val near = if (now >= onset) sample(other, nextSample + i * 3 / 2) else 0
-                            val echo = if (stopped == 0L || now < stopped + 85) sample(far, fromFar + i * 3 / 2) else 0
+                            val echo = if (firstLevels.first().second) sample(far, fromFar + i * 3 / 2) else 0
                             (near * (if (soft) .14 else .8) + echo * .16).toInt()
                         }
                         if (now >= onset) nextSample += 480
@@ -116,7 +135,7 @@ class QwenDuplexDeviceTest {
                     val echo = clip(second)
                     val secondStart = SystemClock.elapsedRealtime() - settings.lastRoutes.value.getValue(second.side.target).positionMs
                     val levels = ArrayDeque<Pair<Long, Boolean>>()
-                    phase = "second-echo-only"
+                    phase.set("second-echo-only")
                     while (SystemClock.elapsedRealtime() - secondStart < echo.size / 48 + 1800) {
                         val now = SystemClock.elapsedRealtime()
                         levels.addLast(now to (desk.view.value.speaking && settings.lastRoutes.value.getValue(second.side.target).gain > 0))
@@ -135,10 +154,19 @@ class QwenDuplexDeviceTest {
             store.finish(entry)
             assertEquals(entry.errorCode, Verdict.SIGNAL, entry.verdict)
             assertEquals(store.chat.value.turns.joinToString(" | ") { "${it.sourceText} → ${it.translatedText}" }, 2, store.chat.value.turns.size)
+            val question = store.chat.value.turns[1]
+            assertTrue("轻声问题开头丢失：${question.sourceText} → ${question.translatedText}",
+                question.sourceText.contains("heure", true) && question.sourceText.contains("prochain", true) &&
+                    listOf("几点", "什么时候", "何时", "时间").any { it in question.translatedText })
             if (!soft) assertEquals(1, desk.view.value.interruptions)
             inst.sendStatus(0, Bundle().apply { putString("cloudDuplex", "two committed turns, interruptions=${desk.view.value.interruptions}, releaseMs=$release, weak=$soft, no echo turn") })
         } finally {
-            if (trace) app.cacheDir.resolve("qa-duplex-transmitted.wav").writeBytes(waveFromPcm(16000, transmitted.toByteArray()))
+            if (trace) {
+                app.cacheDir.resolve("qa-duplex-transmitted.wav").writeBytes(waveFromPcm(16000, transmitted.toByteArray()))
+                app.cacheDir.resolve("qa-duplex-input.wav").writeBytes(waveFromPcm(16000, rawInput.toByteArray()))
+                app.cacheDir.resolve("qa-duplex-filtered.wav").writeBytes(waveFromPcm(16000, filteredInput.toByteArray()))
+                app.cacheDir.resolve("qa-duplex-frames.csv").writeText(frames.toString())
+            }
             listOf("diagnostics", "translator", "audio_roles").forEach { app.deleteSharedPreferences(prefix + it) }
         }
     }

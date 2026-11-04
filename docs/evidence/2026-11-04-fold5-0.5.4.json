@@ -1,0 +1,197 @@
+{
+  "date": "2026-11-04",
+  "scope": "Final Fold5 verification after reconnection; fixed test audio and the real Qwen service. No room-microphone recording. Soft duplex remains failed.",
+  "previousSnapshot": "2026-11-04-fold5-listening.json",
+  "device": {
+    "model": "vivo X Fold5 / V2436A",
+    "android": 16,
+    "originOs": 6,
+    "display": "1172x2748 outer screen",
+    "installedVersion": "0.5.4",
+    "versionCode": 5004,
+    "appSha256": "212658e22e5a1996f81e38e758a50d55b131832adac848f3852da6bc99130740",
+    "testAppSha256": "3a44403eccfb5aece62349614a0457d395c2d871c49898ea05377f2b0fc2ed0e",
+    "bothDeviceHashesMatchLocal": true,
+    "bothApksV2Verified": true,
+    "finalLaunch": { "status": "ok", "coldStartMs": 447 },
+    "cleanup": {
+      "stayOnWhilePluggedInOriginal": 0,
+      "temporaryValue": 2,
+      "restoredValueReadBack": 0,
+      "mediaProjection": null,
+      "applicationServices": "none",
+      "speakerMediaVolume": "0/150, muted",
+      "rememberedBluetoothMediaVolume": "150/150, unchanged",
+      "activeMediaDevice": "speaker"
+    }
+  },
+  "productionChanges": {
+    "audioImplementationEquivalentTo": "0.5.3 / 7b3e215",
+    "mainSourceDiffAgainst053": "none in app, core or provider",
+    "versionPurpose": "Identify the verification build; not a claim that soft echo is fixed.",
+    "retainedTestChanges": [
+      "Require the whole French time question and a Chinese time question, not merely train and two turns.",
+      "Make first-stage synthetic echo follow the actual delayed player duck/mute state, as the second stage already did.",
+      "Opt-in fixed-input traces at raw, echo-filtered and transmitted boundaries, plus stage and provider outcomes.",
+      "On-device quiet-question VAD check with both hum and silent preludes.",
+      "Host quiet independent voice coverage at echo gains 0.15 and 0.38."
+    ],
+    "withdrawnExperiments": [
+      "Keep low-energy matched-frame residuals after an interruption candidate.",
+      "Reset recurrent speech-detector state on a locally confirmed interruption."
+    ],
+    "withdrawalReason": "Local fixtures improved but real-cloud tests still lost opening speech or produced an extra echo turn. Both production changes and their overfitted experimental fixture were removed."
+  },
+  "host": {
+    "freshRerunLog": "app/build/listening-qa/fold5-20261104/054-final-host-rerun.log",
+    "freshRerun": "--offline :core:test :provider:qwen:test :app:testDebugUnitTest --rerun-tasks",
+    "elapsedSeconds": 30,
+    "coreTests": 20,
+    "providerTests": 10,
+    "appTests": 23,
+    "totalTests": 53,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "buildAndLintLog": "app/build/listening-qa/fold5-20261104/054-final-verification.log",
+    "lintErrors": 0,
+    "lintWarnings": 29,
+    "appAndTestBuildSucceeded": true,
+    "quietIndependentSpeechProjection": {
+      "chinesePlayback": { "echoGain015": 0.9933357989518549, "echoGain038": 0.9469720418362362 },
+      "frenchPlayback": { "echoGain015": 0.9913629857876362, "echoGain038": 0.9459044588878439 },
+      "metric": "Projection onto known near speech during its opening half-second, not transcription accuracy."
+    }
+  },
+  "finalDeviceTests": {
+    "normalDuplex": {
+      "log": "app/build/listening-qa/fold5-20261104/054-final-normal-foreground.log",
+      "passed": true,
+      "elapsedSeconds": 15.051,
+      "turns": 2,
+      "interruptions": 1,
+      "releaseMs": 404,
+      "secondSource": "À quelle heure part le prochain train?",
+      "secondTranslation": "下一班火车几点发车？",
+      "extraEchoTurn": false
+    },
+    "softDuplex": {
+      "log": "app/build/listening-qa/fold5-20261104/054-final-soft-foreground.log",
+      "passed": false,
+      "elapsedSeconds": 14.96,
+      "input": "French near voice at 0.14 gain, delayed returned TTS at 0.15-0.16 gain, and continuous 140 Hz hum of amplitude 300; actual Android player, controlled audio input and real Qwen.",
+      "turns": 3,
+      "secondSource": "À quelle heure part le prochain train ?",
+      "secondTranslation": "下一班火车几点发车？",
+      "extraSource": "这。",
+      "extraTranslation": "Conception",
+      "extraStartedMs": 7200,
+      "extraPhase": "second-echo-only",
+      "failure": "Expected exactly two turns, received three. The question itself was complete in this run.",
+      "tracePrefix": "app/build/listening-qa/fold5-20261104/054-final-soft-",
+      "traceSha256": {
+        "input.wav": "2095e4e84c8d5f2e5d08016aa3aad27deab2363a2a936d21b20be15168cdbf41",
+        "filtered.wav": "ce039fc1bc70266b5c6b5957fdf386dd911654e7ded3a13fb7997d3ff3343da3",
+        "transmitted.wav": "d879466920924b05b6690ac167f633f56b912dcb1dd6e9f8dbbf854fb5b9c561",
+        "frames.csv": "9deb3b25ff1e4a2740bdb402d6932f1d3367c1027f7f7fe26f30d72934aa092b",
+        "CHINESE.wav": "eb303e352862249abad2b84dd47c51d8fa4784c5863e7d8dd5b669dd1180a979",
+        "FRENCH.wav": "b6bcfd2aa218cc5e8efbd382db1e3f8f0d30348b6b93e7632d6c33e924762d2a"
+      },
+      "traceNote": "Export hashes match private phone-cache files. Same-language returned TTS files hold the last response, not all responses."
+    },
+    "continuousListening": {
+      "log": "app/build/listening-qa/fold5-20261104/054-final-listening.log",
+      "discovered": 8,
+      "executed": 7,
+      "skipped": 1,
+      "failures": 0,
+      "elapsedSeconds": 81.853,
+      "skipReason": "Whole-history overlay manipulation is emulator-only. Fold5's external-caption test independently checks actual overlay and reopen behavior.",
+      "realQwen": {
+        "pureRainCaptions": 0,
+        "speechPairs": 8,
+        "savedParagraphs": 8,
+        "originalTicketMentions": 8,
+        "originalStationMentions": 8,
+        "chineseTicketAndStationMentionsAtLeastEightEach": true
+      },
+      "onDeviceSignalChecks": {
+        "listenRate": 16000,
+        "listenRainSamplesPassed": 0,
+        "listenStrongSampleRetention": [0.9996178830722201, 0.999704535381888],
+        "captionsRate": 48000,
+        "captionsRainSamplesPassed": 0,
+        "captionsStrongSampleRetention": [0.999923576614444, 0.999704535381888],
+        "longPlaybackSeconds": 77.84475,
+        "longPlaybackPhrases": 24,
+        "longPlaybackMinimumStrongSampleRetention": 0.9944522896913456,
+        "longPlaybackConnections": 1,
+        "quietQuestionOpeningRetentionHumPrelude": 0.9989159891598915,
+        "quietQuestionOpeningRetentionSilentPrelude": 0.9989159891598915
+      }
+    },
+    "externalApplicationCaptions": {
+      "log": "app/build/listening-qa/fold5-20261104/054-final-captions.log",
+      "tests": 2,
+      "failures": 0,
+      "elapsedSeconds": 36.617,
+      "differentApplicationUid": true,
+      "actualAndroidSingleAppProjection": true,
+      "realQwen": true,
+      "forbiddenCaptureProducedNoTurn": true,
+      "pureRainProducedNoTurnOrDraft": true,
+      "incrementalFrenchToChinese": true,
+      "incrementalChineseToFrench": true,
+      "longSpeechSource": "Je voudrais deux billets. Excusez-moi, où est la gare?",
+      "longSpeechTranslation": "我要两张票。不好意思，请问车站在哪里？",
+      "savedParagraphs": 3,
+      "longSpeechParagraphs": 1,
+      "overlayFullTextChecked": true,
+      "stoppedAndReopenedCaptionPageChecked": true
+    }
+  },
+  "earlierInvestigation": {
+    "installed053BothHashesMatched": true,
+    "oldAssertionInsufficient": {
+      "log": "app/build/listening-qa/fold5-20261104/053-duplex-soft-1.log",
+      "reportedPass": true,
+      "sourceActuallyIncomplete": "prochain train.",
+      "validFullQuestionPass": false
+    },
+    "stricterAssertionRed": "app/build/listening-qa/fold5-20261104/053-duplex-opening-red.log",
+    "experimentWithMuteAwareHarness": {
+      "log": "app/build/listening-qa/fold5-20261104/054-duplex-realistic-1.log",
+      "fullQuestion": true,
+      "extraTurn": "你重新看。",
+      "passed": false
+    },
+    "invalidRuns": [
+      {
+        "log": "app/build/listening-qa/fold5-20261104/054-listening.log",
+        "reason": "Installer started while instrumentation was active; UIAutomator competed for accessibility. The test process was stopped to recover installation. Not a valid suite result or a production crash."
+      },
+      {
+        "log": "app/build/listening-qa/fold5-20261104/054-final-normal.log",
+        "reason": "Launcher helper failed to bring the app foreground and timed out before a usable audio run. A normal launcher start then succeeded; the final foreground run passed."
+      }
+    ],
+    "otherIncompleteRun": {
+      "log": "app/build/listening-qa/fold5-20261104/053-equivalent-realistic.log",
+      "reason": "Timed out waiting for the second translated playback; not counted as a pass."
+    }
+  },
+  "privacy": "Phone credentials were neither read nor exported. Exported diagnostic audio is bundled test input and generated test translation only. Tests use isolated preferences or remove only their own live turns and restore the selected source app. No personal history was cleared.",
+  "repository": {
+    "branch": "work/fold5-listening-verification",
+    "mainAtVerification": "b17a7fc",
+    "mainIsAncestorOfWorkingBranch": true,
+    "remoteConfigured": false,
+    "githubActions": "Existing Android workflow retained; not executed online because no remote is configured."
+  },
+  "next": [
+    "Discuss the audio-processing architecture before further production patches; soft echo remains unresolved.",
+    "Require complete phrases, no extra echo turn, bounded interruption delay, and unchanged rain/long-speech behavior together.",
+    "Distinguish controlled injected audio from the real microphone path, which already attempts Android AcousticEchoCanceler.",
+    "Natural room conversations and actual messaging-app voice clips remain unverified. Calls and dual-headset paths require separate acceptance."
+  ]
+}

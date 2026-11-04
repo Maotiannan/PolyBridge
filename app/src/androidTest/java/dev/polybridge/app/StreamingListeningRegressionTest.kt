@@ -192,6 +192,38 @@ class StreamingListeningRegressionTest {
         }
     }
 
+    @Test fun quietFrenchAboveHumKeepsTheOpeningQuestion() {
+        openProjectLauncher()
+        val voice = app.assets.open("phrasebook/train-fr.wav").use { wave(it.readBytes()) }
+        val lead = 32000
+        val size = lead + voice.size + 16000
+        for (silentPrelude in listOf(false, true)) {
+            val heard = ArrayList<Short>(size)
+            val sink = object : Sink() {
+                override fun send(samples: ShortArray, length: Int, rate: Int) {
+                    for (i in 0 until length) heard.add(samples[i])
+                }
+            }
+            SpeechGate(app, sink).use { gate ->
+                for (start in 0 until size step 320) {
+                    val samples = ShortArray(minOf(320, size - start)) { i ->
+                        val at = start + i
+                        if (silentPrelude && at < lead) 0 else ((voice.getOrNull(at - lead)?.toInt() ?: 0) * .14 +
+                            300 * kotlin.math.sin(at * 2 * Math.PI * 140 / 16000)).toInt().toShort()
+                    }
+                    gate.send(samples, samples.size, 16000)
+                }
+                gate.finish()
+            }
+            assertEquals(size, heard.size)
+            val opening = (0 until minOf(voice.size, 16000)).filter { abs(voice[it].toInt()) > 1200 }
+            val kept = opening.count { heard[lead + it] != 0.toShort() }.toDouble() / opening.size
+            inst.sendStatus(0, Bundle().apply { putString("quietQuestion", "silentPrelude=$silentPrelude openingRetention=$kept") })
+            assertEquals(0, heard.take(lead - 4000).count { it != 0.toShort() })
+            assertTrue("轻声问题开头被本机人声检测裁掉：$kept", kept >= .9)
+        }
+    }
+
     @Test fun reconnectionPreservesDraftsAndDoesNotReuseAnOldSentence() {
         lateinit var publish: (LiveUpdate) -> Unit
         runSession(Kind.LISTEN, { publish = it; Sink() }, { send ->
