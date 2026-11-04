@@ -159,7 +159,7 @@ internal class CaptionContent(context: Context, stop: () -> Unit) : LinearLayout
         row.line.issue == TranslationIssue.UNRELIABLE && row.saved == null -> "识别出现异常，正在重新核对原音…"
         row.line.issue == TranslationIssue.UNRELIABLE -> "识别未确认 · 请重新播放这段语音"
         row.saved?.status == TurnStatus.FAILED -> "译文未完成 · " + row.line.target.ifBlank { "原文已保留" }
-        row.saved?.status == TurnStatus.TRANSLATING -> "原文已保存 · 正在翻译…"
+        row.saved?.status == TurnStatus.TRANSLATING -> row.line.target.ifBlank { "原文已保存 · 正在翻译…" }
         else -> row.line.target.ifBlank { "正在翻译…" }
     }
     private fun TextView.show(value: CharSequence) { if (text.toString() != value.toString()) text = value }

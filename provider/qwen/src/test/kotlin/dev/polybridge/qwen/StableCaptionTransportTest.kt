@@ -16,7 +16,7 @@ class StableCaptionTransportTest {
             val translations = AtomicInteger()
             val emitted = CopyOnWriteArrayList<LiveUpdate>()
             var history = Conversation()
-            val stable = StableCaptions { event ->
+            val receive: (LiveUpdate) -> Unit = { event ->
                 emitted += event
                 val origin = { start: Long -> LiveOrigin("local-server", Kind.CAPTIONS, start) }
                 history = when (event) {
@@ -62,11 +62,11 @@ class StableCaptionTransportTest {
             }
             val options = QwenOptions(liveModel = ModelIds.AUDIO31, feature = ModelFeature.CAPTIONS.name)
             QwenSpeech("local-fixture-only", server.url("/compatible-mode/v1/chat/completions").toUrl(), options)
-                .live(true, stable::accept).use { session ->
+                .live(true, receive).use { session ->
                     session.connect(); session.send(ShortArray(1600), 1600, 16000); session.finish()
                 }
             assertEquals(1, translations.get())
-            assertTrue(emitted.filterIsInstance<LiveUpdate.Caption>().all { it.target.isEmpty() && it.sourceFinal })
+            assertTrue(emitted.filterIsInstance<LiveUpdate.Caption>().any { it.target == "我要" })
             val restored = ReportCodec.readChat(ReportCodec.saveChat(history)).recoverInterrupted()
             assertEquals(listOf("Je ne veux pas deux billets.", "Merci."), restored.turns.map { it.sourceText })
             assertEquals(listOf("我不要两张票。", "谢谢。"), restored.turns.map { it.translatedText })

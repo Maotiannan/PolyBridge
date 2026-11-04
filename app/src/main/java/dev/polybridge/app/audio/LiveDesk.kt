@@ -56,10 +56,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
             val captions = request.kind == Kind.CAPTIONS
             options = request.modelOptions ?: settings.state.value.options(if (captions) ModelFeature.CAPTIONS else ModelFeature.LISTEN)
             state.value = state.value.copy(requestedModel = options.liveModel)
-            val stable = if (captions) StableCaptions { event -> receive(request, event) } else null
-            val receiver: (LiveUpdate) -> Unit = { event ->
-                if (stable != null) stable.accept(event) else receive(request, event)
-            }
+            val receiver: (LiveUpdate) -> Unit = { event -> receive(request, event) }
             val transport = (if (captions) captionConnection else connect)?.invoke(receiver)
                 ?: (settings.provider(options) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL))
                     .live(captions || !settings.state.value.autoSpeak, receiver)

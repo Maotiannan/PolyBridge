@@ -10,9 +10,52 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** The user's usable LiveTranslate 3.5 route is the regression baseline, not Audio 3.1. */
 class Live35BaselineTest {
+    @Test fun previewArrivesBeforeOriginalAndReplyCompletionAcrossTheRealSocket() {
+        MockWebServer().use { server ->
+            val preview = CountDownLatch(1)
+            val published = CopyOnWriteArrayList<LiveUpdate>()
+            repeat(2) {
+                server.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
+                    var sent = false
+                    override fun onOpen(webSocket: WebSocket, response: Response) {
+                        webSocket.send("""{"type":"session.created"}""")
+                    }
+                    override fun onMessage(webSocket: WebSocket, text: String) {
+                        when (JsonParser.parseString(text).asJsonObject["type"].asString) {
+                            "session.update" -> webSocket.send("""{"type":"session.updated"}""")
+                            "input_audio_buffer.append" -> if (!sent) {
+                                sent = true
+                                listOf(
+                                    """{"type":"input_audio_buffer.speech_started","item_id":"a","audio_start_ms":0}""",
+                                    """{"type":"conversation.item.input_audio_transcription.text","item_id":"a","language":"fr","text":"Je voudrais","stash":""}""",
+                                    """{"type":"response.created","response":{"id":"ra"}}""",
+                                    """{"type":"conversation.item.created","previous_item_id":"a","item":{"id":"oa","role":"assistant","content":[]}}""",
+                                    """{"type":"response.text.delta","response_id":"ra","item_id":"oa","delta":"我想买"}"""
+                                ).forEach(webSocket::send)
+                            }
+                        }
+                    }
+                }))
+            }
+            QwenSpeech("local-fixture-only", server.url("/").toUrl(), QwenOptions(liveModel = ModelIds.LIVE35,
+                feature = ModelFeature.CAPTIONS.name)).live(true) { event ->
+                published += event
+                if (event is LiveUpdate.Caption && event.target == "我想买") preview.countDown()
+            }.use { session ->
+                session.connect()
+                session.send(ShortArray(1600), 1600, 16000)
+                assertTrue("the local client must not hold previews until completion", preview.await(3, TimeUnit.SECONDS))
+                assertFalse(published.any { it is LiveUpdate.Finished })
+                assertFalse(published.filterIsInstance<LiveUpdate.Caption>().any { it.sourceFinal })
+            }
+        }
+    }
+
     @Test fun twoConnectionsKeepAllThreeMessagesAcrossFiveReplaysAndLateItemLinkage() {
         MockWebServer().use { server ->
             repeat(2) {
@@ -48,9 +91,8 @@ class Live35BaselineTest {
                 }))
             }
             val published = CopyOnWriteArrayList<LiveUpdate>()
-            val stable = StableCaptions(published::add)
             QwenSpeech("local-fixture-only", server.url("/").toUrl(), QwenOptions(liveModel = ModelIds.LIVE35,
-                feature = ModelFeature.CAPTIONS.name)).live(true, stable::accept).use { session ->
+                feature = ModelFeature.CAPTIONS.name)).live(true, published::add).use { session ->
                 session.connect()
                 repeat(5) { session.send(ShortArray(1600), 1600, 16000) }
                 session.finish()
@@ -58,7 +100,7 @@ class Live35BaselineTest {
             val finals = published.filterIsInstance<LiveUpdate.Finished>()
             assertEquals(15, finals.size)
             assertTrue(finals.all { it.issue == null && it.side == Side.FRENCH })
-            assertFalse(published.filterIsInstance<LiveUpdate.Caption>().any { it.source == "Je voudrais" })
+            assertTrue(published.filterIsInstance<LiveUpdate.Caption>().any { it.source == "Je voudrais" })
             for (round in 0..4) for (number in 1..3) {
                 val line = finals.single { it.id == "s$round-$number" }
                 assertEquals("Message $number complet, répétition $round.", line.source)

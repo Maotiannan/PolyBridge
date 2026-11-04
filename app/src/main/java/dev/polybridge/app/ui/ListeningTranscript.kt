@@ -19,9 +19,13 @@ internal fun transcriptRows(chat: Conversation, state: ListeningState, kind: Kin
         ?: return emptyList()
     val prefix = "live-$capture-"
     val saved = chat.turns.filter { it.live?.captureId == capture || it.live == null && it.id.startsWith(prefix) }
-    val confirmed = saved.map { turn -> TranscriptRow(LiveUpdate.Caption(turn.id, turn.side,
-        turn.sourceText, turn.translatedText, turn.live?.offsetMs ?: 0, turn.issue), turn) }
     val drafts = current?.drafts.orEmpty()
+    val confirmed = saved.map { turn ->
+        val preview = drafts.firstOrNull { it.id == turn.id && it.side == turn.side && it.source == turn.sourceText }
+            ?.takeIf { turn.status == TurnStatus.TRANSLATING }
+        TranscriptRow(preview ?: LiveUpdate.Caption(turn.id, turn.side,
+            turn.sourceText, turn.translatedText, turn.live?.offsetMs ?: 0, turn.issue), turn)
+    }
     if (drafts.isEmpty()) return confirmed
     val pending = drafts.filter { line -> saved.none { it.id == line.id } }.map { TranscriptRow(it, null) }
     return (confirmed + pending).sortedBy { it.line.startedMs }

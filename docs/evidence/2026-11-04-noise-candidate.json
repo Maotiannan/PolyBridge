@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "scope": "offline GTCRN candidate only; not Android, echo, or cloud recognition acceptance",
+  "upstreamCommit": "502ebfab64da7c4a9af78dcb9c6ceef1ebb01c73",
+  "modelSha256": "b4718df6228e7bdf1a8a435cf98f838636eb2fd331acabf86ba87c5192ebcb87",
+  "sampleRate": 16000,
+  "lookaheadMs": 16,
+  "resampling": "linear, evaluation only",
+  "noise": [
+    {
+      "fixture": "1-21189-A-10.wav",
+      "suppressionDb": 34.82208754278578,
+      "beforeVad": {
+        "activeWindows": 0,
+        "windows": 157
+      },
+      "afterVad": {
+        "activeWindows": 0,
+        "windows": 157
+      }
+    },
+    {
+      "fixture": "2-73027-A-10.wav",
+      "suppressionDb": 13.866848797431855,
+      "beforeVad": {
+        "activeWindows": 0,
+        "windows": 157
+      },
+      "afterVad": {
+        "activeWindows": 0,
+        "windows": 157
+      }
+    }
+  ],
+  "clean": [
+    {
+      "fixture": "tickets-fr",
+      "siSdrDb": 34.697052001953125,
+      "gainDb": -0.02961032196295744
+    },
+    {
+      "fixture": "tickets-zh",
+      "siSdrDb": 29.681425094604492,
+      "gainDb": -0.04564322505138618
+    },
+    {
+      "fixture": "train-fr",
+      "siSdrDb": 18.22147560119629,
+      "gainDb": -0.16611968048162923
+    },
+    {
+      "fixture": "train-zh",
+      "siSdrDb": 25.784774780273438,
+      "gainDb": -0.13402034966022738
+    }
+  ],
+  "mixtures": [
+    {
+      "voice": "tickets-fr",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 0,
+      "beforeSiSdrDb": 0.03244974464178085,
+      "afterSiSdrDb": 11.952472686767578,
+      "openingBeforeSiSdrDb": -3.2627382278442383,
+      "openingAfterSiSdrDb": 7.850926399230957
+    },
+    {
+      "voice": "tickets-fr",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 5,
+      "beforeSiSdrDb": 5.018288612365723,
+      "afterSiSdrDb": 14.281340599060059,
+      "openingBeforeSiSdrDb": 1.6670985221862793,
+      "openingAfterSiSdrDb": 10.820927619934082
+    },
+    {
+      "voice": "tickets-fr",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 10,
+      "beforeSiSdrDb": 10.010316848754883,
+      "afterSiSdrDb": 16.76569175720215,
+      "openingBeforeSiSdrDb": 6.627392768859863,
+      "openingAfterSiSdrDb": 13.425762176513672
+    },
+    {
+      "voice": "tickets-fr",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 0,
+      "beforeSiSdrDb": 0.12581494450569153,
+      "afterSiSdrDb": 5.528940200805664,
+      "openingBeforeSiSdrDb": -3.2429137229919434,
+      "openingAfterSiSdrDb": 3.721048593521118
+    },
+    {
+      "voice": "tickets-fr",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 5,
+      "beforeSiSdrDb": 5.074762344360352,
+      "afterSiSdrDb": 10.611557960510254,
+      "openingBeforeSiSdrDb": 1.8933461904525757,
+      "openingAfterSiSdrDb": 9.108990669250488
+    },
+    {
+      "voice": "tickets-fr",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 10,
+      "beforeSiSdrDb": 10.045920372009277,
+      "afterSiSdrDb": 15.217367172241211,
+      "openingBeforeSiSdrDb": 6.969040870666504,
+      "openingAfterSiSdrDb": 13.268818855285645
+    },
+    {
+      "voice": "tickets-zh",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 0,
+      "beforeSiSdrDb": 0.07357179373502731,
+      "afterSiSdrDb": 8.821266174316406,
+      "openingBeforeSiSdrDb": -0.6791560649871826,
+      "openingAfterSiSdrDb": 8.250439643859863
+    },
+    {
+      "voice": "tickets-zh",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 5,
+      "beforeSiSdrDb": 5.041584491729736,
+      "afterSiSdrDb": 12.147350311279297,
+      "openingBeforeSiSdrDb": 4.306680679321289,
+      "openingAfterSiSdrDb": 11.17326831817627
+    },
+    {
+      "voice": "tickets-zh",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 10,
+      "beforeSiSdrDb": 10.023547172546387,
+      "afterSiSdrDb": 15.146702766418457,
+      "openingBeforeSiSdrDb": 9.298709869384766,
+      "openingAfterSiSdrDb": 14.040412902832031
+    },
+    {
+      "voice": "tickets-zh",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 0,
+      "beforeSiSdrDb": 0.06656046211719513,
+      "afterSiSdrDb": 6.665458679199219,
+      "openingBeforeSiSdrDb": -0.842623233795166,
+      "openingAfterSiSdrDb": 5.257421016693115
+    },
+    {
+      "voice": "tickets-zh",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 5,
+      "beforeSiSdrDb": 5.039007186889648,
+      "afterSiSdrDb": 10.849344253540039,
+      "openingBeforeSiSdrDb": 4.180963516235352,
+      "openingAfterSiSdrDb": 9.41860580444336
+    },
+    {
+      "voice": "tickets-zh",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 10,
+      "beforeSiSdrDb": 10.02347183227539,
+      "afterSiSdrDb": 14.440402030944824,
+      "openingBeforeSiSdrDb": 9.19420051574707,
+      "openingAfterSiSdrDb": 12.956317901611328
+    },
+    {
+      "voice": "train-fr",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 0,
+      "beforeSiSdrDb": 0.10498575866222382,
+      "afterSiSdrDb": 8.468695640563965,
+      "openingBeforeSiSdrDb": 1.8865735530853271,
+      "openingAfterSiSdrDb": 9.177326202392578
+    },
+    {
+      "voice": "train-fr",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 5,
+      "beforeSiSdrDb": 5.059469223022461,
+      "afterSiSdrDb": 11.621102333068848,
+      "openingBeforeSiSdrDb": 6.826305866241455,
+      "openingAfterSiSdrDb": 12.205440521240234
+    },
+    {
+      "voice": "train-fr",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 10,
+      "beforeSiSdrDb": 10.033767700195312,
+      "afterSiSdrDb": 13.570919036865234,
+      "openingBeforeSiSdrDb": 11.792229652404785,
+      "openingAfterSiSdrDb": 13.684305191040039
+    },
+    {
+      "voice": "train-fr",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 0,
+      "beforeSiSdrDb": 0.035042449831962585,
+      "afterSiSdrDb": 3.9265546798706055,
+      "openingBeforeSiSdrDb": 2.0029468536376953,
+      "openingAfterSiSdrDb": 5.8867926597595215
+    },
+    {
+      "voice": "train-fr",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 5,
+      "beforeSiSdrDb": 5.022249221801758,
+      "afterSiSdrDb": 9.659905433654785,
+      "openingBeforeSiSdrDb": 6.972654342651367,
+      "openingAfterSiSdrDb": 11.186737060546875
+    },
+    {
+      "voice": "train-fr",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 10,
+      "beforeSiSdrDb": 10.015044212341309,
+      "afterSiSdrDb": 13.101366996765137,
+      "openingBeforeSiSdrDb": 11.955571174621582,
+      "openingAfterSiSdrDb": 13.742025375366211
+    },
+    {
+      "voice": "train-zh",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 0,
+      "beforeSiSdrDb": 0.15381449460983276,
+      "afterSiSdrDb": 9.209940910339355,
+      "openingBeforeSiSdrDb": -0.35845810174942017,
+      "openingAfterSiSdrDb": 8.020276069641113
+    },
+    {
+      "voice": "train-zh",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 5,
+      "beforeSiSdrDb": 5.087422847747803,
+      "afterSiSdrDb": 12.081151962280273,
+      "openingBeforeSiSdrDb": 4.552999019622803,
+      "openingAfterSiSdrDb": 10.972243309020996
+    },
+    {
+      "voice": "train-zh",
+      "noise": "1-21189-A-10.wav",
+      "snrDb": 10,
+      "beforeSiSdrDb": 10.049861907958984,
+      "afterSiSdrDb": 14.702710151672363,
+      "openingBeforeSiSdrDb": 9.5028076171875,
+      "openingAfterSiSdrDb": 13.673494338989258
+    },
+    {
+      "voice": "train-zh",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 0,
+      "beforeSiSdrDb": 0.02030865103006363,
+      "afterSiSdrDb": 4.239434719085693,
+      "openingBeforeSiSdrDb": -0.01680762507021427,
+      "openingAfterSiSdrDb": 5.967663764953613
+    },
+    {
+      "voice": "train-zh",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 5,
+      "beforeSiSdrDb": 5.011829853057861,
+      "afterSiSdrDb": 9.49038028717041,
+      "openingBeforeSiSdrDb": 4.944733619689941,
+      "openingAfterSiSdrDb": 10.685724258422852
+    },
+    {
+      "voice": "train-zh",
+      "noise": "2-73027-A-10.wav",
+      "snrDb": 10,
+      "beforeSiSdrDb": 10.007058143615723,
+      "afterSiSdrDb": 13.881726264953613,
+      "openingBeforeSiSdrDb": 9.9230318069458,
+      "openingAfterSiSdrDb": 13.960394859313965
+    }
+  ],
+  "cpuInferenceMs": {
+    "p50": 0.8594999962951988,
+    "p95": 1.2508250147220679,
+    "max": 2.518399996915832
+  },
+  "cloudCalls": 0
+}

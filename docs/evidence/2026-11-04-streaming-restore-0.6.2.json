@@ -1,0 +1,39 @@
+{
+  "version": "0.6.2",
+  "baseline": "50b6ff8",
+  "request": "Restore streaming captions after user-installed 0.6.1 waited for the end of a 28-second message; isolate microphone noise-reduction work.",
+  "redGreen": [
+    {"stage": "original", "failure": "At 4 seconds a preview was available from the injected provider, but no caption row was visible."},
+    {"stage": "publication-gate-only-removed", "failure": "At 16 seconds the saved original masked the still-growing translation."},
+    {"stage": "complete-fix", "checks": [4, 8, 16, 27], "units": "simulated seconds before input ends", "result": "pass"}
+  ],
+  "tests": {
+    "core": 35,
+    "providerQwen": 44,
+    "evaluationQwen": 24,
+    "appRobolectric": 43,
+    "total": 146,
+    "failures": 0,
+    "skipped": 0,
+    "commands": [
+      ".\\gradlew.bat :core:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest --rerun-tasks --console=plain",
+      ".\\gradlew.bat :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --console=plain"
+    ]
+  },
+  "lint": {"errors": 0, "warnings": 31},
+  "build": {"main": "pass", "instrumentation": "pass", "signatures": "both pass v2"},
+  "delivery": {
+    "file": "app/build/deliveries/PolyBridge-0.6.2.apk",
+    "versionCode": 6002,
+    "sha256": "25311d15e265b1c689543ccf0be7802e652eee684a8e6c046a145565c29fca21"
+  },
+  "cloudCalls": 0,
+  "device": "No ADB device connected. User reports 0.6.1 installed; 0.6.2 not installed or verified on Fold5 in this run.",
+  "git": "Current branch retained. Local main is an ancestor. No remote configured; no push or hosted CI run.",
+  "noiseCandidate": "Separate offline evaluation and 6 adapter tests; no new denoiser included in 0.6.2. See 2026-11-04-noise-candidate.json.",
+  "limits": [
+    "The 28-second input uses synthetic protocol events, not real speech recognition or a measured cloud first-token latency.",
+    "LiveTranslate 3.5 local WebSocket tests preserve pre-completion previews and 15 correctly-associated messages across five replays; no actual WhatsApp accident trace was available.",
+    "GTCRN audio metrics do not prove transcription accuracy, real-room interruption quality, Android performance or echo compatibility."
+  ]
+}
