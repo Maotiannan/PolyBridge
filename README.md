@@ -109,4 +109,5 @@ adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.CaptionRel
 - [实施计划](docs/IMPLEMENTATION_PLAN.md) · [模块与数据流](docs/ARCHITECTURE.md) · [决策记录](docs/DECISION_LOG.md)
 - [真机兼容性](docs/DEVICE_COMPATIBILITY.md) · [音频测试矩阵](docs/AUDIO_PROBE_MATRIX.md)
 - [人声检测模型与测试录音来源](docs/AUDIO_ASSETS.md)
+- [Qwen 模型与成本调研（待实测选型）](docs/QWEN_EVALUATION.md)
 - [验收进度与下一步](docs/NEXT_TASKS.md) · [版本记录](CHANGELOG.md)
