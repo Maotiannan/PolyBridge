@@ -28,6 +28,9 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
     private var reflectionGain = 0.0
     private var matchedAt = -1L
     private var matchedOffset = 0
+    private var pendingDelay: Int? = null
+    private var pendingGain = 0.0
+    private var pendingMs = 0.0
 
     @Synchronized fun start(pcm: ByteArray) {
         reference = ShortArray(pcm.size / 2) { i ->
@@ -39,6 +42,7 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
         for (i in envelope.indices) energy[i + 1] = energy[i] + envelope[i].toDouble() * envelope[i]
         anchor = -1; lastPosition = -1; stopped = -1; voicedMs = 0.0; interrupted = false
         pathDelay = null; pathGain = 0.0; reflectionGain = 0.0; matchedAt = -1
+        pendingDelay = null; pendingGain = 0.0; pendingMs = 0.0
     }
 
     @Synchronized fun position(milliseconds: Int, nowMs: Long) {
@@ -103,12 +107,25 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
         val plausibleGain = abs(scale - pathGain) <= max(.025, abs(pathGain) * .55)
         val room = backgroundRms * 1.25 + 18
         val roomPower = room * room * n
+        // A quiet first utterance may never dominate the room enough for the high-confidence
+        // single-frame match. Acquire it only when the same delay and gain explain successive
+        // frames above the measured room noise; an isolated correlation must not erase a person.
+        val pending = pendingDelay
+        if (previous == null && fraction >= .55 && power - best <= roomPower && abs(scale) <= 2.0) {
+            val stable = pending != null && abs(delay - pending) <= 32 &&
+                abs(scale - pendingGain) <= max(.025, abs(pendingGain) * .55)
+            pendingMs = (if (stable) pendingMs else 0.0) + count * 1000.0 / rate
+            pendingDelay = delay; pendingGain = scale
+        } else {
+            pendingDelay = null; pendingMs = 0.0
+        }
+        val acquired = pendingMs >= 40
         // The output level may change while the acoustic path stays in place. Relearn its gain
         // when the same delayed waveform accounts for everything above the measured room noise.
         val samePath = previous != null && abs(delay - previous) <= 32 && fraction >= .55 && power - best <= roomPower
         val consistent = previous == null || samePath || fraction >= .98 ||
             (plausibleGain && (abs(delay - previous) <= 32 || fraction >= .87))
-        if ((fraction >= .90 && consistent || samePath) && abs(scale) <= 2.0) {
+        if ((fraction >= .90 && consistent || samePath || acquired) && abs(scale) <= 2.0) {
             pathDelay = delay
             matchedAt = nowMs
             matchedOffset = bestOffset
@@ -133,7 +150,7 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
                 }
             }
         }
-        val offset = if (samePath || consistent && fraction >= .75) bestOffset else predicted
+        val offset = if (samePath || acquired || consistent && fraction >= .75) bestOffset else predicted
         var remainder = power
         if (pathDelay != null) {
             remainder = 0.0

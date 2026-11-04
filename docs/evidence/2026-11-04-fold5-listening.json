@@ -1,0 +1,137 @@
+{
+  "date": "2026-11-04",
+  "device": {
+    "model": "vivo X Fold5 / V2436A",
+    "android": 16,
+    "originOs": 6,
+    "display": "1172x2748 outer screen",
+    "installedVersionAtUsbDisconnection": "0.5.2",
+    "installedApkSha256": "b851dd6ff6ebbb9fa635eb1fe15e7c349aa787c225b9ae580880d3278d65ca0a",
+    "installedApkCopy": "app/build/listening-qa/fold5-20261104/tested-app.apk",
+    "pendingSettingsRestore": { "stayOnWhilePluggedInOriginal": 0, "temporaryValue": 2 },
+    "lastMediaLevels": { "speaker": "0/150", "rememberedBluetooth": "150/150", "activeRoute": "speaker" }
+  },
+  "installed052": {
+    "continuousListening": {
+      "log": "app/build/listening-qa/fold5-20261104/final-listening.log",
+      "discovered": 7,
+      "executed": 6,
+      "skipped": 1,
+      "skipReason": "The isolated-history overlay test is restricted to emulators; actual Fold5 overlay is tested separately.",
+      "failures": 0,
+      "elapsedSeconds": 81.935,
+      "realQwen": {
+        "input": "Two distinct 5-second rain recordings, then eight repetitions of rainy French tickets/station speech with a 0.8-second internal breath and 2-second inter-clip gaps. Fixed samples, not the room microphone.",
+        "pureRainCaptions": 0,
+        "speechPairs": 8,
+        "savedParagraphs": 8,
+        "originalTicketMentions": 8,
+        "originalStationMentions": 8,
+        "chineseTicketAndStationMentionsAtLeastEightEach": true
+      },
+      "onDeviceSignalChecks": {
+        "listenRate": 16000,
+        "listenRainSamplesPassed": 0,
+        "listenStrongSampleRetention": [0.9996178830722201, 0.999704535381888],
+        "captionsRate": 48000,
+        "captionsRainSamplesPassed": 0,
+        "captionsStrongSampleRetention": [0.999923576614444, 0.999704535381888],
+        "longPlaybackSeconds": 77.84475,
+        "longPlaybackPhrases": 24,
+        "longPlaybackMinimumStrongSampleRetention": 0.9944522896913456,
+        "longPlaybackConnections": 1
+      }
+    },
+    "externalApplicationCaptions": {
+      "log": "app/build/listening-qa/fold5-20261104/final-captions.log",
+      "tests": 2,
+      "failures": 0,
+      "elapsedSeconds": 36.05,
+      "differentApplicationUid": true,
+      "actualAndroidSingleAppProjection": true,
+      "realQwen": true,
+      "forbiddenCaptureProducedNoTurn": true,
+      "pureRainProducedNoTurnOrDraft": true,
+      "incrementalFrenchToChinese": true,
+      "incrementalChineseToFrench": true,
+      "longSpeechSource": "Je voudrais deux billets. Excusez-moi, où est la gare?",
+      "longSpeechTranslation": "我要两张票。不好意思，请问车站在哪里？",
+      "savedParagraphs": 3,
+      "longSpeechParagraphs": 1,
+      "overlayFullTextChecked": true,
+      "stoppedAndReopenedCaptionPageChecked": true
+    },
+    "duplexNormal": {
+      "log": "app/build/listening-qa/fold5-20261104/duplex-normal.log",
+      "passed": true,
+      "turns": 2,
+      "interruptions": 1,
+      "releaseMs": 367,
+      "extraEchoTurn": false
+    },
+    "duplexSoft": {
+      "passed": false,
+      "runs": 2,
+      "logs": ["app/build/listening-qa/fold5-20261104/duplex-soft.log", "app/build/listening-qa/fold5-20261104/duplex-trace.log"],
+      "input": "Fixed French near voice at 0.14 gain, delayed returned TTS at 0.15-0.16 gain and continuous 140 Hz hum of amplitude 300. Actual Android player and Qwen provider; no live room microphone.",
+      "extraTurnFirstRun": "嗯。 → Recommencer",
+      "extraTurnTracedRun": "此过程。 → Sport",
+      "tracedExtraStartedMs": 6904,
+      "tracedExtraPhase": "second-echo-only",
+      "tracedSecondSentenceLostOpening": true,
+      "followUp": "Verify both exactly two turns and the entire quiet French question on the candidate. Do not treat a train keyword alone as full phrase accuracy."
+    }
+  },
+  "candidate053": {
+    "version": "0.5.3",
+    "versionCode": 5003,
+    "installedOnFold5": false,
+    "realCloudRetested": false,
+    "notInstalledReason": "USB disconnected before the installer started; adb reported no devices.",
+    "appSha256": "19cc67822b653e28d63ec4977b03e20739e311e2a50c3295208bc9d3e2c3767c",
+    "testAppSha256": "e72a7ed3972d74a80cbdb8fcc03e85619dbf30e6f763f2abf6a6ee5090b646ed",
+    "bothApksV2Verified": true,
+    "rootCause": "With background hum, low-gain initial playback may fail the high-confidence one-frame match for most of the phrase. No acoustic reference is acquired until a loud syllable, so correlated playback can reach ASR.",
+    "fix": "Acquire the first path after 40 ms of consecutive matching delay and gain when the correlated waveform explains the input above the measured room floor. Keep the existing high-confidence match and subsequent path tracking.",
+    "coldEchoRegression": {
+      "fixture": "tickets-zh, train-zh, tickets-fr, train-fr bundled speech; 16 kHz input; 100 ms echo delay; 0.15 echo gain; 140 Hz hum amplitude 300; background RMS 212",
+      "metric": "Absolute projection of samples classified as possible voice onto known playback, divided by playback energy. Not transcription accuracy, loudness or a general environmental guarantee.",
+      "beforeFirstFixture": 0.5796157550502418,
+      "after": [0.014633544604439757, 0.019545878271372018, 0.030836014714206186, 0.0236937533247621],
+      "passBelow": 0.045,
+      "redLog": "app/build/listening-qa/fold5-20261104/cold-echo-red.log",
+      "greenLog": "app/build/listening-qa/fold5-20261104/cold-echo-green.log"
+    },
+    "quietIndependentSpeechRegression": {
+      "nearGain": 0.14,
+      "echoGain": 0.15,
+      "inputRate": 16000,
+      "metric": "Projection of filtered output onto known near speech during the opening half-second, divided by near speech energy.",
+      "retainedUnderChinesePlayback": 0.9111747973304752,
+      "retainedUnderFrenchPlayback": 0.9694957929266934,
+      "passAbove": 0.65
+    },
+    "host": {
+      "log": "app/build/listening-qa/fold5-20261104/verify-053.log",
+      "coreTests": 20,
+      "providerTests": 10,
+      "appTests": 23,
+      "totalTests": 53,
+      "failures": 0,
+      "errors": 0,
+      "lintErrors": 0,
+      "lintWarnings": 29,
+      "appAndTestBuildSucceeded": true
+    }
+  },
+  "harnessFinding": "A real-cloud run stalled while invoking the local ONNX detector with the app in the background. A timed rerun reproduced the stack location. Opening the project launcher before the test made the same controlled run pass; this does not establish a general OEM cause.",
+  "privacy": "Credentials remain inside the phone. All audio exported for this investigation is fixed test input or its generated translation, never room microphone audio. Test preferences are isolated and deleted; the external-caption test removes only its generated turns and restores the chosen source app.",
+  "pending": [
+    "Install and verify the exact 0.5.3 candidate on Fold5.",
+    "Repeat real-Qwen normal and soft duplex, checking full quiet question and no extra echo turn.",
+    "Repeat rain, long speech and other-app captions on that final binary.",
+    "Restore stay_on_while_plugged_in to 0 after reconnect and stop all test playback/capture.",
+    "Natural room microphone conversations and real messaging-app voice clips remain unverified.",
+    "Second-headset and call-remote paths require their separate hardware and consent."
+  ]
+}

@@ -6,6 +6,10 @@ Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动�
 
 0.5.2 在手机上先区分人声与雨声，再把人声交给千问。一次监听里的原文和译文按说话顺序保存，换气或分段后可以回看开头。在其他应用上点浮窗的「全文」即可往前翻。[已测声音与真机待验项](docs/NEXT_TASKS.md)
 
+2026-11-04 已在 Fold5 安装 0.5.2。真实千问的纯雨声、换气前后法语译文，以及另一个应用播放时的双向悬浮字幕均通过受控录音测试。[真机验收](docs/NEXT_TASKS.md)
+
+0.5.3 候选修复了轻声译音伴随持续底噪时，回声识别建立过晚的问题。电脑端 53 项测试通过，安装包已构建；更新时 Fold5 已断开 USB，手机仍为 0.5.2。下一步先复测真实千问的轻声抢话，再在同一安装包重跑雨声和长语音。[本轮证据与未验项](docs/evidence/2026-11-04-fold5-listening.json)
+
 ## 从这里开始
 
 1. 在顶栏点「连接千问」，选择百炼账号所属地区，保存个人 API Key。它由 Android 系统密钥加密。长按说话在松手后发送这句话，自由监听和屏幕字幕在显式启动后逐段发送声音。识别、翻译和合成使用个人账号的额度。
@@ -67,6 +71,8 @@ adb -d shell am instrument --user 0 -w -r -e cloudDuplex true -e class dev.polyb
 python tools/qa_room_source.py
 ```
 
+抢话测试有两分钟上限。排错时可另加 `-e captureDuplex true`，记录送给千问的固定测试声音与云端返回的测试译音，并输出每句所属阶段和开口时间；它不打开环境麦克风。诊断 WAV 仅放在手机应用的私有缓存 `qa-duplex-*.wav`，不包含密钥，默认不开启。
+
 只在专用模拟器上运行整库清空和撤销。第二条命令在同一设备连续发送 15 分钟固定的中法重叠语音，检查回声、句首和实际停止播放的时刻。两项都可以离线运行。
 
 ```powershell
@@ -82,6 +88,8 @@ adb -e shell am instrument -w -r -e testDuplex true -e duplexDurationMs 900000 -
 adb -e shell am instrument -w -r -e class dev.polybridge.app.StreamingListeningRegressionTest dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
 adb -d shell am instrument -w -r -e class dev.polybridge.app.StreamingListeningRegressionTest#realQwenIgnoresRainAndTranslatesTheEntireBreathFixture -e cloudRain true dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
 ```
+
+在第二条命令增加 `-e cloudRainRepeats 8`，会连续验证八组带换气的法语，每组的原文和中文译文都要保留。真实千问测试会先打开应用前台，并设有超时保护。
 
 已获机主授权的 USB 联调可由调试端代点本项目的可见按钮。这台 Fold5 已验证可以自动选择「共享当前应用」并开始一次测试。长时间联调可临时开启 USB 供电亮屏，结束时恢复原设置。安全锁要求密码或生物识别时，由机主在手机上解锁。
 

@@ -79,6 +79,53 @@ class DuplexAudioTest {
         assertTrue("correlated playback sent as speech=$fraction", fraction < .045)
     }
 
+    @Test fun quietPlaybackAboveSteadyHumIsRejectedFromTheFirstUtterance() {
+        for (name in listOf("tickets-zh", "train-zh", "tickets-fr", "train-fr")) {
+            val pcm = speech(name)
+            val echo = PlaybackEcho(212.0).apply { start(pcm) }
+            var original = 0.0
+            var leaked = 0.0
+            for (t in 0 until pcm.size / 48 + 500 step 20) {
+                if (t % 100 == 0) echo.position(t, t.toLong())
+                val far = IntArray(320) { i -> (sample(pcm, (t - 100) * 24 + i * 3 / 2) * .15).toInt() }
+                val input = ShortArray(320) { i -> (far[i] + 300 * sin((t * 16 + i) * 2 * PI * 140 / 16000)).toInt().toShort() }
+                echo.filter(input, input.size, 16000, t + 20L)
+                for (i in far.indices) {
+                    original += far[i].toDouble() * far[i]
+                    if (echo.weakVoice) leaked += abs(input[i].toDouble() * far[i])
+                }
+            }
+            val fraction = leaked / original
+            println("cold quiet playback=$name correlated fraction=$fraction")
+            assertTrue("$name quiet echo sent as speech=$fraction", fraction < .045)
+        }
+    }
+
+    @Test fun aQuietIndependentVoiceStillSurvivesAboveHumAndPlayback() {
+        for (language in listOf("zh", "fr")) {
+            val pcm = speech("tickets-$language")
+            val other = speech("station-${if (language == "zh") "fr" else "zh"}")
+            val voiced = (0 until other.size / 2).first { abs(sample(other, it)) > 600 }
+            val echo = PlaybackEcho(212.0).apply { start(pcm) }
+            var expected = 0.0
+            var retained = 0.0
+            for (t in 0 until 1400 step 20) {
+                if (t % 100 == 0) echo.position(t, t.toLong())
+                val near = IntArray(320) { i -> if (t >= 460) (sample(other, (t - 460) * 24 + voiced + i * 3 / 2) * .14).toInt() else 0 }
+                val input = ShortArray(320) { i -> (near[i] + sample(pcm, (t - 100) * 24 + i * 3 / 2) * .15 +
+                    300 * sin((t * 16 + i) * 2 * PI * 140 / 16000)).toInt().toShort() }
+                echo.filter(input, input.size, 16000, t + 20L)
+                if (t in 460..960) for (i in near.indices) {
+                    expected += near[i].toDouble() * near[i]
+                    retained += near[i].toDouble() * input[i]
+                }
+            }
+            val fraction = retained / expected
+            println("quiet independent under $language playback retained=$fraction")
+            assertTrue("quiet person lost under $language playback=$fraction", fraction > .65)
+        }
+    }
+
     @Test fun lowRoomNoiseUnderPlaybackIsKeptOutOfRecognitionAndNewSpeechSurvivesTheTail() {
         val noise = RoomNoise()
         val fan = ShortArray(320) { (sin(it * 2 * PI * 300 / 16000) * 420).toInt().toShort() }

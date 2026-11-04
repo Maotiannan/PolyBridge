@@ -210,9 +210,14 @@ class StreamingListeningRegressionTest {
         }
     }
 
-    @Test fun realQwenIgnoresRainAndTranslatesTheEntireBreathFixture() {
+    @Test(timeout = 180000) fun realQwenIgnoresRainAndTranslatesTheEntireBreathFixture() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("cloudRain") == "true")
+        openProjectLauncher()
+        val rounds = InstrumentationRegistry.getArguments().getString("cloudRainRepeats")?.toIntOrNull()?.coerceIn(1, 10) ?: 1
+        fun phase(name: String) = inst.sendStatus(0, Bundle().apply { putString("cloudRainPhase", name) })
+        phase("provider")
         val api = requireNotNull(app.settings.provider())
+        phase("connect")
         val noiseOnly = AtomicBoolean(true)
         val noiseCaption = AtomicBoolean()
         fun play(asset: String, send: MicFrames) {
@@ -228,14 +233,20 @@ class StreamingListeningRegressionTest {
             // Exercise the ordinary conversation model without playing its response into the room.
             emit(if (event is LiveUpdate.Finished) event.copy(pcm = byteArrayOf()) else event)
         } }, { send ->
+            phase("rain")
             play("1-21189-A-10", send)
             play("2-73027-A-10", send)
             val quiet = ShortArray(1600)
             repeat(18) { send(quiet, quiet.size, 16000); SystemClock.sleep(100) }
             noiseOnly.set(false)
-            play("breathing-fr", send)
-            repeat(20) { send(quiet, quiet.size, 16000); SystemClock.sleep(100) }
+            repeat(rounds) { index ->
+                phase("speech ${index + 1}/$rounds")
+                play("breathing-fr", send)
+                repeat(20) { send(quiet, quiet.size, 16000); SystemClock.sleep(100) }
+            }
+            phase("finish")
         }) { store, _ ->
+            phase("verify")
             assertFalse("纯雨声触发了千问字幕", noiseCaption.get())
             val turns = store.chat.value.turns
             assertTrue(turns.isNotEmpty() && turns.all { it.side == Side.FRENCH && it.status == TurnStatus.READY })
@@ -243,6 +254,12 @@ class StreamingListeningRegressionTest {
             val target = turns.joinToString(" ") { it.translatedText }
             assertTrue("法语缺少换气前或换气后的内容", source.indexOf("billet") >= 0 && source.indexOf("gare") > source.indexOf("billet"))
             assertTrue("译文缺少换气前或换气后的内容", target.indexOf("票") >= 0 && target.indexOf("站") > target.indexOf("票"))
+            val tickets = Regex("billets?").findAll(source).count()
+            val stations = Regex("gare").findAll(source).count()
+            assertTrue("长时间监听丢了前面的原文", tickets >= rounds && stations >= rounds)
+            assertTrue("长时间监听丢了前面的译文", target.count { it == '票' } >= rounds && target.count { it == '站' } >= rounds)
+            inst.sendStatus(0, Bundle().apply { putString("cloudRain",
+                "rainCaptions=0 pairs=$rounds savedParagraphs=${turns.size} ticketMentions=$tickets stationMentions=$stations") })
         }
     }
 

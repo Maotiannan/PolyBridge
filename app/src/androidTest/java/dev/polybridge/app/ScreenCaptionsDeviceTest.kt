@@ -73,7 +73,7 @@ class ScreenCaptionsDeviceTest {
         if (!rect.isEmpty) shell("input tap " + rect.centerX() + " " + rect.centerY())
     }
 
-    @Test fun anotherApplicationsAudioShowsLiveBilingualTextAboveThatApplication() {
+    @Test(timeout = 180000) fun anotherApplicationsAudioShowsLiveBilingualTextAboveThatApplication() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("cloudCaptions") == "true")
         val ctx = inst.targetContext
         val own = ctx.packageName
@@ -151,6 +151,17 @@ class ScreenCaptionsDeviceTest {
             }
             click(own, "停止屏幕字幕")
             waitFor("未释放共享会话", 18000) { app.store.active.value == null && find(own) { it.contentDescription?.toString() == "停止屏幕字幕" } == null }
+            val saved = app.store.chat.value.turns.filter { it.live?.captureId == id }
+            val longSpeech = saved.filter { it.id !in previousIds }
+            openProjectLauncher()
+            click(own, "屏幕字幕")
+            for (turn in longSpeech) waitFor("停止后字幕页缺少长语音内容") {
+                find(own) { it.text?.toString() == turn.sourceText } != null &&
+                    find(own) { it.text?.toString() == turn.translatedText } != null
+            }
+            inst.sendStatus(0, Bundle().apply { putString("externalTranscript",
+                "rainCaptions=0 paragraphs=${saved.size} longSpeechParagraphs=${longSpeech.size} reopened=true source=" +
+                    longSpeech.joinToString(" ") { it.sourceText } + " translation=" + longSpeech.joinToString(" ") { it.translatedText }) })
         } finally {
             app.store.active.value?.takeIf { it.kind == Kind.CAPTIONS }?.let { id = it.id; app.live.stopNow(it) }
             id?.let { session -> app.store.changeChat { chat -> chat.copy(turns = chat.turns.filterNot { it.id.startsWith("live-" + session + "-") }) } }
