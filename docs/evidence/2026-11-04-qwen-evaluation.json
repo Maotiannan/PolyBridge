@@ -1,0 +1,980 @@
+{
+  "runs": [
+    {
+      "runId": "audio31-fr-01",
+      "fixture": "tickets-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": false,
+      "inputMs": 4380,
+      "result": {
+        "connectedMs": 549,
+        "elapsedMs": 147687,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "conversation.item.input_audio_transcription.delta": 3,
+            "input_audio_buffer.speech_stopped": 1,
+            "input_audio_buffer.committed": 1,
+            "conversation.item.created": 2,
+            "response.created": 1,
+            "response.output_item.added": 1,
+            "response.content_part.added": 1,
+            "response.text.delta": 4,
+            "conversation.item.input_audio_transcription.completed": 1,
+            "response.text.done": 1,
+            "response.content_part.done": 1,
+            "response.output_item.done": 1,
+            "response.done": 1
+          },
+          "finished": false,
+          "firstSourceMs": 1324,
+          "firstTargetMs": 3363,
+          "lastTextMs": 3857,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 1,
+          "sourceFinals": 1,
+          "sources": [
+            "Je voudrais deux billets. "
+          ],
+          "targetFinals": 1,
+          "targets": [
+            "我想要两张票。"
+          ],
+          "usage": {
+            "inputAudio": 13,
+            "inputText": 89,
+            "outputAudio": 0,
+            "outputText": 5
+          },
+          "usageComplete": true
+        },
+        "model": "qwen-audio-3.1-realtime-flash",
+        "sentBytes": 140160
+      },
+      "estimatedMicros": 234,
+      "reservedOrEstimatedCampaignMicros": 234,
+      "qualityAssessment": "short_original_and_translation_complete",
+      "harnessOutcome": "timeout_in_native_socket_cleanup",
+      "timingValid": false,
+      "firstSourceFromAudioStartMs": 775,
+      "firstTargetFromAudioStartMs": 2814
+    },
+    {
+      "runId": "audio31-fr-02",
+      "fixture": "tickets-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": false,
+      "inputMs": 4380,
+      "result": {
+        "connectedMs": 351,
+        "elapsedMs": 4904,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "conversation.item.input_audio_transcription.delta": 3,
+            "input_audio_buffer.speech_stopped": 1,
+            "input_audio_buffer.committed": 1,
+            "conversation.item.created": 2,
+            "response.created": 1,
+            "response.output_item.added": 1,
+            "response.content_part.added": 1,
+            "response.text.delta": 4,
+            "response.text.done": 1,
+            "response.content_part.done": 1,
+            "response.output_item.done": 1,
+            "response.done": 1,
+            "conversation.item.input_audio_transcription.completed": 1
+          },
+          "finished": false,
+          "firstSourceMs": 1120,
+          "firstTargetMs": 3160,
+          "lastTextMs": 3400,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 1,
+          "sourceFinals": 1,
+          "sources": [
+            "Je voudrais deux billets. "
+          ],
+          "targetFinals": 1,
+          "targets": [
+            "我想要两张票。"
+          ],
+          "usage": {
+            "inputAudio": 13,
+            "inputText": 89,
+            "outputAudio": 0,
+            "outputText": 5
+          },
+          "usageComplete": true
+        },
+        "model": "qwen-audio-3.1-realtime-flash",
+        "sentBytes": 140160
+      },
+      "estimatedMicros": 234,
+      "reservedOrEstimatedCampaignMicros": 468,
+      "qualityAssessment": "short_original_and_translation_complete",
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 769,
+      "firstTargetFromAudioStartMs": 2809
+    },
+    {
+      "runId": "audio31-zh-01",
+      "fixture": "tickets-zh",
+      "region": "BEIJING",
+      "workspaceConfigured": false,
+      "inputMs": 3900,
+      "result": {
+        "connectedMs": 2039,
+        "elapsedMs": 9900,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "conversation.item.input_audio_transcription.delta": 3,
+            "input_audio_buffer.speech_stopped": 1,
+            "input_audio_buffer.committed": 1,
+            "conversation.item.created": 2,
+            "response.created": 1,
+            "response.output_item.added": 1,
+            "response.content_part.added": 1,
+            "response.text.delta": 7,
+            "response.text.done": 1,
+            "response.content_part.done": 1,
+            "response.output_item.done": 1,
+            "response.done": 1,
+            "conversation.item.input_audio_transcription.completed": 1
+          },
+          "finished": false,
+          "firstSourceMs": 4829,
+          "firstTargetMs": 8197,
+          "lastTextMs": 8382,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 1,
+          "sourceFinals": 1,
+          "sources": [
+            "我想买两张票。"
+          ],
+          "targetFinals": 1,
+          "targets": [
+            "Je voudrais acheter deux billets."
+          ],
+          "usage": {
+            "inputAudio": 10,
+            "inputText": 89,
+            "outputAudio": 0,
+            "outputText": 8
+          },
+          "usageComplete": true
+        },
+        "model": "qwen-audio-3.1-realtime-flash",
+        "sentBytes": 124800
+      },
+      "estimatedMicros": 230,
+      "reservedOrEstimatedCampaignMicros": 5005985,
+      "qualityAssessment": "short_original_and_translation_complete",
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 2790,
+      "firstTargetFromAudioStartMs": 6158
+    },
+    {
+      "runId": "live38-fr-01",
+      "fixture": "tickets-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": false,
+      "inputMs": 4380,
+      "result": {
+        "connectedMs": 300,
+        "elapsedMs": 1900,
+        "error": "SERVICE_COMMON_ERROR",
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "error": 1
+          },
+          "error": "SERVICE_COMMON_ERROR",
+          "finished": false,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 0,
+          "sourceFinals": 0,
+          "sources": [],
+          "targetFinals": 0,
+          "targets": [],
+          "usage": {
+            "inputAudio": 0,
+            "inputText": 0,
+            "outputAudio": 0,
+            "outputText": 0
+          },
+          "usageComplete": false
+        },
+        "model": "qwen3.8-livetranslate-flash-realtime",
+        "sentBytes": 51200
+      },
+      "reservedOrEstimatedCampaignMicros": 3000468,
+      "qualityAssessment": "service_failure_not_quality_scored",
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": null,
+      "firstTargetFromAudioStartMs": null
+    },
+    {
+      "runId": "omni38-fr-01",
+      "fixture": "tickets-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": false,
+      "inputMs": 4380,
+      "result": {
+        "connectedMs": 459,
+        "elapsedMs": 3361,
+        "error": "SERVICE_COMMON_ERROR",
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "conversation.item.created": 1,
+            "conversation.item.input_audio_transcription.delta": 9,
+            "input_audio_buffer.speech_stopped": 1,
+            "input_audio_buffer.committed": 1,
+            "error": 1
+          },
+          "error": "SERVICE_COMMON_ERROR",
+          "finished": false,
+          "firstSourceMs": 1327,
+          "lastTextMs": 2909,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 0,
+          "sourceFinals": 0,
+          "sources": [
+            "Je voudrais deux billets."
+          ],
+          "targetFinals": 0,
+          "targets": [],
+          "usage": {
+            "inputAudio": 0,
+            "inputText": 0,
+            "outputAudio": 0,
+            "outputText": 0
+          },
+          "usageComplete": false
+        },
+        "model": "qwen3.8-omni-flash-realtime",
+        "sentBytes": 92800
+      },
+      "reservedOrEstimatedCampaignMicros": 5000468,
+      "qualityAssessment": "service_failure_not_quality_scored",
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 868,
+      "firstTargetFromAudioStartMs": null
+    },
+    {
+      "runId": "live35-fr-01",
+      "fixture": "tickets-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": false,
+      "inputMs": 4380,
+      "result": {
+        "connectedMs": 2115,
+        "elapsedMs": 7221,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "response.created": 1,
+            "response.output_item.added": 1,
+            "conversation.item.created": 2,
+            "response.content_part.added": 1,
+            "conversation.item.input_audio_transcription.text": 9,
+            "response.text.text": 6,
+            "input_audio_buffer.speech_stopped": 1,
+            "response.text.done": 1,
+            "conversation.item.input_audio_transcription.completed": 1,
+            "response.content_part.done": 1,
+            "response.output_item.done": 1,
+            "response.done": 1,
+            "session.finished": 1
+          },
+          "finished": true,
+          "firstSourceMs": 3309,
+          "firstTargetMs": 3370,
+          "lastTextMs": 6734,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 1,
+          "sourceFinals": 1,
+          "sources": [
+            "Je voudrais deux billets."
+          ],
+          "targetFinals": 1,
+          "targets": [
+            "我想要两张票。"
+          ],
+          "usage": {
+            "inputAudio": 28,
+            "inputText": 64,
+            "outputAudio": 0,
+            "outputText": 14
+          },
+          "usageComplete": true
+        },
+        "model": "qwen3.5-livetranslate-flash-realtime",
+        "sentBytes": 140160
+      },
+      "reservedOrEstimatedCampaignMicros": 5005548,
+      "qualityAssessment": "short_original_and_translation_complete",
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "revokedOriginalEstimateMicros": 5080,
+      "pricingIssue": "UNPRICED_INPUT_TEXT",
+      "firstSourceFromAudioStartMs": 1194,
+      "firstTargetFromAudioStartMs": 1255
+    },
+    {
+      "runId": "asr31-fr-01",
+      "fixture": "tickets-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": false,
+      "inputMs": 4380,
+      "result": {
+        "connectedMs": 2103,
+        "elapsedMs": 7427,
+        "events": {
+          "counts": {
+            "task-started": 1,
+            "result-generated": 10,
+            "task-finished": 1
+          },
+          "finished": true,
+          "firstSourceMs": 3735,
+          "lastTextMs": 5898,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 0,
+          "sourceFinals": 1,
+          "sources": [
+            "Je voudrais deux billets. "
+          ],
+          "targetFinals": 0,
+          "targets": [],
+          "usage": {
+            "inputAudio": 30,
+            "inputText": 0,
+            "outputAudio": 0,
+            "outputText": 6
+          },
+          "usageComplete": true
+        },
+        "model": "qwen-audio-3.1-asr-flash-streaming",
+        "sentBytes": 140160
+      },
+      "estimatedMicros": 207,
+      "reservedOrEstimatedCampaignMicros": 5005755,
+      "qualityAssessment": "short_original_complete_translation_not_tested",
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 1632,
+      "firstTargetFromAudioStartMs": null
+    },
+    {
+      "runId": "live38-workspace-fr-01",
+      "fixture": "tickets-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": true,
+      "workspaceOverride": true,
+      "inputMs": 4380,
+      "result": {
+        "connectedMs": 1520,
+        "elapsedMs": 6760,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "conversation.item.created": 2,
+            "response.created": 1,
+            "response.output_item.added": 1,
+            "response.content_part.added": 1,
+            "conversation.item.input_audio_transcription.delta": 6,
+            "response.text.delta": 3,
+            "input_audio_buffer.speech_stopped": 1,
+            "conversation.item.input_audio_transcription.completed": 1,
+            "response.text.done": 1,
+            "response.content_part.done": 1,
+            "response.output_item.done": 1,
+            "response.done": 1,
+            "session.finished": 1
+          },
+          "finished": true,
+          "firstSourceMs": 3972,
+          "firstTargetMs": 3996,
+          "lastTextMs": 5917,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 1,
+          "serverModels": [
+            "qwen3.8-livetranslate-flash-realtime"
+          ],
+          "sessionId": "sess_GSbzxcBcTpunlFrDtaKNm",
+          "sourceFinals": 1,
+          "sources": [
+            "Je voudrais deux billets. "
+          ],
+          "targetFinals": 1,
+          "targets": [
+            "我想两张票。"
+          ],
+          "usage": {
+            "inputAudio": 21,
+            "inputText": 47,
+            "outputAudio": 0,
+            "outputText": 10
+          },
+          "usageComplete": true
+        },
+        "model": "qwen3.8-livetranslate-flash-realtime",
+        "requestId": "b2fee9c9-1ccf-92cf-94cb-7aff5e441d3e",
+        "sentBytes": 140160,
+        "startedAtEpochMs": 1793781876820
+      },
+      "pricingIssue": "UNPRICED_INPUT_TEXT",
+      "reservedOrEstimatedCampaignMicros": 4000905,
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 2452,
+      "firstTargetFromAudioStartMs": 2476,
+      "qualityAssessment": "sentences_preserved_awkward_translation"
+    },
+    {
+      "runId": "omni38-workspace-fr-01",
+      "fixture": "tickets-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": true,
+      "workspaceOverride": true,
+      "inputMs": 4380,
+      "result": {
+        "connectedMs": 1621,
+        "elapsedMs": 7348,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "conversation.item.created": 2,
+            "conversation.item.input_audio_transcription.delta": 10,
+            "input_audio_buffer.speech_stopped": 1,
+            "input_audio_buffer.committed": 1,
+            "conversation.item.input_audio_transcription.completed": 1,
+            "response.created": 1,
+            "response.output_item.added": 1,
+            "response.content_part.added": 1,
+            "response.text.delta": 3,
+            "response.text.done": 1,
+            "response.content_part.done": 1,
+            "response.output_item.done": 1,
+            "response.done": 1
+          },
+          "finished": false,
+          "firstSourceMs": 2782,
+          "firstTargetMs": 5799,
+          "lastTextMs": 5840,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 1,
+          "serverModels": [
+            "qwen3.8-omni-flash-realtime"
+          ],
+          "sessionId": "sess_IFzxeHXs8MYTOMXOVXfUv",
+          "sourceFinals": 1,
+          "sources": [
+            "Je voudrais deux billets."
+          ],
+          "targetFinals": 1,
+          "targets": [
+            "Je voudrais deux billets."
+          ],
+          "usage": {
+            "inputAudio": 21,
+            "inputText": 91,
+            "outputAudio": 0,
+            "outputText": 7
+          },
+          "usageComplete": true
+        },
+        "model": "qwen3.8-omni-flash-realtime",
+        "requestId": "1b29cac9-bd75-93a0-b091-eb7f3cfad755",
+        "sentBytes": 140160,
+        "startedAtEpochMs": 1793781911160
+      },
+      "estimatedMicros": 294,
+      "reservedOrEstimatedCampaignMicros": 4001199,
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 1161,
+      "firstTargetFromAudioStartMs": 4178,
+      "qualityAssessment": "fail_wrong_output_language"
+    },
+    {
+      "runId": "audio31-workspace-question-01",
+      "fixture": "train-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": true,
+      "workspaceOverride": true,
+      "inputMs": 4300,
+      "result": {
+        "connectedMs": 1698,
+        "elapsedMs": 6369,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 1,
+            "conversation.item.input_audio_transcription.delta": 3,
+            "input_audio_buffer.speech_stopped": 1,
+            "input_audio_buffer.committed": 1,
+            "conversation.item.created": 2,
+            "response.created": 1,
+            "response.output_item.added": 1,
+            "response.content_part.added": 1,
+            "response.text.delta": 6,
+            "response.text.done": 1,
+            "response.content_part.done": 1,
+            "response.output_item.done": 1,
+            "response.done": 1,
+            "conversation.item.input_audio_transcription.completed": 1
+          },
+          "finished": false,
+          "firstSourceMs": 2818,
+          "firstTargetMs": 4662,
+          "lastTextMs": 4849,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 1,
+          "serverModels": [
+            "qwen-audio-3.1-realtime-flash"
+          ],
+          "sessionId": "sess_QwGpaaabxdHFrteCA4JWb",
+          "sourceFinals": 1,
+          "sources": [
+            "À quelle heure part le prochain train ? "
+          ],
+          "targetFinals": 1,
+          "targets": [
+            "下一班火车什么时候开？"
+          ],
+          "usage": {
+            "inputAudio": 13,
+            "inputText": 89,
+            "outputAudio": 0,
+            "outputText": 7
+          },
+          "usageComplete": true
+        },
+        "model": "qwen-audio-3.1-realtime-flash",
+        "requestId": "39faef1f-271b-916d-a716-0829861fa0b3",
+        "sentBytes": 137600,
+        "startedAtEpochMs": 1793781941283
+      },
+      "estimatedMicros": 243,
+      "reservedOrEstimatedCampaignMicros": 4001442,
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 1120,
+      "firstTargetFromAudioStartMs": 2964,
+      "qualityAssessment": "fixed_sample_semantic_pass"
+    },
+    {
+      "runId": "audio31-workspace-breathing-01",
+      "fixture": "breathing-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": true,
+      "workspaceOverride": true,
+      "inputMs": 7962,
+      "result": {
+        "connectedMs": 291,
+        "elapsedMs": 8341,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 2,
+            "conversation.item.input_audio_transcription.delta": 7,
+            "input_audio_buffer.speech_stopped": 2,
+            "input_audio_buffer.committed": 2,
+            "conversation.item.created": 4,
+            "response.created": 2,
+            "response.output_item.added": 2,
+            "response.content_part.added": 2,
+            "response.text.delta": 10,
+            "response.text.done": 2,
+            "response.content_part.done": 2,
+            "response.output_item.done": 2,
+            "response.done": 2,
+            "conversation.item.input_audio_transcription.completed": 2
+          },
+          "finished": false,
+          "firstSourceMs": 1431,
+          "firstTargetMs": 3528,
+          "lastTextMs": 6838,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 2,
+          "serverModels": [
+            "qwen-audio-3.1-realtime-flash"
+          ],
+          "sessionId": "sess_K6Tc94NkO6FhZOzNEACJH",
+          "sourceFinals": 2,
+          "sources": [
+            "Je voudrais deux billets. ",
+            "Excusez-moi, oui la gare. "
+          ],
+          "targetFinals": 2,
+          "targets": [
+            "我要两张票。",
+            "对不起，请问火车站怎么走？"
+          ],
+          "usage": {
+            "inputAudio": 42,
+            "inputText": 194,
+            "outputAudio": 0,
+            "outputText": 12
+          },
+          "usageComplete": true
+        },
+        "model": "qwen-audio-3.1-realtime-flash",
+        "requestId": "76e8b0d0-1907-9b89-96dc-779f75cb7692",
+        "sentBytes": 254786,
+        "startedAtEpochMs": 1793781965767
+      },
+      "estimatedMicros": 597,
+      "reservedOrEstimatedCampaignMicros": 4002039,
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 1140,
+      "firstTargetFromAudioStartMs": 3237,
+      "qualityAssessment": "both_sentences_preserved_source_recognition_error"
+    },
+    {
+      "runId": "audio31-workspace-pause15-01",
+      "fixture": "pause15-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": true,
+      "workspaceOverride": true,
+      "inputMs": 21460,
+      "result": {
+        "connectedMs": 299,
+        "elapsedMs": 22024,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 2,
+            "conversation.item.input_audio_transcription.delta": 6,
+            "input_audio_buffer.speech_stopped": 2,
+            "input_audio_buffer.committed": 2,
+            "conversation.item.created": 4,
+            "response.created": 2,
+            "response.output_item.added": 2,
+            "response.content_part.added": 2,
+            "response.text.delta": 10,
+            "response.text.done": 2,
+            "response.content_part.done": 2,
+            "response.output_item.done": 2,
+            "response.done": 2,
+            "conversation.item.input_audio_transcription.completed": 2
+          },
+          "finished": false,
+          "firstSourceMs": 1114,
+          "firstTargetMs": 3112,
+          "lastTextMs": 20499,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 2,
+          "serverModels": [
+            "qwen-audio-3.1-realtime-flash"
+          ],
+          "sessionId": "sess_LUuZc6VrnrrputC4SxlDq",
+          "sourceFinals": 2,
+          "sources": [
+            "Je voudrais deux billets. ",
+            "Excusez-moi. Où est la gare ? "
+          ],
+          "targetFinals": 2,
+          "targets": [
+            "我想要两张票。",
+            "对不起，请问火车站怎么走？"
+          ],
+          "usage": {
+            "inputAudio": 42,
+            "inputText": 194,
+            "outputAudio": 0,
+            "outputText": 12
+          },
+          "usageComplete": true
+        },
+        "model": "qwen-audio-3.1-realtime-flash",
+        "requestId": "e1d55368-a7a7-9e57-a861-3f599542300a",
+        "sentBytes": 686720,
+        "startedAtEpochMs": 1793782117336
+      },
+      "estimatedMicros": 597,
+      "reservedOrEstimatedCampaignMicros": 4002636,
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 815,
+      "firstTargetFromAudioStartMs": 2813,
+      "qualityAssessment": "fixed_sample_semantic_pass"
+    },
+    {
+      "runId": "live38-workspace-pause15-01",
+      "fixture": "pause15-fr",
+      "region": "BEIJING",
+      "workspaceConfigured": true,
+      "workspaceOverride": true,
+      "inputMs": 21460,
+      "result": {
+        "connectedMs": 354,
+        "elapsedMs": 22902,
+        "events": {
+          "counts": {
+            "session.created": 1,
+            "session.updated": 1,
+            "input_audio_buffer.speech_started": 2,
+            "conversation.item.created": 4,
+            "response.created": 2,
+            "response.output_item.added": 2,
+            "response.content_part.added": 2,
+            "conversation.item.input_audio_transcription.delta": 13,
+            "response.text.delta": 6,
+            "input_audio_buffer.speech_stopped": 2,
+            "conversation.item.input_audio_transcription.completed": 2,
+            "response.text.done": 2,
+            "response.content_part.done": 2,
+            "response.output_item.done": 2,
+            "response.done": 2,
+            "session.finished": 1
+          },
+          "finished": true,
+          "firstSourceMs": 2678,
+          "firstTargetMs": 2696,
+          "lastTextMs": 22258,
+          "pendingResponses": 0,
+          "ready": true,
+          "responses": 2,
+          "serverModels": [
+            "qwen3.8-livetranslate-flash-realtime"
+          ],
+          "sessionId": "sess_COWV49rblgm4D8SdmhbV3",
+          "sourceFinals": 2,
+          "sources": [
+            "Je voudrais deux billets. ",
+            "Excusez-moi. Où est la gare ? "
+          ],
+          "targetFinals": 2,
+          "targets": [
+            "我想两张票。",
+            "对不起。火车站在哪里？"
+          ],
+          "usage": {
+            "inputAudio": 77,
+            "inputText": 94,
+            "outputAudio": 0,
+            "outputText": 31
+          },
+          "usageComplete": true
+        },
+        "model": "qwen3.8-livetranslate-flash-realtime",
+        "requestId": "89d57765-031a-9805-96d7-d3b0a8ef596d",
+        "sentBytes": 686720,
+        "startedAtEpochMs": 1793782198096
+      },
+      "pricingIssue": "UNPRICED_INPUT_TEXT",
+      "reservedOrEstimatedCampaignMicros": 7002636,
+      "harnessOutcome": "completed",
+      "timingValid": true,
+      "firstSourceFromAudioStartMs": 2324,
+      "firstTargetFromAudioStartMs": 2342,
+      "qualityAssessment": "sentences_preserved_awkward_translation"
+    }
+  ],
+  "ledger": {
+    "entries": [
+      {
+        "actualMicros": 234,
+        "id": "audio31-fr-01",
+        "reservedMicros": 2000000,
+        "settled": true
+      },
+      {
+        "actualMicros": 234,
+        "id": "audio31-fr-02",
+        "reservedMicros": 2000000,
+        "settled": true
+      },
+      {
+        "id": "live38-fr-01",
+        "previousReservationMicros": 3000000,
+        "reservationEvidence": "USER_REPORTED_NEGLIGIBLE_20261104",
+        "reservedMicros": 300000,
+        "settled": true
+      },
+      {
+        "id": "omni38-fr-01",
+        "previousReservationMicros": 2000000,
+        "reservationEvidence": "USER_REPORTED_NEGLIGIBLE_20261104",
+        "reservedMicros": 200000,
+        "settled": true
+      },
+      {
+        "estimateIssue": "UNPRICED_INPUT_TEXT",
+        "id": "live35-fr-01",
+        "previousReservationMicros": 3000000,
+        "reservationEvidence": "USER_REPORTED_NEGLIGIBLE_20261104",
+        "reservedMicros": 500000,
+        "revokedEstimateMicros": 5080,
+        "settled": true
+      },
+      {
+        "actualMicros": 207,
+        "id": "asr31-fr-01",
+        "reservedMicros": 2000000,
+        "settled": true
+      },
+      {
+        "actualMicros": 230,
+        "id": "audio31-zh-01",
+        "reservedMicros": 2000000,
+        "settled": true
+      },
+      {
+        "id": "live38-workspace-fr-01",
+        "reservedMicros": 3000000,
+        "settled": true
+      },
+      {
+        "actualMicros": 294,
+        "id": "omni38-workspace-fr-01",
+        "reservedMicros": 2000000,
+        "settled": true
+      },
+      {
+        "actualMicros": 243,
+        "id": "audio31-workspace-question-01",
+        "reservedMicros": 2000000,
+        "settled": true
+      },
+      {
+        "actualMicros": 597,
+        "id": "audio31-workspace-breathing-01",
+        "reservedMicros": 2000000,
+        "settled": true
+      },
+      {
+        "actualMicros": 597,
+        "id": "audio31-workspace-pause15-01",
+        "reservedMicros": 2000000,
+        "settled": true
+      },
+      {
+        "id": "live38-workspace-pause15-01",
+        "reservedMicros": 3000000,
+        "settled": true
+      }
+    ],
+    "halted": false,
+    "limitMicros": 10000000
+  },
+  "schemaVersion": 1,
+  "date": "2026-11-04",
+  "status": "small_sample_screening_not_product_validation",
+  "appVersion": "0.5.6",
+  "productionReplaced": false,
+  "cloudAttempts": 13,
+  "account": {
+    "region": "BEIJING",
+    "testedEndpoint": "legacy_then_user_provided_workspace_same_region",
+    "workspaceProvidedAfterTests": true,
+    "workspaceEndpointRetestPerformed": true
+  },
+  "budget": {
+    "limitYuan": 10,
+    "pricedEstimateYuan": 0.002636,
+    "unresolvedReservationYuan": 7,
+    "totalCommittedOrReservedYuan": 7.002636,
+    "isBill": false,
+    "firstBatchReservationReview": {
+      "humanObservation": "几乎没用",
+      "inferredConservativeHoldYuan": 1,
+      "notAnExactBillingReconciliation": true,
+      "previousHoldYuan": 8
+    }
+  },
+  "limitations": [
+    "Only fixed synthetic phrasebook audio, paced at real time. No personal voice recordings, capture or playback.",
+    "sentBytes counts audio queued to the WebSocket, not acknowledged receipt of every byte.",
+    "Model service failures are not translation-quality failures. COMMON_ERROR was the only retained service error code.",
+    "Audio31 first French run produced text then timed out in Android native socket cleanup; excluded from end-to-end timing/pass comparison.",
+    "First text is not first semantically stable sentence; these short samples do not establish p95 or long-audio performance.",
+    "Live35 original 5080 micro-RMB estimate is revoked; unpriced 64 text-input tokens cannot be assigned the audio rate.",
+    "ASR route tested transcription only; MT stage and streaming sentence translation not implemented/tested.",
+    "Audio31 and Live38 both preserved two sentences separated by 15 seconds of silence and emitted the first translation before the pause ended; this does not prove continuous long speech translation, product capture, grouping or persistence.",
+    "Audio31 breathing/rain sample misrecognized 'où est la gare' as 'oui la gare'; the target meaning remained approximately correct.",
+    "Omni38 echoed French instead of translating in the tested prompt/configuration; do not generalize this single failure to every configuration.",
+    "No final winner: multi-minute continuous speech, bidirectional noise, mixed speakers, numeric/negative fidelity, natural WhatsApp audio, ASR+MT and end-to-end product integration remain pending."
+  ],
+  "screenshotObservation": {
+    "reportedToday": true,
+    "models": [
+      {
+        "model": "qwen3.5-livetranslate-flash-realtime",
+        "calls": 133,
+        "tokens": 32408
+      },
+      {
+        "model": "qwen3-tts-flash",
+        "calls": 85,
+        "characters": 1828
+      },
+      {
+        "model": "qwen-mt-flash",
+        "calls": 72,
+        "tokens": 4833
+      },
+      {
+        "model": "qwen3-asr-flash",
+        "calls": 69,
+        "seconds": 151
+      },
+      {
+        "model": "qwen-audio-3.1-realtime-flash",
+        "calls": 1,
+        "tokens": 209
+      }
+    ],
+    "note": "Screenshot count of one Audio31 call differs from three client records at that point. Neither delay, filtering nor aggregation is proven. Subsequent workspace runs record actual server model, request/session IDs and epoch time; historical count discrepancy remains unresolved."
+  },
+  "verification": {
+    "unitTests": 98,
+    "failures": 0,
+    "skipped": 0,
+    "lintErrors": 0,
+    "lintWarnings": 31,
+    "productionDependencyExcludesEvaluation": true,
+    "productionSha256": "8bc4aedd0f19c75169ee08fc997850ff9d5f9471b4cacca850ed4f2b0ce23547"
+  }
+}

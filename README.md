@@ -4,6 +4,8 @@
 
 Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动耳机重播，以及改完两栏文字后播放新译文。自由监听支持按实际译音识别回声和打断。微信和 WhatsApp 的通话上下行、双耳机同时收发仍需独立验收。[各功能实测范围](docs/NEXT_TASKS.md)
 
+2026-11-04 新增独立的 Qwen 模型评测接口：专属地址已核验 Audio 3.1、LiveTranslate 3.8 和 Omni 3.8 的实际型号；前两者保留了 15 秒停顿前后两句，Omni 此样本未正确翻译。没有更换正式模型，多分钟连续语音与产品层验收仍未完成。[初筛结果与费用边界](docs/QWEN_EVALUATION.md)
+
 0.5.2 在手机上先区分人声与雨声，再把人声交给千问。一次监听里的原文和译文按说话顺序保存，换气或分段后可以回看开头。在其他应用上点浮窗的「全文」即可往前翻。[已测声音与真机待验项](docs/NEXT_TASKS.md)
 
 0.5.6 修复屏幕字幕长句停在开头：小窗和全文会自动显示最新内容，手动上翻时暂停，点「回到最新」恢复。遇到长串机械重复时，先显示核对提示，自动用临时缓存的原音重新识别语种并翻译一次；不能确认时会明确提示重放，不继续把循环文字当成正常字幕。原音只暂存在内存，异常复核会额外使用少量千问额度。[本轮方案与限制](docs/CAPTION_RELIABILITY.md)
@@ -30,7 +32,7 @@ Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动�
 需要 JDK 17、Android SDK 平台 36 和 Build Tools 35.0.0 / 36.0.0。将 SDK 位置设为环境变量 `ANDROID_HOME`，或写入忽略提交的 `local.properties`。在 Windows 项目目录执行以下命令。
 
 ```powershell
-.\gradlew.bat :core:test :provider:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+.\gradlew.bat :core:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 
 macOS / Linux 使用 `./gradlew`。主程序位于 `app/build/outputs/apk/debug/app-debug.apk`。核心测试调用信号、报告和对话接口。安卓主机测试通过 Robolectric 运行应用和合成音频，无需手机。两者都不能替代真机听音。
@@ -103,11 +105,26 @@ adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.CaptionRel
 
 已获机主授权的 USB 联调可由调试端代点本项目的可见按钮。这台 Fold5 已验证可以自动选择「共享当前应用」并开始一次测试。长时间联调可临时开启 USB 供电亮屏，结束时恢复原设置。安全锁要求密码或生物识别时，由机主在手机上解锁。
 
+## 隔离的模型短样本评测
+
+评测模块只进入测试 APK，不进入正式 APK。不要为这项工作使用会同时重装主包的 `connectedDebugAndroidTest`；只安装测试包，并在手机上保留当前正式版。普通 CI 不调用云端。
+
+```powershell
+.\gradlew.bat :evaluation:qwen:test :app:assembleDebugAndroidTest
+adb -d install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.QwenEvaluationDeviceTest -e qwenEvaluation true -e evalModel ACCOUNT dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.QwenEvaluationDeviceTest -e qwenEvaluation true -e evalModel LEDGER dev.polybridge.app.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+`ACCOUNT` 只检查已配置与地域，不解密凭据；`LEDGER` 只检查并纠正本轮费用日记，不联网。付费入口用 `evalModel` 指定 `AUDIO31`、`LIVE35`、`LIVE38`、`OMNI38` 或 `ASR31`，同时指定唯一 `evalRunId` 和固定 `evalFixture`（`tickets-fr/zh`、`train-fr/zh`、`breathing-fr`、`pause15-fr`）。可用 `evalWorkspace` 临时覆盖业务空间，限官方同地域主机；不修改正式设置、不把 API Key 作为测试参数。**本轮费用日记占位 7.002636 元，其中 7 元为未知项预留，不是实付；不要删除日记绕过 10 元预算。**
+
+单次输入最多 60 秒，建连最多 15 秒、尾部等待最多 20 秒；手机系统挂起仍可能触发外层 110 秒测试超时。测试会临时把应用放到前台，结束时取消本轮的屏幕常亮；不播放声音、不采集麦克风、不读取私人聊天。安装或外部界面自动操作必须等当前 instrumentation 完全结束。输出的 `OK (1 test)` 只表示探针运行完成，必须检查结果中的错误、原文/译文、用量及语义评审，不能直接当作模型通过。
+
 ## 文档导航
 
 - [需求原文](PRD_XFold5_Translation_App_v1.0.md) · [原始启动说明](CODEX_START_PROMPT.md)
 - [实施计划](docs/IMPLEMENTATION_PLAN.md) · [模块与数据流](docs/ARCHITECTURE.md) · [决策记录](docs/DECISION_LOG.md)
 - [真机兼容性](docs/DEVICE_COMPATIBILITY.md) · [音频测试矩阵](docs/AUDIO_PROBE_MATRIX.md)
 - [人声检测模型与测试录音来源](docs/AUDIO_ASSETS.md)
-- [Qwen 模型与成本调研（待实测选型）](docs/QWEN_EVALUATION.md)
+- [Qwen 模型短样本实测、费用边界与后续选型](docs/QWEN_EVALUATION.md)
 - [验收进度与下一步](docs/NEXT_TASKS.md) · [版本记录](CHANGELOG.md)

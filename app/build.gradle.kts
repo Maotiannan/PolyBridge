@@ -42,4 +42,6 @@ dependencies {
     testImplementation(libs.robolectric)
     androidTestImplementation(libs.android.test.runner)
     androidTestImplementation(libs.android.test.junit)
+    androidTestImplementation(project(":evaluation:qwen"))
+    androidTestImplementation(libs.gson)
 }
