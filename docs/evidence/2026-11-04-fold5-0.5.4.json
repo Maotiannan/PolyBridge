@@ -1,5 +1,6 @@
 {
   "date": "2026-11-04",
+  "snapshotStatus": "Historical 0.5.4 verification; superseded by 2026-11-04-fold5-0.5.5.json. Original failed results are preserved.",
   "scope": "Final Fold5 verification after reconnection; fixed test audio and the real Qwen service. No room-microphone recording. Soft duplex remains failed.",
   "previousSnapshot": "2026-11-04-fold5-listening.json",
   "device": {

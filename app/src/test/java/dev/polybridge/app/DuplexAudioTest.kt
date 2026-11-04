@@ -54,7 +54,7 @@ class DuplexAudioTest {
         for (lang in listOf("fr", "zh")) for (delay in listOf(35, 115, 215)) for (gain in listOf(.08, .38)) {
             val result = runTrial(speech("tickets-$lang"), null, delay, gain, 16000)
             assertTrue("false interrupt $lang $delay $gain $result", result.interrupts.isEmpty())
-            assertTrue("echo leak $result", result.leak < .015)
+            assertTrue("echo leak $lang delay=$delay gain=$gain $result", result.leak < .015)
         }
     }
 
@@ -102,7 +102,7 @@ class DuplexAudioTest {
     }
 
     @Test fun aQuietIndependentVoiceStillSurvivesAboveHumAndPlayback() {
-        for (language in listOf("zh", "fr")) for (gain in listOf(.15, .38)) {
+        for (language in listOf("zh", "fr")) for (gain in listOf(.15, .38)) for (rate in listOf(16000, 48000)) {
             val pcm = speech("tickets-$language")
             val other = speech("train-${if (language == "zh") "fr" else "zh"}")
             val voiced = (0 until other.size / 2).first { abs(sample(other, it)) > 600 }
@@ -111,19 +111,75 @@ class DuplexAudioTest {
             var retained = 0.0
             for (t in 0 until 1400 step 20) {
                 if (t % 100 == 0) echo.position(t, t.toLong())
-                val near = IntArray(320) { i -> if (t >= 460) (sample(other, (t - 460) * 24 + voiced + i * 3 / 2) * .14).toInt() else 0 }
-                val input = ShortArray(320) { i -> (near[i] + sample(pcm, (t - 100) * 24 + i * 3 / 2) * gain +
-                    300 * sin((t * 16 + i) * 2 * PI * 140 / 16000)).toInt().toShort() }
-                echo.filter(input, input.size, 16000, t + 20L)
+                val near = IntArray(rate / 50) { i -> if (t >= 460) (sample(other, (t - 460) * 24 + voiced + i * 24000 / rate) * .14).toInt() else 0 }
+                val input = ShortArray(rate / 50) { i -> (near[i] + sample(pcm, (t - 100) * 24 + i * 24000 / rate) * gain +
+                    300 * sin((t * rate / 1000 + i) * 2 * PI * 140 / rate)).toInt().toShort() }
+                echo.filter(input, input.size, rate, t + 20L)
                 if (t in 460..960) for (i in near.indices) {
                     expected += near[i].toDouble() * near[i]
                     retained += near[i].toDouble() * input[i]
                 }
             }
             val fraction = retained / expected
-            println("quiet independent under $language playback gain=$gain retained=$fraction")
-            assertTrue("quiet person lost under $language playback gain=$gain retained=$fraction", fraction > .65)
+            println("quiet independent under $language playback gain=$gain rate=$rate retained=$fraction")
+            assertTrue("quiet person lost under $language playback gain=$gain rate=$rate retained=$fraction", fraction > .65)
         }
+    }
+
+    @Test fun quietPlaybackConsonantsAboveHumAreNotForwardedAsAnotherSpeaker() {
+        val wave = File("src/test/resources/audio/train-time-zh.wav").readBytes()
+        val references = listOf(wave.copyOfRange(44, wave.size), speech("tickets-fr"), speech("train-fr"))
+        for ((index, pcm) in references.withIndex()) for (delay in listOf(35, 100, 215))
+            for (rate in listOf(16000, 48000)) for (gain in listOf(.08, .15, .38)) {
+            val echo = PlaybackEcho(212.0).apply { start(pcm) }
+            var original = 0.0
+            var leaked = 0.0
+            for (t in 0 until pcm.size / 48 + delay + 300 step 20) {
+                if (t % 100 == 0) echo.position(t, t.toLong())
+                val far = IntArray(rate / 50) { i -> (sample(pcm, (t - delay) * 24 + i * 24000 / rate) * gain).toInt() }
+                val input = ShortArray(rate / 50) { i -> (far[i] + 300 * sin((t * rate / 1000 + i) * 2 * PI * 140 / rate)).toInt().toShort() }
+                echo.filter(input, input.size, rate, t + 20L)
+                var correlated = 0.0
+                for (i in 1 until input.size) {
+                    // Emphasize consonants that a low-band energy average can hide under room hum.
+                    val expected = far[i] - .95 * far[i - 1]
+                    val actual = input[i] - .95 * input[i - 1]
+                    original += expected * expected
+                    correlated += expected * actual
+                }
+                if (echo.weakVoice) leaked += abs(correlated)
+            }
+            val fraction = leaked / original
+            println("quiet playback consonants fixture=$index delay=$delay rate=$rate gain=$gain leaked=$fraction")
+            assertTrue("playback consonants leaked as a new voice: fixture=$index delay=$delay rate=$rate gain=$gain fraction=$fraction", fraction < .025)
+        }
+    }
+
+    @Test fun aQuietQuestionKeepsItsInteriorSyllablesWhileTheOtherVoiceIsPlaying() {
+        val pcm = speech("tickets-zh")
+        val other = speech("train-fr")
+        val voiced = (0 until other.size / 2).first { abs(sample(other, it)) > 600 }
+        val echo = PlaybackEcho(212.0).apply { start(pcm) }
+        var expected = 0.0
+        var retained = 0.0
+        var candidate = false
+        for (t in 0 until 1400 step 20) {
+            if (t % 100 == 0) echo.position(t, t.toLong())
+            val near = IntArray(320) { i -> if (t >= 300) (sample(other, (t - 300) * 24 + voiced + i * 3 / 2) *
+                (if (t in 560..740) .06 else .8)).toInt() else 0 }
+            val input = ShortArray(320) { i -> (near[i] + sample(pcm, (t - 100) * 24 + i * 3 / 2) * .38 +
+                300 * sin((t * 16 + i) * 2 * PI * 140 / 16000)).toInt().toShort() }
+            if (echo.filter(input, input.size, 16000, t + 20L)) candidate = true
+            if (t == 560) assertTrue("没有先确认另一位发言者", candidate)
+            // These are quieter syllables after the first unmistakable near-speaker onset.
+            if (t in 560..740) for (i in near.indices) {
+                expected += near[i].toDouble() * near[i]
+                retained += near[i].toDouble() * input[i]
+            }
+        }
+        val fraction = retained / expected
+        println("quiet interior syllables retained=$fraction")
+        assertTrue("quiet syllables were discarded after a real opening: $fraction", fraction > .80)
     }
 
     @Test fun lowRoomNoiseUnderPlaybackIsKeptOutOfRecognitionAndNewSpeechSurvivesTheTail() {

@@ -31,11 +31,14 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
     private var pendingDelay: Int? = null
     private var pendingGain = 0.0
     private var pendingMs = 0.0
+    private var fullBand: FullBandEcho? = null
+    private var preserveUntil = -1L
 
     @Synchronized fun start(pcm: ByteArray) {
         reference = ShortArray(pcm.size / 2) { i ->
             ((pcm[2 * i].toInt() and 255) or (pcm[2 * i + 1].toInt() shl 8)).toShort()
         }
+        fullBand = FullBandEcho(reference, backgroundRms)
         // Six 24 kHz samples per 4 kHz analysis bin. Prefix sums normalize a candidate delay in O(1).
         envelope = IntArray(reference.size / 6) { i -> (0..5).sumOf { reference[6 * i + it].toInt() } / 6 }
         energy = DoubleArray(envelope.size + 1)
@@ -43,6 +46,7 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
         anchor = -1; lastPosition = -1; stopped = -1; voicedMs = 0.0; interrupted = false
         pathDelay = null; pathGain = 0.0; reflectionGain = 0.0; matchedAt = -1
         pendingDelay = null; pendingGain = 0.0; pendingMs = 0.0
+        preserveUntil = -1L
     }
 
     @Synchronized fun position(milliseconds: Int, nowMs: Long) {
@@ -65,6 +69,7 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
         if (anchor < 0 || nowMs < anchor || reference.isEmpty() || count <= 0) return false
         if (stopped >= 0 && nowMs - stopped > TAIL_MS) {
             reference = ShortArray(0); envelope = IntArray(0); energy = DoubleArray(0)
+            fullBand = null
             return false
         }
         val stride = rate / 4000
@@ -170,8 +175,22 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
         // so a new language/utterance can still take the floor. A steady tone alone is insufficient.
         weakVoice = !matchedEcho && rms >= max(42.0, backgroundRms * .65) && voicedShape(n, rms)
         val roomOnly = !weakVoice && backgroundRms > 0 && !interrupted && voicedMs == 0.0 && sqrt(minOf(remainder, power) / n) < floor
-        val echoOnly = rms <= 42 || roomOnly || matchedEcho
-        if (echoOnly) samples.fill(0, 0, count)
+        var echoOnly = rms <= 42 || roomOnly || matchedEcho
+        if (!echoOnly && fullBand?.confirms(samples, count, rate,
+                max(0, minOf(cursor - TAIL_MS * 4, predicted - 100)) * 6,
+                minOf(limit - n, maxOf(cursor + 180 * 4, predicted + 100)) * 6, bestOffset * 6) == true) {
+            echoOnly = true
+            weakVoice = false
+        }
+        val independent = !echoOnly && sqrt(minOf(remainder, power) / n) >= floor
+        val duration = count * 1000.0 / rate
+        if (!interrupted && stopped < 0) {
+            voicedMs = if (independent) voicedMs + duration else max(0.0, voicedMs - duration)
+        }
+        if (independent && (interrupted || voicedMs >= 55)) preserveUntil = nowMs + VOICE_CONTEXT_MS
+        // A person may get quieter between syllables while playback is still fading. Keep the
+        // cleaned residual available to the floor buffer once an independent onset has occurred.
+        if (echoOnly && nowMs > preserveUntil) samples.fill(0, 0, count)
         else if (pathDelay != null && remainder < power) {
             for (i in 0 until count) {
                 val pos = offset * 6 + i * 24000 / rate
@@ -182,15 +201,15 @@ class PlaybackEcho(private val backgroundRms: Double = 0.0) {
             }
         }
         if (interrupted || stopped >= 0) return false
-        val duration = count * 1000.0 / rate
-        val independent = !echoOnly && sqrt(minOf(remainder, power) / n) >= floor
-        voicedMs = if (independent) voicedMs + duration else max(0.0, voicedMs - duration)
         if (voicedMs < 55) return false
         interrupted = true
         return true
     }
 
-    private companion object { const val TAIL_MS = 340 }
+    private companion object {
+        const val TAIL_MS = 340
+        const val VOICE_CONTEXT_MS = 480
+    }
 
     private fun voicedShape(n: Int, rms: Double): Boolean {
         if (n < 40 || (0 until n).maxOf { abs(analysis[it]) } < rms * 1.72) return false

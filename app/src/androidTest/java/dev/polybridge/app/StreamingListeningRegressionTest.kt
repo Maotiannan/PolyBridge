@@ -224,6 +224,46 @@ class StreamingListeningRegressionTest {
         }
     }
 
+    @Test fun rainDuringPlaybackCannotBypassSpeechDetectionWhenItTriggersTheFloor() {
+        val reference = app.assets.open("phrasebook/tickets-fr.wav").use { it.readBytes().drop(44).toByteArray() }
+        for (name in listOf("1-21189-A-10", "2-73027-A-10")) {
+            val rain = inst.context.assets.open("rain/$name.wav").use { wave(it.readBytes()) }
+            var passed = 0
+            var sent = 0
+            var interruptions = 0
+            var muted = -1L
+            var speaking = true
+            val echo = PlaybackEcho(212.0).apply { start(reference); position(0, 0) }
+            val sink = object : Sink() {
+                override fun send(samples: ShortArray, length: Int, rate: Int) {
+                    sent += length
+                    passed += (0 until length).count { samples[it] != 0.toShort() }
+                }
+            }
+            SpeechGate(app, sink).use { gate ->
+                val floor = PlaybackFloor(gate::recheckOpening)
+                for (offset in rain.indices step 320) {
+                    val now = offset / 16 + 20L
+                    if (speaking) echo.position((now - 20).toInt(), now - 20)
+                    val frame = rain.copyOfRange(offset, minOf(offset + 320, rain.size))
+                    floor.send(frame, frame.size, 16000, now, echo, speaking, false, 212.0, muted, gate,
+                        duck = { muted = if (it) now else -1L }, interrupt = {
+                            interruptions++; speaking = false; echo.stop(now)
+                        })
+                }
+                // Drain the pending floor history through its normal non-playing path.
+                floor.send(ShortArray(320), 320, 16000, rain.size / 16 + 20L, echo, false, false,
+                    212.0, muted, gate, duck = {}, interrupt = {})
+                gate.finish()
+            }
+            inst.sendStatus(0, Bundle().apply { putString("rainDuringPlayback",
+                "fixture=$name interruptions=$interruptions passed=$passed samples=$sent") })
+            assertEquals(rain.size + 320, sent)
+            assertEquals("疑似抢话让纯雨声绕过了人声检测：$name", 0, passed)
+            assertEquals("纯雨声中止了播报：$name", 0, interruptions)
+        }
+    }
+
     @Test fun reconnectionPreservesDraftsAndDoesNotReuseAnOldSentence() {
         lateinit var publish: (LiveUpdate) -> Unit
         runSession(Kind.LISTEN, { publish = it; Sink() }, { send ->

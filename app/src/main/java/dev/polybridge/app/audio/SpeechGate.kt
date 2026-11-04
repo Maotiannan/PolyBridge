@@ -39,6 +39,11 @@ private class SpeechDetector(context: Context) : AutoCloseable {
         }
     }
 
+    fun reset() {
+        for (i in 0 until input.capacity()) input.put(i, 0f)
+        for (i in 0 until state.capacity()) state.put(i, 0f)
+    }
+
     override fun close() {
         tensors.values.forEach { it.close() }
         session.close()
@@ -61,6 +66,19 @@ internal class SpeechGate(context: Context, private val link: LiveSpeechSession)
     private var decimationCount = 0
     private var onset = 0
     private var hangover = 0
+    private var openingWindows = 0
+    private var confirmations = 0L
+
+    /** Re-evaluate a possible interruption without the preceding echo/silence model state.
+     * Energy after muting the output is only a candidate: rain must still pass the voice model.
+     * The longer bounded lookback keeps quiet first syllables while that decision is pending. */
+    fun recheckOpening(sendOpening: () -> Unit): Boolean {
+        detector.reset()
+        onset = 0; hangover = 0; openingWindows = OPENING_WINDOWS
+        val before = confirmations
+        sendOpening()
+        return confirmations > before
+    }
 
     override fun send(samples: ShortArray, length: Int, rate: Int) {
         require(rate == 16000 || rate == 48000)
@@ -79,14 +97,18 @@ internal class SpeechGate(context: Context, private val link: LiveSpeechSession)
         if (length < frame.size) frame.fill(0, length)
         val probability = detector.probability(frame)
         onset = if (probability >= OPEN_PROBABILITY) onset + 1 else 0
+        if (onset == CONFIRM_WINDOWS) confirmations++
         if (onset >= CONFIRM_WINDOWS || hangover > 0 && probability >= KEEP_PROBABILITY) hangover = TAIL_WINDOWS
         if (hangover > 0) {
             while (waiting.isNotEmpty()) forward(waiting.removeFirst())
             link.send(frame, length, 16000)
             hangover--
+            openingWindows = 0
         } else {
             waiting.addLast(frame.copyOf(length))
-            if (waiting.size > LOOKBACK_WINDOWS) link.send(silence, waiting.removeFirst().size, 16000)
+            val lookback = if (openingWindows > 0) OPENING_WINDOWS else LOOKBACK_WINDOWS
+            while (waiting.size > lookback) link.send(silence, waiting.removeFirst().size, 16000)
+            if (openingWindows > 0) openingWindows--
         }
         used = 0
     }
@@ -108,6 +130,7 @@ internal class SpeechGate(context: Context, private val link: LiveSpeechSession)
         const val KEEP_PROBABILITY = .32f
         const val CONFIRM_WINDOWS = 2
         const val LOOKBACK_WINDOWS = 6
+        const val OPENING_WINDOWS = 20
         const val TAIL_WINDOWS = 8
     }
 }

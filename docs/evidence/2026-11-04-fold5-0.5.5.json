@@ -1,0 +1,149 @@
+{
+  "date": "2026-11-04",
+  "scope": "Fold5 verification of rain rejection, complete long transcripts, and ordinary/quiet interruptions using fixed input, the real Android player and real Qwen. No room microphone capture.",
+  "previousSnapshot": "2026-11-04-fold5-0.5.4.json",
+  "device": {
+    "model": "vivo X Fold5 / V2436A",
+    "android": 16,
+    "originOs": 6,
+    "installedVersion": "0.5.5",
+    "versionCode": 5005,
+    "appSha256": "5da623ed148158d59634663cad7dcf9edef9bcabbf179b8198c3ee1476141118",
+    "testAppSha256": "3179a85ebe1ef795ea1261730311af9447260c1cea61c36128d9623b46e14d1e",
+    "bothDeviceHashesMatchLocal": true,
+    "bothApksV2Verified": true,
+    "finalLaunch": { "status": "ok", "coldStartMs": 421 },
+    "cleanup": {
+      "stayOnWhilePluggedInOriginal": 0,
+      "temporaryValue": 2,
+      "restoredValueReadBack": 0,
+      "mediaProjection": null,
+      "applicationServices": "none",
+      "speakerMediaVolume": "0/150, muted",
+      "rememberedBluetoothMediaVolume": "150/150, unchanged",
+      "activeMediaDevice": "speaker",
+      "fixedDiagnosticCacheFilesRemoved": true,
+      "personalHistoryAndCredentialsPreserved": true
+    }
+  },
+  "implementation": {
+    "echo": "Add a separate full-band reference matcher when the low-band matcher cannot confirm playback. Align second differences, then require the original residual to fit the measured background. Cache at most two half-second reference blocks plus frame overlap.",
+    "opening": "After a sustained independent onset, retain cleaned quiet syllables for the waiting floor buffer. Keep 480 ms of floor lookback. After actual output mute and continuing input, recheck the buffered opening with fresh speech-detector state and a bounded 640 ms onset lookback. Fully interrupt only after model confirmation.",
+    "rainProtection": "Energy after mute is not sufficient evidence of speech. The earlier direct-bypass experiment was rejected by a real-model rain regression and is absent from the final implementation.",
+    "testClock": "Each fixed-input frame is paced to a 20 ms deadline including processing, instead of sleeping another 20 ms after processing. The 500 ms ordinary-volume stop limit and full-sentence assertions remain unchanged.",
+    "newHostFixture": {
+      "path": "app/src/test/resources/audio/train-time-zh.wav",
+      "origin": "Qwen translation audio returned for the fixed French train-time question during the 0.5.4 failing test; no personal microphone audio.",
+      "sha256": "b6bcfd2aa218cc5e8efbd382db1e3f8f0d30348b6b93e7632d6c33e924762d2a",
+      "shippedInProductionApk": false
+    }
+  },
+  "host": {
+    "buildLog": "app/build/listening-qa/fold5-20261104/055-recheck-build.log",
+    "tasks": ":core:test :provider:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest",
+    "coreTests": 21,
+    "providerTests": 10,
+    "appTests": 25,
+    "totalTests": 56,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "lintErrors": 0,
+    "lintWarnings": 24,
+    "appAndTestBuildSucceeded": true,
+    "broadbandEchoCombinations": 54,
+    "broadbandCoverage": "Three references, delays 35/100/215 ms, gains 0.08/0.15/0.38, input 16/48 kHz, amplitude-300 140 Hz hum.",
+    "longReferenceCoverage": "90-second reference, late offsets, both directions across cache edges and 16/48/16 kHz transitions; aligned echo accepted and an independent tone retained.",
+    "quietIndependentSpeechMinimumProjection": 0.9884397487710316,
+    "quietInteriorSyllableProjection": 0.99286139932831,
+    "metricCaution": "Waveform projections measure retained known samples, not transcription accuracy."
+  },
+  "finalDeviceTests": {
+    "normalDuplex": {
+      "log": "app/build/listening-qa/fold5-20261104/055-recheck-normal-1.log",
+      "passed": true,
+      "elapsedSeconds": 15.128,
+      "releaseMs": 345,
+      "turns": 2,
+      "interruptions": 1,
+      "source": "À quelle heure part le prochain train?",
+      "translation": "下一班火车几点开？",
+      "extraEchoTurn": false,
+      "processing": { "frames": 599, "frameMs": 20, "p95Ms": 8.388594, "maxMs": 57.838437 }
+    },
+    "quietDuplex": [
+      {
+        "log": "app/build/listening-qa/fold5-20261104/055-recheck-soft-1.log",
+        "passed": true,
+        "elapsedSeconds": 15.378,
+        "releaseMs": 314,
+        "turns": 2,
+        "interruptions": 1,
+        "source": "À quelle heure part le prochain train ?",
+        "translation": "下一班火车几点开？",
+        "extraEchoTurn": false,
+        "processing": { "frames": 607, "frameMs": 20, "p95Ms": 10.461667, "maxMs": 39.544166 }
+      },
+      {
+        "log": "app/build/listening-qa/fold5-20261104/055-recheck-soft-2.log",
+        "passed": true,
+        "elapsedSeconds": 15.772,
+        "releaseMs": 346,
+        "turns": 2,
+        "interruptions": 1,
+        "source": "À quelle heure part le prochain train ?",
+        "translation": "下一班火车几点开？",
+        "extraEchoTurn": false,
+        "processing": { "frames": 584, "frameMs": 20, "p95Ms": 9.562552, "maxMs": 43.556407 }
+      }
+    ],
+    "quietInput": "French near voice at 0.14 gain, delayed returned TTS at 0.15-0.16 gain, continuous 140 Hz hum at amplitude 300; injected audio follows the actual delayed player mute state.",
+    "listeningSuite": {
+      "log": "app/build/listening-qa/fold5-20261104/055-final-listening.log",
+      "elapsedSeconds": 85.787,
+      "passed": 8,
+      "skipped": 1,
+      "skipReason": "An emulator-only history UI case is intentionally skipped on the personal phone. The separate actual-sharing test verifies the overlay and reopened page.",
+      "rainDuringPlayback": [
+        { "fixture": "1-21189-A-10", "nonSilentSamplesSent": 0, "interruptions": 0, "samplesSent": 80320 },
+        { "fixture": "2-73027-A-10", "nonSilentSamplesSent": 0, "interruptions": 0, "samplesSent": 80320 }
+      ],
+      "cloudRain": { "captions": 0, "pairs": 8, "savedParagraphs": 8, "ticketMentions": 8, "stationMentions": 8 },
+      "longLocalPlayback": { "seconds": 77.84475, "phrases": 24, "connections": 1, "minimumStrongSampleRetention": 0.9944522896913456 },
+      "quietQuestionOpeningRetention": { "humPrelude": 0.9989159891598915, "silentPrelude": 0.9989159891598915 },
+      "rainAndSpeech": {
+        "listen16000": { "rainSamplesPassed": 0, "voicedSamplesRetained": [0.9996178830722201, 0.999704535381888] },
+        "captions48000": { "rainSamplesPassed": 0, "voicedSamplesRetained": [0.999923576614444, 0.999704535381888] }
+      }
+    },
+    "screenCaptions": {
+      "log": "app/build/listening-qa/fold5-20261104/055-final-captions.log",
+      "passed": 2,
+      "elapsedSeconds": 36.243,
+      "differentApplicationUidAndActualSingleAppSharing": true,
+      "protectedAudioProducesNoCaption": true,
+      "rainCaptions": 0,
+      "bothTranslationDirectionsHavePartialUpdates": true,
+      "longSpeechSource": "Je voudrais deux billets. Excusez-moi, où est la gare?",
+      "longSpeechTranslation": "我要两张票。不好意思，请问车站在哪里？",
+      "fullOverlayAndReopenedPagePreserveBothClauses": true,
+      "keyboardAndAudioPickerAbsent": true
+    }
+  },
+  "intermediateFailures": [
+    { "log": "055-broadband-red.log", "result": "The old matcher leaked correlated consonant playback; regression failed before implementation." },
+    { "log": "055-duplex-soft-1.log", "result": "Full-band matching alone stopped the extra echo turn but lost the question opening: Par le prochain train. / 下一班火车." },
+    { "log": "055-interior-red-confirmed.log", "result": "An independent onset followed by a quieter interior syllable lost that syllable; regression failed before residual-context retention." },
+    { "log": "055-opening-build.log", "result": "A single-frame preservation experiment regressed pure echo leakage to 0.0239087. Replaced with sustained-onset confirmation; existing leakage limit was not relaxed." },
+    { "log": "055-duplex-soft-opening-1.log", "result": "Intermediate bypass candidate preserved the full question with no third turn, but is not final evidence because the later rain-during-playback test exposed unsafe bypass." },
+    { "log": "055-duplex-normal-opening-1.log", "result": "Intermediate test reported 560 ms stop latency. Its frame pacing added processing time on top of each 20 ms period; timing was corrected, and the 500 ms limit retained." },
+    { "log": "055-final-normal.log", "result": "An intermediate candidate observed a cloud reconnect and timed out waiting for the second translated audio. Not counted as a pass or attributed solely to audio processing." },
+    { "log": "055-rain-floor-red.log", "result": "Direct bypass of the speech model forwarded 8189 rain samples and interrupted playback once. Final recheck rejects both rain fixtures without a full interruption." }
+  ],
+  "remaining": [
+    "Natural room capture at different distances, reflections and changing noise, including temporary duck/resume behavior. Controlled injection bypasses Android hardware echo processing.",
+    "Long-duration natural conversation and cloud reconnection behavior. Individual processing peaks reached 57.84 ms despite p95 below the 20 ms input period.",
+    "Actual WeChat/WhatsApp voice-message and call endpoints and simultaneous two-headset behavior remain separate acceptance items."
+  ],
+  "repository": { "remoteConfigured": false, "integration": "Local verification branch; no remote push or main merge claimed." }
+}

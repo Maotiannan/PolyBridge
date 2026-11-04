@@ -62,7 +62,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
             connection.connect()
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
-            val floor = PlaybackFloor()
+            val floor = PlaybackFloor(connection::recheckOpening)
             val meter = InputLevel()
             var publishedAt = -100L
             val input = microphone inputFrame@{ samples, n, rate ->

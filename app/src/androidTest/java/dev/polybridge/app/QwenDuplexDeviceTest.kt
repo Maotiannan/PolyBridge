@@ -39,6 +39,7 @@ class QwenDuplexDeviceTest {
         val rawInput = ByteArrayOutputStream()
         val filteredInput = ByteArrayOutputStream()
         val frames = StringBuilder("inputMs,phase,rawRms,filteredRms,speaking,interruptions\n")
+        val frameCosts = ArrayList<Double>()
         val phase = AtomicReference("first-speech")
         fun ByteArrayOutputStream.append(samples: ShortArray, length: Int) {
             for (i in 0 until length) {
@@ -73,6 +74,7 @@ class QwenDuplexDeviceTest {
                 override fun measure(request: ProbeRequest, projection: MediaProjection?, onStarted: () -> Unit): ProbeEntry {
                     onStarted()
                     var clock = 0L
+                    var nextFrameAt = SystemClock.elapsedRealtime()
                     fun frame(block: (Int) -> Int) {
                         val samples = ShortArray(320) {
                             val hum = if (soft) (300 * kotlin.math.sin((clock + it) * 2 * Math.PI * 140 / 16000)).toInt() else 0
@@ -82,12 +84,18 @@ class QwenDuplexDeviceTest {
                         val before = if (trace) RoomNoise.rms(samples, samples.size, 16000) else 0.0
                         if (trace) rawInput.append(samples, samples.size)
                         clock += samples.size
+                        val processingStart = SystemClock.elapsedRealtimeNanos()
                         push(samples, samples.size, 16000)
+                        frameCosts.add((SystemClock.elapsedRealtimeNanos() - processingStart) / 1_000_000.0)
                         if (trace) {
                             filteredInput.append(samples, samples.size)
                             frames.append("$inputMs,${phase.get()},$before,${RoomNoise.rms(samples, samples.size, 16000)},${desk.view.value.speaking},${desk.view.value.interruptions}\n")
                         }
-                        SystemClock.sleep(20)
+                        // AudioRecord delivers a continuous sample clock. Processing time is part
+                        // of the 20 ms period, not an extra pause after every captured frame.
+                        nextFrameAt += 20
+                        val remaining = nextFrameAt - SystemClock.elapsedRealtime()
+                        if (remaining > 0) SystemClock.sleep(remaining)
                     }
                     fun waitForTranslation(count: Int): Turn {
                         val until = SystemClock.elapsedRealtime() + 35000
@@ -161,6 +169,11 @@ class QwenDuplexDeviceTest {
             if (!soft) assertEquals(1, desk.view.value.interruptions)
             inst.sendStatus(0, Bundle().apply { putString("cloudDuplex", "two committed turns, interruptions=${desk.view.value.interruptions}, releaseMs=$release, weak=$soft, no echo turn") })
         } finally {
+            if (frameCosts.isNotEmpty()) {
+                val costs = frameCosts.sorted()
+                inst.sendStatus(0, Bundle().apply { putString("audioProcessing",
+                    "frames=${costs.size} frameMs=20 p95Ms=${costs[(costs.size * 95 - 1) / 100]} maxMs=${costs.last()}") })
+            }
             if (trace) {
                 app.cacheDir.resolve("qa-duplex-transmitted.wav").writeBytes(waveFromPcm(16000, transmitted.toByteArray()))
                 app.cacheDir.resolve("qa-duplex-input.wav").writeBytes(waveFromPcm(16000, rawInput.toByteArray()))
