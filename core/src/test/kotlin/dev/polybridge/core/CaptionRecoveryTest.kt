@@ -9,6 +9,33 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CaptionRecoveryTest {
+    @Test fun cancelledReplyIsCompletedFromConfirmedTextOnceWithoutResendingAudio() {
+        val feed = Feed(); val output = CopyOnWriteArrayList<LiveUpdate>(); var calls = 0
+        RecoveringCaptionSession({ feed.apply { emit = it } }, { error("Must not resend audio") }, output::add,
+            completeText = { side, source -> calls++; RecoveredCaption(side, source, "我不要两张票。") }).use { session ->
+            val line = LiveUpdate.Finished("cancelled", Side.FRENCH, 0, "Je ne veux pas deux billets.", "我要",
+                byteArrayOf(), TranslationIssue.INTERRUPTED)
+            feed.emit(line); feed.emit(line); session.finish()
+            assertEquals(1, calls)
+            val done = output.filterIsInstance<LiveUpdate.Finished>().single()
+            assertNull(done.issue)
+            assertEquals(line.source, done.source)
+            assertEquals("我不要两张票。", done.target)
+            assertTrue(done.sourceFinal)
+        }
+    }
+
+    @Test fun failedTextCompletionDoesNotRetryOrDiscardOriginal() {
+        val feed = Feed(); val output = CopyOnWriteArrayList<LiveUpdate>(); var calls = 0
+        RecoveringCaptionSession({ feed.apply { emit = it } }, { error("No audio") }, output::add,
+            completeText = { _, _ -> calls++; throw TranslationFailure(TranslationIssue.NETWORK) }).use { session ->
+            feed.emit(LiveUpdate.Finished("empty", Side.FRENCH, 0, "Bonjour.", "", byteArrayOf(), TranslationIssue.EMPTY_REPLY))
+            session.finish()
+            assertEquals(1, calls)
+            assertEquals("Bonjour.", output.filterIsInstance<LiveUpdate.Finished>().single().source)
+            assertNotNull(output.filterIsInstance<LiveUpdate.Finished>().single().issue)
+        }
+    }
     private class Feed : LiveSpeechSession {
         lateinit var emit: (LiveUpdate) -> Unit
         override fun connect() = Unit
@@ -17,7 +44,20 @@ class CaptionRecoveryTest {
         override fun close() = Unit
     }
     private fun bad(id: String = "s") = LiveUpdate.Finished(id, Side.CHINESE, 100,
-        "未确认", "", byteArrayOf(), TranslationIssue.UNRELIABLE, 300)
+        "未确认", "", byteArrayOf(), TranslationIssue.UNRELIABLE, 300, sourceFinal = false)
+
+    @Test fun confirmedOriginalIsNeverRewrittenByAudioRecovery() {
+        val feed = Feed(); val output = CopyOnWriteArrayList<LiveUpdate>()
+        var calls = 0
+        RecoveringCaptionSession({ feed.apply { emit = it } }, {
+            calls++; RecoveredCaption(Side.FRENCH, "Changed original", "改写")
+        }, output::add).use { session ->
+            session.send(ShortArray(8000), 8000, 16000)
+            feed.emit(bad().copy(source = "已确认的原文", sourceFinal = true)); session.finish()
+            assertEquals(0, calls)
+            assertEquals("已确认的原文", output.filterIsInstance<LiveUpdate.Finished>().single().source)
+        }
+    }
 
     @Test fun anomalousCaptionIsRecheckedOnceWithItsCompleteAudioAndCorrectedLanguage() {
         val feed = Feed()

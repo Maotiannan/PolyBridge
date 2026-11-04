@@ -37,7 +37,10 @@ internal class QwenLiveSession(private val token: String, private val options: Q
             val events = RealtimeEvents(side) { event ->
                 if (event is LiveUpdate.Finished) completions.incrementAndGet()
                 update(if (event is LiveUpdate.Finished) event.copy(pcmRate = pcmRate, model = trace) else event)
-            }.apply { inferLanguage = options.liveModel != ModelIds.LIVE35 }
+            }.apply {
+                inferLanguage = options.liveModel != ModelIds.LIVE35
+                requireItemAssociation = RealtimeProtocol.translation(options.liveModel)
+            }
             parsers += events
             val listener = object : WebSocketListener() {
                 var configured = false
@@ -141,7 +144,9 @@ internal class QwenLiveSession(private val token: String, private val options: Q
             // Conversational protocols have no session.finish. Flush the last VAD turn, then drain it.
             if (!manual) {
                 val quiet = ShortArray(1600)
-                repeat(12) { send(quiet, quiet.size, 16000); Thread.sleep(100) }
+                repeat((RealtimeProtocol.pauseMs(options) + 299) / 100) {
+                    send(quiet, quiet.size, 16000); Thread.sleep(100)
+                }
             }
             val start = System.nanoTime()
             while (!stopped.get()) {

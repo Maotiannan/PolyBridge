@@ -22,6 +22,15 @@ import android.os.Looper
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class CaptionContentTest {
+    @Test fun confirmedOriginalHasAnExplicitTranslationPendingState() {
+        val view = content()
+        val line = LiveUpdate.Caption("pending", Side.FRENCH, "Je ne veux pas deux billets.", "", sourceFinal = true)
+        val saved = Turn(line.id, line.side, TurnStatus.TRANSLATING, line.source)
+        view.render(listOf(TranscriptRow(line, saved))); layout(view, 375)
+        val target = named<ScrollView>(view, "滚动字幕译文")
+        assertEquals("原文已保存 · 正在翻译…", (target.getChildAt(0) as TextView).text.toString())
+    }
+
     private fun row(id: String, lines: Int = 25, side: Side = Side.FRENCH) = TranscriptRow(
         LiveUpdate.Caption(id, side, (1..lines).joinToString("\n") { "Phrase numéro $it." },
             (1..lines).joinToString("\n") { "这是第 $it 句。" }), null)

@@ -38,7 +38,8 @@ internal fun transcriptRows(chat: Conversation, state: ListeningState, kind: Kin
             else Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
                 val direction = if (row.line.side == Side.FRENCH) "法语 → 中文" else "中文 → 法语"
                 Kicker(direction + when { row.line.issue == TranslationIssue.UNRELIABLE -> "  ·  识别待核对";
-                    row.saved == null -> "  ·  正在听"; row.saved.status == TurnStatus.FAILED -> "  ·  未确认"; else -> "" })
+                    row.saved?.status == TurnStatus.TRANSLATING -> "  ·  原文已保存，正在翻译";
+                    row.saved == null -> "  ·  正在听"; row.saved.status == TurnStatus.FAILED -> "  ·  译文未完成"; else -> "" })
                 Text(row.line.source, color = Muted, style = MaterialTheme.typography.bodyMedium)
                 if (row.line.issue == TranslationIssue.UNRELIABLE) Text(
                     if (row.saved == null) "正在重新核对原音…" else "未能确认这段识别，请重新播放语音。",

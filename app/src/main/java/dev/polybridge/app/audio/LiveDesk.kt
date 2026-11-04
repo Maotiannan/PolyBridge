@@ -25,7 +25,8 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     private val clips: VoiceClips,
     private val connect: (((LiveUpdate) -> Unit) -> LiveSpeechSession)? = null,
     private val microphone: (MicFrames) -> AudioInputSource = { AndroidAudioInput(context, onFrame = it) },
-    private val captionConnection: (((LiveUpdate) -> Unit) -> LiveSpeechSession)? = null) {
+    private val captionConnection: (((LiveUpdate) -> Unit) -> LiveSpeechSession)? = null,
+    private val filter: (LiveSpeechSession) -> ListeningFilter = { SpeechGate(context, it) }) {
     private val main = Handler(Looper.getMainLooper())
     private val routing = PlaybackRouting(context, settings)
     private val state = MutableStateFlow(ListeningState())
@@ -55,12 +56,15 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
             val captions = request.kind == Kind.CAPTIONS
             options = request.modelOptions ?: settings.state.value.options(if (captions) ModelFeature.CAPTIONS else ModelFeature.LISTEN)
             state.value = state.value.copy(requestedModel = options.liveModel)
-            val receiver: (LiveUpdate) -> Unit = { event -> receive(request, event) }
+            val stable = if (captions) StableCaptions { event -> receive(request, event) } else null
+            val receiver: (LiveUpdate) -> Unit = { event ->
+                if (stable != null) stable.accept(event) else receive(request, event)
+            }
             val transport = (if (captions) captionConnection else connect)?.invoke(receiver)
                 ?: (settings.provider(options) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL))
                     .live(captions || !settings.state.value.autoSpeak, receiver)
             live = transport
-            val connection = SpeechGate(context, transport)
+            val connection = filter(transport)
             live = connection
             synchronized(this) { session = transport }
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
@@ -117,7 +121,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     private fun preserveDrafts(request: ProbeRequest, reason: TranslationIssue) {
         val drafts = state.value.drafts
         if (drafts.isEmpty()) return
-        store.changeChat { chat -> drafts.fold(chat) { saved, line ->
+        store.changeChat(durable = request.kind == Kind.CAPTIONS) { chat -> drafts.fold(chat) { saved, line ->
             saved.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), line.issue ?: reason)
         } }
         state.value = state.value.copy(drafts = emptyList(), turnIds = (state.value.turnIds + drafts.map { it.id }).distinct())
@@ -140,6 +144,15 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
             is LiveUpdate.Caption -> {
                 val line = event.copy(id = localId(request, event.side, event.id), startedMs = offsetMs + event.startedMs)
                 if (line.id in state.value.turnIds) return
+                if (request.kind == Kind.CAPTIONS && line.sourceFinal) {
+                    val origin = LiveOrigin(request.id, request.kind, line.startedMs)
+                    val saved = store.changeChat(durable = true) { it.heardSource(line, origin) }
+                    if (!saved && store.chat.value.turns.none { it.id == line.id && it.sourceText == line.source }) {
+                        state.value = state.value.copy(issue = TranslationIssue.SERVICE)
+                        request.end.compareAndSet(null, End.INTERRUPTED)
+                        return
+                    }
+                }
                 if (state.value.speaking && spoken.independent(event.side, event.source, event.startedMs)) {
                     state.value = state.value.copy(interruptions = state.value.interruptions + 1)
                     interrupt()
@@ -162,7 +175,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                 }
                 val line = LiveUpdate.Caption(id, event.side, event.source, event.target, offsetMs + event.startedMs, event.issue)
                 val trace = event.model ?: ModelTrace(options.liveModel, feature = options.feature)
-                val added = store.changeChat { chat ->
+                val added = store.changeChat(durable = request.kind == Kind.CAPTIONS) { chat ->
                     val heard = chat.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), event.issue)
                     if (heard == chat) chat else heard.annotate(id, feature = options.feature, model = trace)
                 }

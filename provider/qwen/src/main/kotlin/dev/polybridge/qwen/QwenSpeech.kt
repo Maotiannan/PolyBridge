@@ -55,9 +55,17 @@ class QwenSpeech internal constructor(private val key: String, private val endpo
 
     fun live(textOnly: Boolean, update: (LiveUpdate) -> Unit): LiveSpeechSession =
         ReconnectingLiveSession({ receiver ->
-            if (textOnly) RecoveringCaptionSession({ QwenLiveSession(key, options, true, it, endpoint = endpoint) }, ::recoverCaption, receiver)
+            if (textOnly) RecoveringCaptionSession({ QwenLiveSession(key, options, true, it, endpoint = endpoint) }, ::recoverCaption, receiver,
+                completeText = if (options.feature == ModelFeature.CAPTIONS.name) ::completeCaptionText else null)
             else QwenLiveSession(key, options, false, receiver, endpoint = endpoint)
         }, update)
+
+    private fun completeCaptionText(side: Side, source: String): RecoveredCaption {
+        val target = translate(side, source)
+        if (CaptionQuality.repetitive(target) || bilingualSide(target) == side)
+            throw TranslationFailure(TranslationIssue.UNRELIABLE)
+        return RecoveredCaption(side, source, target, lastTrace?.copy(recoveredBy = options.translationModel))
+    }
 
     /** Recheck only anomalous screen captions, without reusing the live recognizer's language. */
     fun recoverCaption(wave: ByteArray): RecoveredCaption {

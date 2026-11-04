@@ -32,8 +32,22 @@ data class Conversation(val turns: List<Turn> = emptyList(), val session: String
         return append(Turn(id, side, TurnStatus.TRANSLATING, text.trim(), atMs = System.currentTimeMillis()))
     }
 
+    fun heardSource(line: LiveUpdate.Caption, origin: LiveOrigin): Conversation {
+        if (!line.sourceFinal || line.source.isBlank() || turns.any { it.id == line.id }) return this
+        return heard(line.copy(target = ""), origin).change(line.id) { it.copy(status = TurnStatus.TRANSLATING) }
+    }
+
     fun heard(line: LiveUpdate.Caption, origin: LiveOrigin, issue: TranslationIssue? = null): Conversation {
-        if ((line.source.isBlank() && issue != TranslationIssue.UNRELIABLE) || turns.any { it.id == line.id }) return this
+        val previous = turns.firstOrNull { it.id == line.id }
+        if (previous != null) {
+            if (previous.status != TurnStatus.TRANSLATING || previous.live != origin) return this
+            val conflict = previous.sourceText != line.source || previous.side != line.side
+            return change(line.id) { it.copy(
+                status = if (issue == null && !conflict) TurnStatus.READY else TurnStatus.FAILED,
+                translatedText = if (conflict) "" else line.target,
+                issue = if (conflict) TranslationIssue.UNRELIABLE else issue) }
+        }
+        if (line.source.isBlank() && issue != TranslationIssue.UNRELIABLE) return this
         val turn = Turn(line.id, line.side, if (issue == null) TurnStatus.READY else TurnStatus.FAILED,
             line.source, line.target, issue = issue, atMs = System.currentTimeMillis(), live = origin)
         val next = turns.indexOfFirst { it.live?.let { earlier -> earlier.captureId == origin.captureId && earlier.offsetMs > origin.offsetMs } == true }

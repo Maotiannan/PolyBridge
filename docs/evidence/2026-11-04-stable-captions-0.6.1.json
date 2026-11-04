@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-04",
+  "version": "0.6.1",
+  "versionCode": 6001,
+  "branch": "codex/caption-scroll-recovery",
+  "baselineCommit": "cfdcb77",
+  "baselineModel": "qwen3.5-livetranslate-flash-realtime",
+  "verification": {
+    "unitCommand": ".\\gradlew.bat :core:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest --rerun-tasks --console=plain",
+    "unitExitCode": 0,
+    "unitTasksExecuted": 41,
+    "suites": {
+      "core": {"tests": 43, "failures": 0, "errors": 0, "skipped": 0},
+      "providerQwen": {"tests": 43, "failures": 0, "errors": 0, "skipped": 0},
+      "evaluationQwen": {"tests": 24, "failures": 0, "errors": 0, "skipped": 0},
+      "appRobolectric": {"tests": 42, "failures": 0, "errors": 0, "skipped": 0}
+    },
+    "totalTests": 152,
+    "buildCommand": ".\\gradlew.bat :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --console=plain",
+    "buildExitCode": 0,
+    "lintErrors": 0,
+    "lintWarnings": 31,
+    "mainApkSignatureVerified": true,
+    "testApkSignatureVerified": true,
+    "mainApkSha256": "61B19940FB4AF6207252BBB7C76E2BAAFECD24A12CE383003FADFC16E855F528"
+  },
+  "regressionsObservedFailingBeforeFix": [
+    "early response discarded before input notification",
+    "explicit empty response never terminates",
+    "provisional captions and interrupted partial translation published",
+    "confirmed original not persisted before translation",
+    "automatic recovery rewrites confirmed original",
+    "Audio/Omni hardcoded 800ms ignores media pause",
+    "muted listening incorrectly uses media pause",
+    "finish silence shorter than configured pause",
+    "duplicate input commit rejected at capacity",
+    "anomaly status hidden along with unreliable words",
+    "third response assigned to second original despite explicit linkage",
+    "missing timestamp reorders new original before old sentence",
+    "failed previous recognition discards unresolved third response"
+  ],
+  "localScenarios": {
+    "live35": "Two real local WebSockets, three original messages per round, five rounds, response order 1/3/2, linkage metadata after response completion: all 15 originals and targets retained correctly.",
+    "textRecovery": "Local WebSocket cancellation followed by exactly one local HTTP translation of confirmed text; no retransmitted audio.",
+    "history": "150 synthetic sentences with 20-second timestamp gaps, reversed pair completion, durable storage read after each source; all originals/targets survive reopening.",
+    "application": "Production LiveDesk.record path exercised under Robolectric with injected audio input/filter: caption publication, normal finish, interruption, unchanged microphone preview.",
+    "display": "375px pending-state label plus existing long-text following, manual review and full bilingual history checks."
+  },
+  "boundaries": {
+    "deviceConnected": false,
+    "installedThisTurn": false,
+    "cloudCallsThisTurn": 0,
+    "cloudEvaluationBudgetModified": false,
+    "userHistoryOrCredentialsModified": false,
+    "userThirdMessageIncidentConfirmedOnDevice": false,
+    "newNoiseReductionAlgorithmIntegrated": false,
+    "playbackSourceEndGroupingImplemented": false,
+    "reconnectionAudioReplayImplemented": false,
+    "rawPreGateAudioRecoveryImplemented": false,
+    "remoteConfigured": false,
+    "pushed": false,
+    "remoteCiRun": false,
+    "independentReviewerAgentUsed": false
+  }
+}

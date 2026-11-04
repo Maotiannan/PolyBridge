@@ -11,8 +11,9 @@ data class CaptionRecoveryPolicy(val bufferMs: Int = 90_000, val maximumClipMs: 
 /** Owns temporary audio for this connection only. */
 class RecoveringCaptionSession(factory: ((LiveUpdate) -> Unit) -> LiveSpeechSession,
     private val recover: (ByteArray) -> RecoveredCaption, private val update: (LiveUpdate) -> Unit,
-    private val policy: CaptionRecoveryPolicy = CaptionRecoveryPolicy()) : LiveSpeechSession {
-    private data class Pending(val original: LiveUpdate.Finished, val wave: ByteArray,
+    private val policy: CaptionRecoveryPolicy = CaptionRecoveryPolicy(),
+    private val completeText: ((Side, String) -> RecoveredCaption)? = null) : LiveSpeechSession {
+    private data class Pending(val original: LiveUpdate.Finished, val wave: ByteArray, val textOnly: Boolean = false,
         val done: CountDownLatch = CountDownLatch(1), var running: Boolean = false, var completing: Boolean = false)
     private val lock = Any()
     private val audio = ShortArray(policy.bufferMs * 16)
@@ -55,20 +56,27 @@ class RecoveringCaptionSession(factory: ((LiveUpdate) -> Unit) -> LiveSpeechSess
         val work = synchronized(lock) {
             if (closed || !seen.add(key)) return
             if (seen.size > 512) seen.remove(seen.first())
-            if (event.issue != TranslationIssue.UNRELIABLE) null
-            else if (pending.size >= policy.maximumPending) null else clip(event)?.let { wave ->
+            val text = event.sourceFinal && event.source.isNotBlank() && completeText != null &&
+                event.issue in setOf(TranslationIssue.INTERRUPTED, TranslationIssue.EMPTY_REPLY, TranslationIssue.UNRELIABLE)
+            if (pending.size >= policy.maximumPending) null
+            else if (text) Pending(event, byteArrayOf(), textOnly = true).also { pending[key] = it }
+            else if (event.issue != TranslationIssue.UNRELIABLE || event.sourceFinal) null
+            else clip(event)?.let { wave ->
                 Pending(event, wave).also { pending[key] = it }
             }
         }
         if (work == null) { emit(event); return }
-        emit(LiveUpdate.Caption(event.id, event.side, event.source, "", event.startedMs, TranslationIssue.UNRELIABLE))
+        emit(LiveUpdate.Caption(event.id, event.side, event.source, "", event.startedMs, event.issue, event.sourceFinal))
         synchronized(lock) {
             if (closed) { work.wave.fill(0); return }
             worker.execute {
                 try {
                     synchronized(lock) { if (closed || pending[key] !== work) return@execute; work.running = true }
-                    val result = runCatching { recover(work.wave) }.getOrNull()?.takeIf {
+                    val result = runCatching {
+                        if (work.textOnly) requireNotNull(completeText)(event.side, event.source) else recover(work.wave)
+                    }.getOrNull()?.takeIf {
                         it.source.isNotBlank() && it.target.isNotBlank() &&
+                            (!work.textOnly || it.source == event.source && it.side == event.side) &&
                             !CaptionQuality.repetitive(it.source) && !CaptionQuality.repetitive(it.target)
                     }
                     complete(key, work, result)
@@ -97,9 +105,9 @@ class RecoveringCaptionSession(factory: ((LiveUpdate) -> Unit) -> LiveSpeechSess
         try {
             if (result == null) emit(work.original)
             else {
-                emit(LiveUpdate.Withdrawn(work.original.id, work.original.side))
+                if (!work.textOnly) emit(LiveUpdate.Withdrawn(work.original.id, work.original.side))
                 emit(work.original.copy(side = result.side, source = result.source, target = result.target,
-                    pcm = byteArrayOf(), issue = null, model = result.model ?: work.original.model))
+                    pcm = byteArrayOf(), issue = null, model = result.model ?: work.original.model, sourceFinal = true))
             }
         } finally {
             synchronized(lock) { if (pending[key] === work) pending.remove(key) }

@@ -10,6 +10,25 @@ import org.junit.Test
 import java.util.concurrent.CopyOnWriteArrayList
 
 class LiveModelTransportTest {
+    @Test fun finishingSendsEnoughSilenceForTheConfiguredCaptionPause() {
+        MockWebServer().use { server ->
+            val frames = java.util.concurrent.atomic.AtomicInteger()
+            server.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) { webSocket.send("""{"type":"session.created"}""") }
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    when (JsonParser.parseString(text).asJsonObject["type"].asString) {
+                        "session.update" -> webSocket.send("""{"type":"session.updated"}""")
+                        "input_audio_buffer.append" -> frames.incrementAndGet()
+                    }
+                }
+            }))
+            val options = QwenOptions(liveModel = ModelIds.AUDIO31, mediaPauseMs = 2200, feature = ModelFeature.CAPTIONS.name)
+            QwenLiveSession("fixture", options, true, {}, endpoint = server.url("/").toUrl()).use {
+                it.connect(); it.finish()
+            }
+            assertTrue("收尾静音不足以触发配置的断句时间", frames.get() * 100 >= 2200)
+        }
+    }
     @Test fun manualFinishWaitsForLateFirstResponse() {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {

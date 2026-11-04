@@ -5,6 +5,102 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RealtimeEventsTest {
+    @Test fun failedEarlierRecognitionCannotDiscardTheThirdResponsesUnresolvedIdentity() {
+        val seen = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(Side.FRENCH, seen::add).apply { requireItemAssociation = true }
+        parser.accept("""{"type":"conversation.item.input_audio_transcription.text","item_id":"old","language":"fr","text":"Bon jour"}""")
+        parser.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"third","language":"fr","transcript":"Troisième message complet."}""")
+        parser.accept("""{"type":"response.created","response":{"id":"r3"}}""")
+        parser.accept("""{"type":"conversation.item.input_audio_transcription.failed","item_id":"old"}""")
+        parser.accept("""{"type":"conversation.item.created","previous_item_id":"third","item":{"id":"o3","role":"assistant"}}""")
+        parser.accept("""{"type":"response.text.done","response_id":"r3","item_id":"o3","text":"完整的第三段语音。"}""")
+        parser.accept("""{"type":"response.done","response":{"id":"r3","status":"completed"}}""")
+        assertEquals("完整的第三段语音。", seen.filterIsInstance<LiveUpdate.Finished>().singleOrNull()?.target)
+    }
+    @Test fun delayedTranslationLinkCannotPublishThirdReplyOnSecondOriginal() {
+        val seen = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(Side.FRENCH, seen::add).apply { requireItemAssociation = true }
+        for (id in listOf("second", "third")) {
+            parser.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"$id","language":"fr","transcript":"Phrase $id."}""")
+        }
+        parser.accept("""{"type":"response.created","response":{"id":"r3"}}""")
+        parser.accept("""{"type":"response.text.done","response_id":"r3","item_id":"o3","text":"完整第三段"}""")
+        parser.accept("""{"type":"response.done","response":{"id":"r3","status":"completed"}}""")
+        assertTrue(seen.filterIsInstance<LiveUpdate.Finished>().isEmpty())
+        parser.accept("""{"type":"conversation.item.created","previous_item_id":"third","item":{"id":"o3","role":"assistant"}}""")
+        assertEquals("third", seen.filterIsInstance<LiveUpdate.Finished>().single().id)
+        assertEquals("完整第三段", seen.filterIsInstance<LiveUpdate.Finished>().single().target)
+    }
+
+    @Test fun thirdSentenceUsesItsExplicitOriginalInsteadOfTheStillPendingSecondSentence() {
+        val seen = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(Side.FRENCH, seen::add)
+        for ((id, at) in listOf("first" to 10, "second" to 5000, "third" to 10000)) {
+            parser.accept("""{"type":"input_audio_buffer.speech_started","item_id":"$id","audio_start_ms":$at}""")
+            parser.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"$id","language":"fr","transcript":"Phrase $id."}""")
+        }
+        // Replies need not be created in recognition order. The service tells us the relation.
+        for (id in listOf("first", "third", "second")) {
+            parser.accept("""{"type":"response.created","response":{"id":"r-$id"}}""")
+            parser.accept("""{"type":"conversation.item.created","previous_item_id":"$id","item":{"id":"out-$id","role":"assistant","content":[]}}""")
+            parser.accept("""{"type":"response.text.done","response_id":"r-$id","item_id":"out-$id","text":"译文$id"}""")
+            parser.accept("""{"type":"response.done","response":{"id":"r-$id","status":"completed"}}""")
+        }
+        assertEquals(mapOf("first" to "译文first", "second" to "译文second", "third" to "译文third"),
+            seen.filterIsInstance<LiveUpdate.Finished>().associate { it.id to it.target })
+    }
+
+    @Test fun absentTimestampDoesNotPutThirdSentenceBackBeforeSecond() {
+        val seen = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(Side.FRENCH, seen::add)
+        parser.accept("""{"type":"input_audio_buffer.speech_started","item_id":"second","audio_start_ms":5000}""")
+        parser.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"third","language":"fr","transcript":"Troisième phrase."}""")
+        assertTrue(seen.filterIsInstance<LiveUpdate.Caption>().single().startedMs > 5000)
+    }
+    @Test fun duplicateCommitAtCapacityIsNotMistakenForANewThirteenthSentence() {
+        val parser = RealtimeEvents(null) {}
+        repeat(12) { parser.accept("""{"type":"input_audio_buffer.speech_started","item_id":"s$it"}""") }
+        parser.accept("""{"type":"input_audio_buffer.committed","item_id":"s0"}""")
+        assertFalse(parser.idle)
+    }
+
+    @Test fun orphanResponsesHaveAnExplicitBound() {
+        val parser = RealtimeEvents(null) {}
+        repeat(12) { parser.accept("""{"type":"response.created","response":{"id":"r$it"}}""") }
+        try {
+            parser.accept("""{"type":"response.created","response":{"id":"overflow"}}""")
+            fail("未关联的返回不能无限缓存")
+        } catch (failure: TranslationFailure) { assertEquals(TranslationIssue.LIMIT, failure.issue) }
+    }
+
+    @Test fun responseBeforeInputIsBufferedAndMatchedWithoutLosingTheTranslation() {
+        val results = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(null, results::add).apply { inferLanguage = true }
+        listOf(
+            """{"type":"response.created","response":{"id":"r"}}""",
+            """{"type":"response.text.done","response_id":"r","text":"我不需要三张票。"}""",
+            """{"type":"response.done","response":{"id":"r","status":"completed"}}""",
+            """{"type":"input_audio_buffer.committed","item_id":"a"}""",
+            """{"type":"conversation.item.input_audio_transcription.completed","item_id":"a","transcript":"Je n'ai pas besoin de trois billets."}"""
+        ).forEach(parser::accept)
+        assertEquals(1, results.filterIsInstance<LiveUpdate.Finished>().size)
+        assertEquals("我不需要三张票。", results.filterIsInstance<LiveUpdate.Finished>().single().target)
+        assertTrue(parser.idle)
+    }
+
+    @Test fun completedEmptyResponseTerminatesInsteadOfWaitingForever() {
+        val results = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(null, results::add).apply { inferLanguage = true }
+        listOf(
+            """{"type":"input_audio_buffer.committed","item_id":"a"}""",
+            """{"type":"response.created","response":{"id":"r"}}""",
+            """{"type":"conversation.item.input_audio_transcription.completed","item_id":"a","transcript":"Bonjour."}""",
+            """{"type":"response.done","response":{"id":"r","status":"completed","output":[]}}"""
+        ).forEach(parser::accept)
+        assertEquals(TranslationIssue.EMPTY_REPLY, results.filterIsInstance<LiveUpdate.Finished>().singleOrNull()?.issue)
+        assertTrue(parser.idle)
+    }
+
     @Test fun duplicateResponseCreationDoesNotStealNextSentenceAndRepeatedFinalDoesNotReopenIt() {
         val results = mutableListOf<LiveUpdate>()
         val parser = RealtimeEvents(null, results::add).apply { inferLanguage = true }

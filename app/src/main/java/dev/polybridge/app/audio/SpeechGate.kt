@@ -55,8 +55,12 @@ private class SpeechDetector(context: Context) : AutoCloseable {
     }
 }
 
+internal interface ListeningFilter : LiveSpeechSession {
+    fun recheckOpening(sendOpening: () -> Unit): Boolean
+}
+
 /** Preserve the server's sample clock, including silence. A short lookback restores the onset when speech opens. */
-internal class SpeechGate(context: Context, private val link: LiveSpeechSession) : LiveSpeechSession by link {
+internal class SpeechGate(context: Context, private val link: LiveSpeechSession) : ListeningFilter, LiveSpeechSession by link {
     private val detector = SpeechDetector(context)
     private val frame = ShortArray(SpeechDetector.WINDOW)
     private val silence = ShortArray(frame.size)
@@ -72,7 +76,7 @@ internal class SpeechGate(context: Context, private val link: LiveSpeechSession)
     /** Re-evaluate a possible interruption without the preceding echo/silence model state.
      * Energy after muting the output is only a candidate: rain must still pass the voice model.
      * The longer bounded lookback keeps quiet first syllables while that decision is pending. */
-    fun recheckOpening(sendOpening: () -> Unit): Boolean {
+    override fun recheckOpening(sendOpening: () -> Unit): Boolean {
         detector.reset()
         onset = 0; hangover = 0; openingWindows = OPENING_WINDOWS
         val before = confirmations
