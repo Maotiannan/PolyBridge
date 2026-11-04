@@ -10,9 +10,9 @@ Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动�
 
 **0.6.2 恢复边听边出字幕。** 用户实测 0.6.1 等 28 秒语音结束才出译文，已撤销“只显示最终结果”的拦截；流式原文和译文收到即显示、随模型更新，原文提前保存也不再遮住译文。保留句子关联、顺序、持久化与异常有界补译修复。不降安装编号，不清历史或模型偏好，可直接覆盖安装。[回退说明与测试边界](docs/STREAMING_RESTORE.md)
 
-自由监听降噪单独推进：已建立 [GTCRN 离线评测接口](evaluation/noise/README.md)，固定的 24 组中法语音加雨声在音频指标上改善；不代表实际翻译准确率或环境误打断已修复。新算法未加入本次恢复包，后续只接麦克风路径，不拖慢屏幕字幕。
+**0.6.3 已接入自由监听降噪。** 本机 GTCRN 减少雨声等干扰，播报降音量之前增加独立人声确认，并修复平滑采样转换后的残余回声。设置中仅增加「自由监听降噪」，默认开启、下次监听生效；屏幕字幕不加此处理，继续边听边显示。已用随包真实模型做电脑自动回归，没有手机或云端新实测，不把音频指标写成翻译准确率提升。[交付与验证边界](docs/LISTENING_DENOISE.md) · [独立初筛](evaluation/noise/README.md)
 
-0.6.1 同时修复先到的翻译被丢弃、明确空回复不结束、重复事件误报容量耗尽；Audio 3.1/Omni 3.8 使用字幕专用停顿时间（默认 1.8 秒），自由监听默认 1.2 秒，不再随是否朗读而变化，停止时同步补足收尾。模型完成不保证识别绝对正确；本轮不声称解决所有长语音质量问题。按播放源停止后 2 秒整段合并、断线音频补齐、过滤前原音复核仍未实现。GTCRN/RNNoise/WebRTC APM 尚未接入或宣布优胜。[完整链路与剩余问题](docs/TRANSLATION_PIPELINE.md)
+0.6.1 同时修复先到的翻译被丢弃、明确空回复不结束、重复事件误报容量耗尽；Audio 3.1/Omni 3.8 使用字幕专用停顿时间（默认 1.8 秒），自由监听默认 1.2 秒，不再随是否朗读而变化，停止时同步补足收尾。模型完成不保证识别绝对正确；本轮不声称解决所有长语音质量问题。按播放源停止后 2 秒整段合并、断线音频补齐、过滤前原音复核仍未实现。RNNoise/WebRTC APM 未接入，不宣称当前方案全面优胜。[完整链路与剩余问题](docs/TRANSLATION_PIPELINE.md)
 
 以用户确认可用的 **LiveTranslate 3.5** 为基线，新增三段连播/反复播放回归。修复按到达顺序错误配对原文与译文、缺失时间标记回排到旧句之前，以及前段识别失败误删后段响应；使用服务端明确关联，关联晚到则等待，不把第三段塞回第二段。电脑协议回放 15 段通过不等于实际 WhatsApp 事故已完成真机验收。
 
@@ -42,7 +42,7 @@ Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动�
 需要 JDK 17、Android SDK 平台 36 和 Build Tools 35.0.0 / 36.0.0。将 SDK 位置设为环境变量 `ANDROID_HOME`，或写入忽略提交的 `local.properties`。在 Windows 项目目录执行以下命令。
 
 ```powershell
-.\gradlew.bat :core:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+.\gradlew.bat :audio:processing:test :core:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 
 macOS / Linux 使用 `./gradlew`。主程序位于 `app/build/outputs/apk/debug/app-debug.apk`。核心测试调用信号、报告和对话接口。安卓主机测试通过 Robolectric 运行应用和合成音频，无需手机。两者都不能替代真机听音。
@@ -136,6 +136,7 @@ adb -d shell am instrument --user 0 -w -r -e class dev.polybridge.app.QwenEvalua
 - [实施计划](docs/IMPLEMENTATION_PLAN.md) · [模块与数据流](docs/ARCHITECTURE.md) · [决策记录](docs/DECISION_LOG.md)
 - [真机兼容性](docs/DEVICE_COMPATIBILITY.md) · [音频测试矩阵](docs/AUDIO_PROBE_MATRIX.md)
 - [人声检测模型与测试录音来源](docs/AUDIO_ASSETS.md)
+- [自由监听降噪、抢话确认与验证接口](docs/LISTENING_DENOISE.md)
 - [Qwen 模型短样本实测、费用边界与后续选型](docs/QWEN_EVALUATION.md)
 - [翻译完整链路、各环节可调项与设置改进建议](docs/TRANSLATION_PIPELINE.md)
 - [验收进度与下一步](docs/NEXT_TASKS.md) · [版本记录](CHANGELOG.md)

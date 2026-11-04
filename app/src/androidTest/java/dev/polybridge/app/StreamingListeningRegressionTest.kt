@@ -8,6 +8,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.polybridge.app.audio.*
+import dev.polybridge.core.PlaybackFloor
 import dev.polybridge.app.ui.ScreenCaptions
 import dev.polybridge.core.*
 import org.junit.Assert.*
@@ -231,6 +232,7 @@ class StreamingListeningRegressionTest {
             var passed = 0
             var sent = 0
             var interruptions = 0
+            var ducks = 0
             var muted = -1L
             var speaking = true
             val echo = PlaybackEcho(212.0).apply { start(reference); position(0, 0) }
@@ -240,14 +242,14 @@ class StreamingListeningRegressionTest {
                     passed += (0 until length).count { samples[it] != 0.toShort() }
                 }
             }
-            SpeechGate(app, sink).use { gate ->
-                val floor = PlaybackFloor(gate::recheckOpening)
+            SpeechGate(app, sink, enhanced = true).use { gate ->
+                val floor = PlaybackFloor(gate::recheckOpening, gate::voiceBeforeDuck, gate::resetVoiceBeforeDuck)
                 for (offset in rain.indices step 320) {
                     val now = offset / 16 + 20L
                     if (speaking) echo.position((now - 20).toInt(), now - 20)
                     val frame = rain.copyOfRange(offset, minOf(offset + 320, rain.size))
                     floor.send(frame, frame.size, 16000, now, echo, speaking, false, 212.0, muted, gate,
-                        duck = { muted = if (it) now else -1L }, interrupt = {
+                        duck = { if (it) ducks++; muted = if (it) now else -1L }, interrupt = {
                             interruptions++; speaking = false; echo.stop(now)
                         })
                 }
@@ -261,6 +263,7 @@ class StreamingListeningRegressionTest {
             assertEquals(rain.size + 320, sent)
             assertEquals("疑似抢话让纯雨声绕过了人声检测：$name", 0, passed)
             assertEquals("纯雨声中止了播报：$name", 0, interruptions)
+            assertEquals("纯雨声反复压低播报：$name", 0, ducks)
         }
     }
 

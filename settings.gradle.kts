@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 rootProject.name = "PolyBridge"
 include(":app", ":core", ":provider:qwen")
 include(":evaluation:qwen")
+include(":audio:processing")

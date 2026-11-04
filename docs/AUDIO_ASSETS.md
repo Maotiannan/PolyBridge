@@ -15,6 +15,12 @@
 | `2-73027-A-10.wav` | j1987 的 rain_on_greenhouse，[Freesound 73027](https://freesound.org/people/j1987/sounds/73027/) |
 | `breathing-fr.wav` | 项目词本中的两段法语（买票、问车站），中间加入 0.8 秒含合成呼吸声的换气间隔并叠加上述测试雨声。用于检查同一条媒体内能否保留前后两个意思 |
 
+## GTCRN 增强模型（0.6.3 起随主包）
+
+`noise-reduction/gtcrn.onnx` 来自 [GTCRN 固定提交](https://github.com/Xiaobin-Rong/gtcrn/tree/502ebfab64da7c4a9af78dcb9c6ceef1ebb01c73) 的 `stream/onnx_models/gtcrn_simple.onnx`，535190 字节，SHA256 `b4718df6228e7bdf1a8a435cf98f838636eb2fd331acabf86ba87c5192ebcb87`。MIT 版权和来源说明同目录随包。只用于自由监听，来源及测试见 [降噪说明](LISTENING_DENOISE.md)。
+
+`audio/processing/src/test/resources/gtcrn-*.pcm` 为项目 `train-fr.wav` 的前 16013 个 16kHz 样本及独立 Python GTCRN 参考输出，生成器为 `evaluation/noise/golden.py`。无私人声音，不随主包发布。
+
 ## 仅供电脑端自动回归
 
 `app/src/test/resources/audio/train-time-zh.wav` 是 2026-11-04 固定法语问题经手机中的千问服务返回的中文译音「下一班火车几点发车？」。它来自本项目受控样本测试，不含现场录音或个人会话。24 kHz、单声道 PCM；SHA-256 为 `b6bcfd2aa218cc5e8efbd382db1e3f8f0d30348b6b93e7632d6c33e924762d2a`。用于检验低音量中文辅音不会从回声处理中漏出，也不随正式 APK 发布。

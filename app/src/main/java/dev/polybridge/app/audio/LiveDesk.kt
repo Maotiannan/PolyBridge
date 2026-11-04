@@ -10,6 +10,7 @@ import dev.polybridge.core.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import dev.polybridge.qwen.*
+import dev.polybridge.audio.AudioProcessingFailure
 
 internal data class ListeningState(val id: String? = null, val ready: Boolean = false,
     val drafts: List<LiveUpdate.Caption> = emptyList(), val turnIds: List<String> = emptyList(), val speaking: Boolean = false,
@@ -26,7 +27,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     private val connect: (((LiveUpdate) -> Unit) -> LiveSpeechSession)? = null,
     private val microphone: (MicFrames) -> AudioInputSource = { AndroidAudioInput(context, onFrame = it) },
     private val captionConnection: (((LiveUpdate) -> Unit) -> LiveSpeechSession)? = null,
-    private val filter: (LiveSpeechSession) -> ListeningFilter = { SpeechGate(context, it) }) {
+    private val filter: (LiveSpeechSession, Boolean) -> ListeningFilter = { link, enhanced -> SpeechGate(context, link, enhanced) }) {
     private val main = Handler(Looper.getMainLooper())
     private val routing = PlaybackRouting(context, settings)
     private val state = MutableStateFlow(ListeningState())
@@ -54,6 +55,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
         var live: LiveSpeechSession? = null
         return try {
             val captions = request.kind == Kind.CAPTIONS
+            val enhance = request.kind == Kind.LISTEN && settings.state.value.listeningDenoise
             options = request.modelOptions ?: settings.state.value.options(if (captions) ModelFeature.CAPTIONS else ModelFeature.LISTEN)
             state.value = state.value.copy(requestedModel = options.liveModel)
             val receiver: (LiveUpdate) -> Unit = { event -> receive(request, event) }
@@ -61,13 +63,13 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                 ?: (settings.provider(options) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL))
                     .live(captions || !settings.state.value.autoSpeak, receiver)
             live = transport
-            val connection = filter(transport)
+            val connection = filter(transport, enhance)
             live = connection
             synchronized(this) { session = transport }
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
             connection.connect()
             if (request.end.get() != null) return request.empty(Verdict.CANCELLED)
-            val floor = PlaybackFloor(connection::recheckOpening)
+            val floor = PlaybackFloor(connection::recheckOpening, connection::voiceBeforeDuck, connection::resetVoiceBeforeDuck)
             val meter = InputLevel()
             var publishedAt = -100L
             val input = microphone inputFrame@{ samples, n, rate ->
@@ -95,6 +97,9 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
             }
             if (request.end.get() == End.RELEASED || request.end.get() == null && measured.verdict == Verdict.SIGNAL) connection.finish()
             measured
+        } catch (_: AudioProcessingFailure) {
+            synchronized(this) { if (request.end.get() != End.CANCELLED) state.value = state.value.copy(issue = TranslationIssue.AUDIO_PROCESSING) }
+            request.empty(Verdict.FAILED, "LIVE_AUDIO_PROCESSING")
         } catch (failure: TranslationFailure) {
             synchronized(this) { if (request.end.get() != End.CANCELLED) state.value = state.value.copy(issue = failure.issue) }
             request.empty(Verdict.FAILED, "LIVE_" + failure.issue.name)

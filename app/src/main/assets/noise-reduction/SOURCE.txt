@@ -1,0 +1,11 @@
+GTCRN by Rong Xiaobin, MIT (see LICENSE-GTCRN.txt)
+Repository: https://github.com/Xiaobin-Rong/gtcrn
+Commit: 502ebfab64da7c4a9af78dcb9c6ceef1ebb01c73
+Original file: stream/onnx_models/gtcrn_simple.onnx
+Bundled unchanged as: gtcrn.onnx
+Bytes: 535190
+SHA256: b4718df6228e7bdf1a8a435cf98f838636eb2fd331acabf86ba87c5192ebcb87
+
+Streaming Kotlin integration: audio/processing, 16kHz mono, 512-point
+sqrt-Hann STFT, 256-sample hop/lookahead, persistent recurrent caches.
+Used only for microphone free listening, never screen playback capture.

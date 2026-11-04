@@ -307,5 +307,6 @@ private fun issueText(turn: Turn, fr: Boolean) = when (turn.issue) {
     TranslationIssue.SERVICE -> if (fr) "Service indisponible." else "千问未完成这次请求，请检查服务配置后重试。"
     TranslationIssue.INTERRUPTED -> if (fr) "Session interrompue." else "上次处理被中断。"
     TranslationIssue.UNRELIABLE -> if (fr) "Reconnaissance incertaine. Réécoutez le message." else "这段识别出现异常，请重新播放语音。"
+    TranslationIssue.AUDIO_PROCESSING -> if (fr) "Traitement audio local indisponible. Réessayez." else "本机声音处理失败，请重新开始。"
     null -> if (fr) "Prise de son interrompue. Réessayez." else turn.verdict?.label ?: "这句话未完成。"
 }

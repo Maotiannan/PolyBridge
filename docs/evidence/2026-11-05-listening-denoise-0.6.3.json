@@ -1,0 +1,82 @@
+{
+  "version": "0.6.3",
+  "versionCode": 6003,
+  "baseline": "2c89bf3",
+  "scope": "GTCRN microphone free listening and noise-safe playback interruption; keep 0.6.2 streaming captions",
+  "tests": {
+    "audioProcessingRealOnnx": 14,
+    "core": 35,
+    "providerQwen": 44,
+    "evaluationQwen": 24,
+    "appRobolectric": 47,
+    "jvmTotal": 164,
+    "pythonIndependentAdapter": 6,
+    "failures": 0,
+    "skipped": 0,
+    "command": ".\\gradlew.bat :audio:processing:test :core:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --console=plain",
+    "fullRebuild": "All test modules were rerun with --rerun-tasks. Instrumentation compile then caught an ambiguous wildcard import after PlaybackFloor moved to core. Explicit import and Android API compatibility corrections were applied; the complete command above subsequently succeeded (100 tasks, 23 executed, 77 up-to-date).",
+    "pythonCommand": "python -m unittest discover -s evaluation/noise -p test_*.py"
+  },
+  "redGreen": [
+    "A pass-through denoiser failed real rain attenuation and hop-lookahead tests; actual GTCRN passes.",
+    "A SpeechFilter ignoring the enhancement model failed the mixed speech quality comparison; actual enhancement passes.",
+    "Original PlaybackFloor muted playback 20 times for the first fixed rain recording despite zero final interruptions. With independent speech evidence both rain recordings yield zero ducks and interruptions.",
+    "Linear-resampled quiet playback leaked 3603 nonzero samples through the enhanced pipeline. Residual voice confirmation plus a linear reference in full-band echo matching now produce zero nonzero samples in all 12 cases.",
+    "Normal French after rain kept only 45.7 percent of tested opening samples: repeated interruption probes reset the recurrent VAD state. Retaining pending state and the bounded opening lookback passes all 16 interruption cases with at least 97.86 percent opening nonzero retention.",
+    "Production LiveDesk initially passed false for enhancement and classified a local processing failure as SERVICE. Routing and typed error handling now pass the integration tests.",
+    "Invalid ONNX bytes originally threw an unclassified OrtException. Both voice and enhancement initialization now report AudioProcessingFailure while keeping transport ownership with the caller until construction succeeds."
+  ],
+  "fixedAudioMetrics": {
+    "rainAttenuationDb": [34.82205783906571, 13.866844860733023],
+    "mixedSpeechImprovementOverOldGateSiSdrDb": {
+      "tickets-fr": 5.414889257572463,
+      "tickets-zh": 5.39808391829629,
+      "train-fr": 9.490353921366163,
+      "train-zh": 4.299715597398656
+    },
+    "pythonGoldenPcmRmsDifference": 0.007902484417970673,
+    "rainPlaybackCases": 2,
+    "rainPlaybackDucks": 0,
+    "rainPlaybackInterruptions": 0,
+    "echoOnlyCases": 12,
+    "echoOnlyNonzeroSamplesToRecognition": 0,
+    "realInterruptionCases": 16,
+    "interruptionsPerCase": 1,
+    "minimumOpeningNonzeroRetention": 0.9786049237983587,
+    "caution": "Waveform and retained nonzero samples are not transcription accuracy or an intelligibility guarantee. Controlled synthetic echo and fixture mixing are not natural room or hardware evidence."
+  },
+  "lint": { "errors": 0, "warnings": 33, "note": "Dependency update, KTX style and pre-existing caption touch accessibility warnings remain; no claim of a warning-free build." },
+  "artifacts": {
+    "main": {
+      "file": "app/build/deliveries/PolyBridge-0.6.3.apk",
+      "bytes": 63696529,
+      "sha256": "0c4eb9fcf0fe7b3bcf9fbf09c4b6c29135aad6d7f5a3cd58d5e9fc120640ead3",
+      "signature": "apksigner verify passes, v2"
+    },
+    "instrumentation": {
+      "file": "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      "sha256": "fc3c8f99716caea16ac5f9c07e570c34eaa46be1d01e066433e579209cdd6b5c",
+      "signature": "apksigner verify passes, v2"
+    },
+    "packageInspection": "Version 0.6.3 / 6003, minimum API 31. GTCRN, MIT license and source metadata included. ONNX native libraries are under Android lib/ ABI paths only; no desktop DLL, dylib or ai/onnxruntime/native resources. 0.6.2 recovery APK preserved.",
+    "androidCompatibilityReview": "Replaced Optional.orElseThrow() with get(): the local Android API database confirms the zero-argument overload is API 33 while the app supports API 31."
+  },
+  "model": {
+    "upstream": "https://github.com/Xiaobin-Rong/gtcrn",
+    "commit": "502ebfab64da7c4a9af78dcb9c6ceef1ebb01c73",
+    "file": "stream/onnx_models/gtcrn_simple.onnx",
+    "bytes": 535190,
+    "sha256": "b4718df6228e7bdf1a8a435cf98f838636eb2fd331acabf86ba87c5192ebcb87",
+    "license": "MIT, included in APK"
+  },
+  "cloudCalls": 0,
+  "device": "No ADB device connected and no configured local emulator available. New APK not installed or verified on Fold5 in this run. Native Android tests were built, not executed.",
+  "git": "Current branch retained. Local main is an ancestor. No remote configured; no push or hosted CI claim.",
+  "review": "Self-review against the implementation plan; user prohibited automatic subagents. Covered resource ownership, raw-waveform echo ordering, caption isolation, error classification, API level, package contents and regression output.",
+  "remaining": [
+    "Android native-model execution and real-room Fold5 rain/quiet interruption checks",
+    "Long-running phone performance, heat and battery use",
+    "Cloud transcription/translation accuracy comparison within the existing budget",
+    "Real WhatsApp caption acceptance; no claim that the synthetic 28-second protocol test measures actual model latency"
+  ]
+}

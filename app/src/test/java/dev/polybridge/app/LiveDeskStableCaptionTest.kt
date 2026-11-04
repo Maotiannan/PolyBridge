@@ -52,7 +52,7 @@ class LiveDeskStableCaptionTest {
                         "Je voudrais deux billets pour demain.", "我想买两张明天的票。", byteArrayOf())) }
                     override fun close() = Unit
                 }
-            }, filter = { transport -> object : ListeningFilter, LiveSpeechSession by transport {
+            }, filter = { transport, _ -> object : ListeningFilter, LiveSpeechSession by transport {
                 override fun recheckOpening(sendOpening: () -> Unit): Boolean { sendOpening(); return false }
             } }, microphone = { input -> object : AudioInputSource {
                 override fun measure(request: ProbeRequest, projection: MediaProjection?, onStarted: () -> Unit): ProbeEntry {
@@ -111,7 +111,7 @@ class LiveDeskStableCaptionTest {
         }
         lateinit var desk: LiveDesk
         desk = LiveDesk(context, store, TranslationSettings(context), VoiceClips(), connect = link, captionConnection = link,
-            filter = { transport -> object : ListeningFilter, LiveSpeechSession by transport {
+            filter = { transport, _ -> object : ListeningFilter, LiveSpeechSession by transport {
                 override fun recheckOpening(sendOpening: () -> Unit): Boolean { sendOpening(); return false }
             } }, microphone = { _ -> object : AudioInputSource {
                 override fun measure(request: ProbeRequest, projection: MediaProjection?, onStarted: () -> Unit): ProbeEntry {

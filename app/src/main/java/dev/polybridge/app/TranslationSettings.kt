@@ -23,7 +23,7 @@ enum class Microphone(val label: String) { AUTO("系统自动选择"), PHONE("�
 data class TranslatorSettings(val configured: Boolean, val cloud: QwenOptions, val autoSpeak: Boolean, val opposed: Boolean,
     val mic: Microphone, val splitPlayback: Boolean, val privateReplay: Boolean,
     val captionApp: String? = null, val immersiveTalk: Boolean = true,
-    val models: ModelSelection = ModelSelection(), val modelError: String? = null) {
+    val models: ModelSelection = ModelSelection(), val modelError: String? = null, val listeningDenoise: Boolean = true) {
     fun options(feature: ModelFeature): QwenOptions {
         require(modelError == null) { modelError.orEmpty() }
         return models.options(feature, cloud)
@@ -48,10 +48,15 @@ class TranslationSettings(context: Context) {
         prefs.getBoolean("autoSpeak", true), prefs.getBoolean("opposed", true),
         runCatching { Microphone.valueOf(prefs.getString("mic", "")!!) }.getOrDefault(Microphone.AUTO),
         prefs.getBoolean("splitPlayback", true), prefs.getBoolean("privateReplay", true),
-        prefs.getString("captionApp", null), prefs.getBoolean("immersiveTalk", true), models, selection.exceptionOrNull()?.message)
+        prefs.getString("captionApp", null), prefs.getBoolean("immersiveTalk", true), models, selection.exceptionOrNull()?.message,
+        prefs.getBoolean("listeningDenoise", true))
     }
     private val values = MutableStateFlow(snapshot())
     val state = values.asStateFlow()
+    @Synchronized fun listeningDenoise(enabled: Boolean) {
+        check(prefs.edit().putBoolean("listeningDenoise", enabled).commit())
+        values.value = snapshot()
+    }
     @Synchronized fun captionApp(pkg: String?) { prefs.edit().putString("captionApp", pkg).apply(); values.value = snapshot() }
     @Synchronized fun immersiveTalk(enabled: Boolean) { prefs.edit().putBoolean("immersiveTalk", enabled).apply(); values.value = snapshot() }
     data class PlaybackObservation(val type: Int, val matchedPreference: Boolean?, val gain: Float, val positionMs: Int,

@@ -62,6 +62,7 @@ import dev.polybridge.core.*
                     TranslationIssue.CREDENTIAL -> "服务未授权，请检查千问设置。"
                     TranslationIssue.LIMIT -> "实时服务额度不足或请求过于频繁。"
                     TranslationIssue.NETWORK -> "网络中断，已结束监听。可重新开始。"
+                    TranslationIssue.AUDIO_PROCESSING -> "本机声音处理失败，已停止监听。请重试；仍失败可在设置关闭「自由监听降噪」。"
                     else -> "实时服务未能继续，已结束监听。"
                 }, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(vertical = 7.dp))
             }

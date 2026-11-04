@@ -13,7 +13,7 @@ interface VoiceSynthesis {
     fun synthesize(language: String, text: String): ByteArray
 }
 
-enum class TranslationIssue { CREDENTIAL, LIMIT, NETWORK, SERVICE, EMPTY_REPLY, INTERRUPTED, UNRELIABLE }
+enum class TranslationIssue { CREDENTIAL, LIMIT, NETWORK, SERVICE, EMPTY_REPLY, INTERRUPTED, UNRELIABLE, AUDIO_PROCESSING }
 class TranslationFailure(val issue: TranslationIssue) : Exception(issue.name)
 
 /** A completed cloud stream can still carry provisional RIFF sizes. Android uses these to calculate duration. */

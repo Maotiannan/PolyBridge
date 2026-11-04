@@ -31,6 +31,7 @@ android {
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 dependencies {
     implementation(project(":core"))
+    implementation(project(":audio:processing"))
     implementation(project(":provider:qwen"))
     implementation(libs.onnxruntime)
     implementation(platform(libs.compose.bom))

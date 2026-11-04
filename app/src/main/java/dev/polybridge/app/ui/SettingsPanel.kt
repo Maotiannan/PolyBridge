@@ -35,6 +35,8 @@ import dev.polybridge.app.audio.HeadsetRole
             SettingRow(Mark.CLOUD, "千问与模型", if (config.configured) "${config.models.label} · ${config.cloud.region.label}" else "选择整套或分功能模型，连接百炼账号", cloud)
             Kicker("对话与声音")
             SettingRow(Mark.MIC, "说话时的麦克风", inputLabel, selectInput)
+            SettingRow(Mark.AUDIO, "自由监听降噪", "减少雨声、风扇声干扰；下次开始监听生效，不影响屏幕字幕。",
+                { settings.listeningDenoise(!config.listeningDenoise) }, config.listeningDenoise)
             SettingRow(Mark.SPEAK, "自动朗读译文", "打开对话页时，读出刚完成的译文", { settings.playback(!config.autoSpeak) }, config.autoSpeak)
             SettingRow(Mark.AUDIO, "中法分开播放", "连接耳机时尝试法语外放、中文进耳机，以实际路由为准", { settings.splitPlayback(!config.splitPlayback) }, config.splitPlayback)
             SettingRow(Mark.SPEAK, "手动重播优先用耳机", "点重播时，两种语言都读到耳机。关闭后按对话的分路设置播放。", { settings.privateReplay(!config.privateReplay) }, config.privateReplay)

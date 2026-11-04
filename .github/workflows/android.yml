@@ -22,7 +22,7 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0"
       - name: Verify and build
-        run: ./gradlew :core:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+        run: ./gradlew :audio:processing:test :core:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Allow the runner to use its Android VM
         run: sudo chown "$(id -u)" /dev/kvm
       - name: Verify Android navigation, voice controls and media

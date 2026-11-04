@@ -1,10 +1,11 @@
 [versions]
-app = "0.6.2"
+app = "0.6.3"
 agp = "8.12.1"
 kotlin = "2.2.10"
 compose = "2025.08.01"
 activity = "1.10.1"
 gson = "2.11.0"
+onnx = "1.23.2"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose" }
@@ -14,7 +15,8 @@ compose-material = { module = "androidx.compose.material3:material3" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 okhttp = "com.squareup.okhttp3:okhttp:4.12.0"
-onnxruntime = "com.microsoft.onnxruntime:onnxruntime-android:1.23.2"
+onnxruntime = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnx" }
+onnxruntime-jvm = { module = "com.microsoft.onnxruntime:onnxruntime", version.ref = "onnx" }
 junit = "junit:junit:4.13.2"
 android-test-runner = "androidx.test:runner:1.6.1"
 android-test-junit = "androidx.test.ext:junit:1.2.1"

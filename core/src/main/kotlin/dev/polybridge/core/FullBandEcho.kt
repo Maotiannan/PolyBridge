@@ -23,10 +23,18 @@ internal class FullBandEcho(private val reference: ShortArray, private val backg
         val end = minOf(reference.size, start + BLOCK_SAMPLES + (frameSize + 2) * 3 / 2 + 3)
         // Three phases cover every possible 24 kHz reference offset at a 16 kHz capture clock.
         // For a 48 kHz capture, average the same three samples as the input downsampling below.
-        val bands = Array(3) { phase ->
+        // Keep the legacy sample-hold reference and a linear-resampled reference. Hardware
+        // resampling can smooth alternate 24->16 kHz samples; treating that as an unrelated
+        // consonant leaves intelligible echo for the speech enhancer to amplify.
+        val bands = Array(6) { variant ->
+            val phase = variant % 3
+            val linear = variant >= 3
             val raw = DoubleArray(((end - start - phase - 2) * 2 / 3).coerceAtLeast(0)) { i ->
                 val pos = start + phase + i * 3 / 2
-                if (sampleRate == 48000) {
+                if (linear) {
+                    // Also matches captures already resampled at 16 kHz before delivery.
+                    if (i % 2 == 0) reference[pos].toDouble() else (reference[pos] + reference[pos + 1]) / 2.0
+                } else if (sampleRate == 48000) {
                     val left = if (i % 2 == 0) 2 else 1
                     (reference[pos] * left + reference[pos + 1] * (3 - left)) / 3.0
                 } else reference[pos].toDouble()
@@ -65,10 +73,10 @@ internal class FullBandEcho(private val reference: ShortArray, private val backg
         val room = backgroundRms * 1.25 + 18
         val maximumResidual = room * room * n
 
-        fun matches(offset: Int): Boolean {
+        fun matches(offset: Int, linear: Boolean): Boolean {
             if (offset < 0 || offset < from || offset > to || offset >= reference.size) return false
             val window = window(offset, n, sampleRate)
-            val band = window.bands[offset % 3]
+            val band = window.bands[offset % 3 + if (linear) 3 else 0]
             val start = (offset - window.start) / 3 * 2
             if (start + n > band.raw.size) return false
             val refPower = band.energy[start + n] - band.energy[start + 2]
@@ -93,9 +101,11 @@ internal class FullBandEcho(private val reference: ShortArray, private val backg
         // Usually the low-band match is already close. Only search the full allowed acoustic
         // delay when that hint cannot explain the full waveform.
         for (delta in 0..18) {
-            if (matches(preferred + delta) || delta > 0 && matches(preferred - delta)) return true
+            for (variant in 0..1) {
+                if (matches(preferred + delta, variant == 1) || delta > 0 && matches(preferred - delta, variant == 1)) return true
+            }
         }
-        for (offset in from.coerceAtLeast(0)..to) if (matches(offset)) return true
+        for (offset in from.coerceAtLeast(0)..to) if (matches(offset, false) || matches(offset, true)) return true
         return false
     }
 
