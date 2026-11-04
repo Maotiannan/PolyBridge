@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.util.Locale
 import java.util.UUID
+import dev.polybridge.qwen.ModelCatalog
 
 /** Only one voice owns the speaker. A new press or a screen change invalidates pending speech. */
 internal class ConversationVoice(private val context: Context, private val settings: TranslationSettings,
@@ -28,7 +29,7 @@ internal class ConversationVoice(private val context: Context, private val setti
     private var player: MediaPlayer? = null
     private var ready = false
     private val system = TextToSpeech(context) { ready = it == TextToSpeech.SUCCESS }
-    data class Feedback(val id: String, val message: String, val manual: Boolean, val active: Boolean = true)
+    data class Feedback(val id: String, val message: String, val manual: Boolean, val active: Boolean = true, val model: String? = null)
     private val feedback = MutableStateFlow<Feedback?>(null)
     val state = feedback.asStateFlow()
     private data class LocalSpeech(val id: String, val language: String, val manual: Boolean, val audio: ParcelFileDescriptor)
@@ -84,13 +85,17 @@ internal class ConversationVoice(private val context: Context, private val setti
         stop()
         val language = turn.side.target
         val text = turn.translatedText
-        val key = clips.key(turn, settings.state.value.cloud)
+        val options = runCatching { settings.state.value.optionsFor(turn) }.getOrElse {
+            feedback.value = Feedback(turn.id, it.message ?: "请重新选择模型", manual, false); return
+        }
+        val key = clips.key(turn, options)
         feedback.value = Feedback(turn.id, "准备声音…", manual)
         load = scope.launch {
-            val cached = clips[key]
-            suspend fun synthesize() = withContext(Dispatchers.IO) { runCatching { settings.provider()?.synthesize(language, text) } }
-            val bytes = cached ?: run {
-                feedback.value = feedback.value?.copy(message = "千问正在生成声音…")
+            val cached = clips.find(turn, options)
+            feedback.value = feedback.value?.copy(model = cached?.model ?: options.voiceModel)
+            suspend fun synthesize() = withContext(Dispatchers.IO) { runCatching { settings.provider(options)?.synthesize(language, text) } }
+            val bytes = cached?.wave ?: run {
+                feedback.value = feedback.value?.copy(message = "${ModelCatalog.label(options.voiceModel)} 正在生成声音…")
                 val first = synthesize()
                 if ((first.exceptionOrNull() as? TranslationFailure)?.issue == TranslationIssue.NETWORK) {
                     feedback.value = feedback.value?.copy(message = "连接超时，正在重试…")
@@ -111,9 +116,14 @@ internal class ConversationVoice(private val context: Context, private val setti
                 catch (_: RuntimeException) { }
                 catch (_: java.io.IOException) { }
             }
-            if (!localSpeech(language, text, manual))
-                failed("无法朗读，请检查千问连接或手机语音设置")
+            failed("所选千问朗读失败，未自动更换模型。可重试或选手机语音。")
         }
+    }
+
+    fun phoneTranslation(turn: Turn) {
+        stop()
+        feedback.value = Feedback(turn.id, "手机语音正在生成声音…", true, model = "手机语音")
+        if (!localSpeech(turn.side.target, turn.translatedText, true)) failed("手机语音暂不可用，请检查系统语音设置")
     }
 
     // The TTS engine writes to an unlinked descriptor. Playback always uses the same route and volume policy.

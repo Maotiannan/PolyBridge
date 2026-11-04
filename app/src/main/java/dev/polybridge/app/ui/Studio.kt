@@ -22,10 +22,11 @@ import dev.polybridge.app.*
 import dev.polybridge.app.audio.ConversationVoice
 import dev.polybridge.app.audio.Hardware
 import dev.polybridge.core.*
+import dev.polybridge.qwen.ModelFeature
 
 @Composable internal fun Studio(app: PolyBridgeApp, lifecycle: Lifecycle, chat: Conversation, active: ProbeRequest?,
     hardware: Hardware, requestBluetooth: () -> Unit,
-    start: (Side) -> String?, listen: () -> String?, captureApp: (String) -> Unit,
+    start: (Side, ModelFeature) -> String?, listen: () -> String?, captureApp: (String) -> Unit,
     end: (String, Boolean) -> Unit, notice: (String) -> Unit,
     inputLabel: String, inputPicker: @Composable (() -> Unit) -> Unit, diagnostics: @Composable () -> Unit) {
     var page by rememberSaveable { mutableStateOf(if (active?.kind == Kind.CAPTIONS) Page.TOOLS else Page.TALK) }
@@ -68,9 +69,11 @@ import dev.polybridge.core.*
     val back = { navigate(if (page == Page.DIAGNOSTICS) Page.SETTINGS else Page.TALK) }
     BackHandler(page != Page.TALK, onBack = back)
     val actions = TalkActions(start = {
-        if (!config.configured) { showCloud = true; null } else { voice.stop(); start(it) }
+        if (!config.configured) { showCloud = true; null } else { voice.stop(); start(it, if (page == Page.CALL) ModelFeature.REPLY else ModelFeature.FACE) }
     }, end = end, speak = ::replay, edit = { voice.stop(); editing = it.id },
-        type = { if (config.configured) typing = it else showCloud = true }, playback = playback)
+        type = { if (config.configured) typing = it else showCloud = true }, playback = playback,
+        phoneSpeak = { if (active == null) voice.phoneTranslation(it) else notice("收音结束后可朗读") },
+        model = config.models.model(if (page == Page.CALL) ModelFeature.REPLY else ModelFeature.FACE))
     Surface(color = Paper) {
         BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).semantics { testTagsAsResourceId = true }) {
             val foldedOpen = maxWidth >= 600.dp && maxHeight >= 430.dp

@@ -26,7 +26,7 @@ class CaptionRecoveryTest {
         var clip = byteArrayOf()
         RecoveringCaptionSession({ feed.apply { emit = it } }, { wave ->
             calls++; clip = wave.copyOf()
-            RecoveredCaption(Side.FRENCH, "Bonjour, comment allez-vous ?", "你好，最近怎么样？")
+            RecoveredCaption(Side.FRENCH, "Bonjour, comment allez-vous ?", "你好，最近怎么样？", ModelTrace("test-mt", recoveredBy = "test-asr"))
         }, output::add).use { session ->
             val input = ShortArray(8000) { (it % 30000).toShort() }
             session.send(input, input.size, 16000)
@@ -35,6 +35,7 @@ class CaptionRecoveryTest {
             val result = output.filterIsInstance<LiveUpdate.Finished>().single()
             assertNull("异常原文没有重新核对", result.issue)
             assertEquals(Side.FRENCH, result.side)
+            assertEquals("test-asr", result.model?.recoveredBy)
             assertEquals("Bonjour, comment allez-vous ?", result.source)
             assertEquals(1, calls)
             assertEquals(44 + (300 - 100) * 32, clip.size)

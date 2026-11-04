@@ -25,6 +25,7 @@ import dev.polybridge.core.*
 @Composable internal fun ListeningPanel(app: PolyBridgeApp, chat: Conversation, active: ProbeRequest?,
     actions: TalkActions, start: () -> Unit, stop: () -> Unit, captions: () -> Unit) {
     val state by app.live.view.collectAsState()
+    val config by app.settings.state.collectAsState()
     val on = active?.kind == Kind.LISTEN
     val view = LocalView.current
     DisposableEffect(on, view) {
@@ -46,6 +47,7 @@ import dev.polybridge.core.*
     Column(Modifier.fillMaxSize()) {
         PageHeading("INTERPRÈTE EN DIRECT", "自由监听")
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp)) {
+            ModelStatus(config.models.model(dev.polybridge.qwen.ModelFeature.LISTEN), on, state.requestedModel, state.actualModel)
             Box(Modifier.fillMaxWidth().background(Forest, Round)) {
                 Arches(Leaf.copy(alpha = .26f), Modifier.align(Alignment.CenterEnd).width(100.dp).height(108.dp))
                 Column(Modifier.padding(18.dp)) {

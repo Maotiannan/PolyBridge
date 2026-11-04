@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import dev.polybridge.app.audio.TranslatedAudioShare
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
+import dev.polybridge.qwen.ModelFeature
+import dev.polybridge.qwen.QwenOptions
 
 class PolyBridgeApp : Application() {
     override fun onCreate() {
@@ -24,12 +26,15 @@ class PolyBridgeApp : Application() {
     internal val clips by lazy { dev.polybridge.app.audio.VoiceClips() }
     internal val live by lazy { dev.polybridge.app.audio.LiveDesk(this, store, settings, clips) }
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val translator by lazy { ConversationTranslator(store, CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(2)), settings::provider) }
+    val translator by lazy { ConversationTranslator(store, CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(2)),
+        configuredProvider = settings::provider, generated = { turn, wave, options -> clips.putGenerated(turn, options, wave) }) {
+        settings.provider(ModelFeature.TEXT)
+    } }
 }
 
 data class ProbeRequest(val id: String, val kind: Kind, val target: PlaybackTarget, val inputId: Int?,
     val side: Side?, val startedAt: Long, val targetVersion: String?, val end: AtomicReference<End?> = AtomicReference(null),
-    val sourcePackage: String? = null) {
+    val sourcePackage: String? = null, val modelOptions: QwenOptions? = null, val speak: Boolean = false) {
     val sampling = MutableStateFlow(false)
     val level = MutableStateFlow(0f)
     fun empty(verdict: Verdict, reason: String? = null) = ProbeEntry(id, kind, target, startedAt,
@@ -51,11 +56,13 @@ class ProbeStore(context: Context, preferencesName: String = "diagnostics") {
     val chat = conversation.asStateFlow()
     val active = current.asStateFlow()
 
-    @Synchronized fun begin(kind: Kind, target: PlaybackTarget, inputId: Int?, side: Side?, targetVersion: String?, sourcePackage: String? = null): ProbeRequest? {
+    @Synchronized fun begin(kind: Kind, target: PlaybackTarget, inputId: Int?, side: Side?, targetVersion: String?, sourcePackage: String? = null,
+        modelOptions: QwenOptions? = null, feature: ModelFeature = ModelFeature.FACE, speak: Boolean = false): ProbeRequest? {
         if (current.value != null) return null
         if (kind == Kind.CAPTIONS && (sourcePackage.isNullOrBlank() || side != null)) return null
-        val request = ProbeRequest(UUID.randomUUID().toString(), kind, target, inputId, side, System.currentTimeMillis(), targetVersion, sourcePackage = sourcePackage)
-        if (side != null) conversation.value = conversation.value.press(request.id, side)
+        val request = ProbeRequest(UUID.randomUUID().toString(), kind, target, inputId, side, System.currentTimeMillis(), targetVersion,
+            sourcePackage = sourcePackage, modelOptions = modelOptions, speak = speak)
+        if (side != null) conversation.value = conversation.value.press(request.id, side).annotate(request.id, feature = feature.name)
         current.value = request
         persist()
         return request

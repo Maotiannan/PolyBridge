@@ -36,6 +36,7 @@ import kotlinx.coroutines.withContext
     val running = active?.kind == Kind.CAPTIONS
     Column(Modifier.fillMaxSize()) {
         PageHeading("SOUS-TITRES", "屏幕字幕")
+        ModelStatus(config.models.model(dev.polybridge.qwen.ModelFeature.CAPTIONS), running, state.requestedModel, state.actualModel)
         val info = if (rows.isEmpty()) Modifier.weight(1f).verticalScroll(rememberScrollState()) else Modifier
         Column(info.fillMaxWidth().padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {

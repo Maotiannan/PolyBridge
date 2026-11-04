@@ -24,9 +24,10 @@ import kotlinx.coroutines.*
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var sharing by remember { mutableStateOf(false) }
-    val controls = TalkActions({ actions.start(Side.CHINESE)?.also { recent = it } }, actions.end, actions.speak, actions.edit, actions.type, actions.playback)
+    val controls = TalkActions({ actions.start(Side.CHINESE)?.also { recent = it } }, actions.end, actions.speak, actions.edit, actions.type, actions.playback, actions.phoneSpeak, actions.model)
     Column(Modifier.fillMaxSize()) {
         PageHeading("PARLER FRANÇAIS", "中文转法语")
+        actions.model?.let { ModelStatus(it, active != null, active?.modelOptions?.utteranceModel) }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.fillMaxWidth().background(Mint, Round).padding(18.dp)) {
@@ -39,12 +40,16 @@ import kotlinx.coroutines.*
                 if (turn.status == TurnStatus.READY) {
                     Button(enabled = active == null, onClick = { playFrench(turn) }) { Text("在本机播放法语") }
                     OutlinedButton(enabled = active == null && !sharing, onClick = {
+                        val options = runCatching { app.settings.state.value.optionsFor(turn) }.getOrElse {
+                            notice("请先检查模型设置"); return@OutlinedButton
+                        }
                         sharing = true
                         scope.launch {
                             try {
                                 val share = withContext(Dispatchers.IO) {
-                                    val key = app.clips.key(turn, app.settings.state.value.cloud)
-                                    val wave = app.clips[key] ?: requireNotNull(app.settings.provider()).synthesize(turn.side.target, turn.translatedText)
+                                    val key = app.clips.key(turn, options)
+                                    val wave = app.clips.find(turn, options)?.wave ?: requireNotNull(app.settings.provider(options))
+                                        .synthesize(turn.side.target, turn.translatedText).also { app.clips.put(key, it) }
                                     TranslatedAudioShare(context).create(wave)
                                 }
                                 context.startActivity(Intent.createChooser(share, "分享法语语音"))

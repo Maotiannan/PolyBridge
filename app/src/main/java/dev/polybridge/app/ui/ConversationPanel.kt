@@ -33,7 +33,8 @@ internal val Side.label get() = if (this == Side.CHINESE) "中文" else "França
 
 internal class TalkActions(val start: (Side) -> String?, val end: (String, Boolean) -> Unit,
     val speak: (Turn) -> Unit, val edit: (Turn) -> Unit, val type: (Side) -> Unit,
-    val playback: ConversationVoice.Feedback? = null)
+    val playback: ConversationVoice.Feedback? = null, val phoneSpeak: ((Turn) -> Unit)? = null,
+    val model: String? = null)
 
 @Composable internal fun CompactTalk(chat: Conversation, active: ProbeRequest?, actions: TalkActions,
     book: () -> Unit, live: () -> Unit, call: () -> Unit) {
@@ -47,6 +48,7 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             }
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp)) {
+            actions.model?.let { ModelStatus(it, active != null, active?.modelOptions?.utteranceModel) }
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val showCover = visible.isEmpty() && maxHeight >= 260.dp
                 Column(Modifier.fillMaxSize()) {
@@ -142,6 +144,7 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
                 Text(if (chinese) "从你这边按住说话" else "Maintenez le bouton pour parler.",
                     color = Muted, style = MaterialTheme.typography.bodyMedium)
             } else Timeline(visible, side, actions, Modifier.weight(1f))
+            actions.model?.let { ModelStatus(it, active != null, active?.modelOptions?.utteranceModel) }
             HoldButton(side, active, actions, Modifier.fillMaxWidth(), compact = true)
         }
     }
@@ -232,7 +235,9 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
     val chinese = turn.side == Side.CHINESE
     val frenchUi = viewer == Side.FRENCH
     val color = if (chinese) Forest else Clay
-    Column(Modifier.fillMaxWidth().testTag("turn-${turn.id}")) {
+    var details by remember(turn.id) { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().testTag("turn-${turn.id}").clickable(enabled = turn.model != null,
+        onClickLabel = "查看模型来源") { details = !details }) {
         val ready = turn.status == TurnStatus.READY || turn.status == TurnStatus.DEMO_READY
         if (ready) {
             val originalFirst = viewer == turn.side
@@ -264,7 +269,10 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
                     if (remove != null) ToolButton(Mark.DELETE, "删除这句 · ${turn.sourceText}", remove, Muted)
                 }
             }
-            if (feedback != null) Text(feedback.message, color = color, style = MaterialTheme.typography.labelSmall)
+            if (feedback != null) {
+                Text(feedback.message + (feedback.model?.let { " · ${dev.polybridge.qwen.ModelCatalog.label(it)}" } ?: ""), color = color, style = MaterialTheme.typography.labelSmall)
+                if (!feedback.active && actions.phoneSpeak != null) TextButton(onClick = { actions.phoneSpeak.invoke(turn) }) { Text("用手机语音朗读") }
+            }
             if (turn.status == TurnStatus.DEMO_READY) Text("旧版示例", color = Muted, style = MaterialTheme.typography.labelSmall)
         } else {
             if (turn.sourceText.isNotBlank()) Text(turn.sourceText, color = Ink, style = MaterialTheme.typography.bodyLarge)
@@ -279,6 +287,13 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             }
             if (remove != null) ToolButton(Mark.DELETE, "删除这句 · ${turn.sourceText}", remove, Muted)
             Spacer(Modifier.height(4.dp))
+        }
+        turn.model?.let { trace ->
+            Text("模型 · ${dev.polybridge.qwen.ModelCatalog.label(trace.requestedModel)}" + if (details) "  点按收起" else "  点按查看来源", color = Muted, style = MaterialTheme.typography.labelSmall)
+            if (details) Text("请求：${trace.requestedModel}\n实际：${trace.actualModel ?: "服务未返回，不推断"}" +
+                (trace.requestId?.let { "\n请求编号：$it" } ?: "") + (trace.sessionId?.let { "\n会话编号：$it" } ?: "") +
+                (trace.recoveredBy?.let { "\n异常复核：$it" } ?: ""), color = Muted, style = MaterialTheme.typography.bodySmall)
+            if (details) trace.recognition?.let { recognition -> Text("原文识别：${recognition.requestedModel}\n识别实际型号：${recognition.actualModel ?: "服务未返回"}", color = Muted, style = MaterialTheme.typography.bodySmall) }
         }
         HorizontalDivider(color = Line)
     }

@@ -12,9 +12,13 @@ data class LiveOrigin(val captureId: String, val kind: Kind, val offsetMs: Long)
 
 data class Turn(val id: String, val side: Side, val status: TurnStatus = TurnStatus.CAPTURING,
     val sourceText: String = "", val translatedText: String = "", val verdict: Verdict? = null,
-    val issue: TranslationIssue? = null, val atMs: Long = 0, val session: String? = null, val live: LiveOrigin? = null)
+    val issue: TranslationIssue? = null, val atMs: Long = 0, val session: String? = null, val live: LiveOrigin? = null,
+    val feature: String? = null, val model: ModelTrace? = null)
 
 data class Conversation(val turns: List<Turn> = emptyList(), val session: String? = null) {
+    fun annotate(id: String, feature: String? = null, model: ModelTrace? = null) = change(id) {
+        it.copy(feature = feature ?: it.feature, model = model ?: it.model)
+    }
     val currentTurns: List<Turn> get() = if (session == null) emptyList() else turns.filter { it.session == session }
 
     fun newSession() = copy(session = UUID.randomUUID().toString())

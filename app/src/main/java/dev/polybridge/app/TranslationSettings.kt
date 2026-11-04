@@ -7,6 +7,10 @@ import android.util.Base64
 import dev.polybridge.qwen.QwenOptions
 import dev.polybridge.qwen.QwenSpeech
 import dev.polybridge.qwen.Region
+import dev.polybridge.qwen.ModelSelection
+import dev.polybridge.qwen.ModelFeature
+import dev.polybridge.core.Turn
+import dev.polybridge.core.Kind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.security.KeyStore
@@ -18,18 +22,34 @@ import javax.crypto.spec.GCMParameterSpec
 enum class Microphone(val label: String) { AUTO("系统自动选择"), PHONE("手机麦克风"), HEADSET("蓝牙耳机麦克风") }
 data class TranslatorSettings(val configured: Boolean, val cloud: QwenOptions, val autoSpeak: Boolean, val opposed: Boolean,
     val mic: Microphone, val splitPlayback: Boolean, val privateReplay: Boolean,
-    val captionApp: String? = null, val immersiveTalk: Boolean = true)
+    val captionApp: String? = null, val immersiveTalk: Boolean = true,
+    val models: ModelSelection = ModelSelection(), val modelError: String? = null) {
+    fun options(feature: ModelFeature): QwenOptions {
+        require(modelError == null) { modelError.orEmpty() }
+        return models.options(feature, cloud)
+    }
+    fun optionsFor(turn: Turn): QwenOptions = options(when (turn.live?.kind) {
+        Kind.LISTEN -> ModelFeature.LISTEN
+        Kind.CAPTIONS -> ModelFeature.CAPTIONS
+        else -> runCatching { ModelFeature.valueOf(turn.feature.orEmpty()) }.getOrDefault(ModelFeature.FACE)
+    })
+}
 
 class TranslationSettings(context: Context) {
     internal val headsets by lazy { dev.polybridge.app.audio.HeadsetPreferences(context.applicationContext) }
     private val prefs = context.getSharedPreferences("translator", Context.MODE_PRIVATE)
     init { if (prefs.contains("quietSpeaker")) prefs.edit().remove("quietSpeaker").apply() }
-    private fun snapshot() = TranslatorSettings(prefs.contains("credential"),
-        QwenOptions(runCatching { Region.valueOf(prefs.getString("region", "")!!) }.getOrDefault(Region.BEIJING),
-            prefs.getString("workspace", "").orEmpty()), prefs.getBoolean("autoSpeak", true), prefs.getBoolean("opposed", true),
+    private fun snapshot(): TranslatorSettings {
+        val selection = runCatching { ModelSelection.decode(prefs.getString("models", null)) }
+        val models = selection.getOrDefault(ModelSelection())
+        val base = QwenOptions(runCatching { Region.valueOf(prefs.getString("region", "")!!) }.getOrDefault(Region.BEIJING),
+            prefs.getString("workspace", "").orEmpty())
+        return TranslatorSettings(prefs.contains("credential"), models.options(ModelFeature.FACE, base),
+        prefs.getBoolean("autoSpeak", true), prefs.getBoolean("opposed", true),
         runCatching { Microphone.valueOf(prefs.getString("mic", "")!!) }.getOrDefault(Microphone.AUTO),
         prefs.getBoolean("splitPlayback", true), prefs.getBoolean("privateReplay", true),
-        prefs.getString("captionApp", null), prefs.getBoolean("immersiveTalk", true))
+        prefs.getString("captionApp", null), prefs.getBoolean("immersiveTalk", true), models, selection.exceptionOrNull()?.message)
+    }
     private val values = MutableStateFlow(snapshot())
     val state = values.asStateFlow()
     @Synchronized fun captionApp(pkg: String?) { prefs.edit().putString("captionApp", pkg).apply(); values.value = snapshot() }
@@ -48,10 +68,10 @@ class TranslationSettings(context: Context) {
         prefs.edit().putBoolean("splitPlayback",enabled).apply(); values.value = snapshot()
     }
 
-    @Synchronized fun save(region: Region, workspace: String, newKey: String) {
-        region.endpoint(workspace)
+    @Synchronized fun save(region: Region, workspace: String, newKey: String, models: ModelSelection = values.value.models) {
+        models.validate(region, workspace)
         require(newKey.isNotBlank() || prefs.contains("credential"))
-        val edit = prefs.edit().putString("region", region.name).putString("workspace", workspace)
+        val edit = prefs.edit().putString("region", region.name).putString("workspace", workspace).putString("models", models.encode())
         if (newKey.isNotBlank()) {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, secret())
@@ -83,13 +103,15 @@ class TranslationSettings(context: Context) {
         values.value = snapshot()
     }
 
-    @Synchronized fun provider(): QwenSpeech? {
+    @Synchronized fun provider(): QwenSpeech? = provider(values.value.options(ModelFeature.FACE))
+    @Synchronized fun provider(feature: ModelFeature): QwenSpeech? = provider(values.value.options(feature))
+    @Synchronized fun provider(options: QwenOptions): QwenSpeech? {
         val encoded = prefs.getString("credential", null) ?: return null
         val (iv, body) = encoded.split('.', limit = 2)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, secret(), GCMParameterSpec(128, Base64.decode(iv, Base64.NO_WRAP)))
         val key = String(cipher.doFinal(Base64.decode(body, Base64.NO_WRAP)), Charsets.UTF_8)
-        return QwenSpeech(key, values.value.cloud)
+        return QwenSpeech(key, options)
     }
 
     private fun secret(): SecretKey {

@@ -4,7 +4,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-data class RecoveredCaption(val side: Side, val source: String, val target: String)
+data class RecoveredCaption(val side: Side, val source: String, val target: String, val model: ModelTrace? = null)
 data class CaptionRecoveryPolicy(val bufferMs: Int = 90_000, val maximumClipMs: Int = 60_000,
     val maximumPending: Int = 2, val finishWaitMs: Long = 6_000)
 
@@ -99,7 +99,7 @@ class RecoveringCaptionSession(factory: ((LiveUpdate) -> Unit) -> LiveSpeechSess
             else {
                 emit(LiveUpdate.Withdrawn(work.original.id, work.original.side))
                 emit(work.original.copy(side = result.side, source = result.source, target = result.target,
-                    pcm = byteArrayOf(), issue = null))
+                    pcm = byteArrayOf(), issue = null, model = result.model ?: work.original.model))
             }
         } finally {
             synchronized(lock) { if (pending[key] === work) pending.remove(key) }

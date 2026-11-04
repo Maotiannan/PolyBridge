@@ -68,7 +68,7 @@ class ProbeService : Service() {
                     }
                 }
                 complete(entry)
-                if (request.side != null) (application as PolyBridgeApp).translator.recorded(request.id, wave)
+                if (request.side != null) (application as PolyBridgeApp).translator.recorded(request.id, wave, request.modelOptions, request.speak)
             }
         } catch (_: SecurityException) { complete(request.empty(Verdict.DENIED, "SERVICE_PERMISSION")) }
           catch (_: RuntimeException) { complete(request.empty(Verdict.FAILED, "SERVICE_START")) }

@@ -26,6 +26,7 @@ import dev.polybridge.app.audio.*
 import dev.polybridge.app.ui.*
 import dev.polybridge.core.*
 import kotlinx.coroutines.*
+import dev.polybridge.qwen.ModelFeature
 
 class MainActivity : ComponentActivity() {
     private val app get() = application as PolyBridgeApp
@@ -51,8 +52,13 @@ class MainActivity : ComponentActivity() {
         runCatching { packageManager.getPackageInfo(it, 0).versionName }.getOrNull()
     } ?: if (target == PlaybackTarget.SELF) BuildConfig.VERSION_NAME else null
 
-    private fun start(kind: Kind, target: PlaybackTarget, input: Int?, side: Side? = null, token: Intent? = null, source: String? = null): String? {
-        val request = store.begin(kind, target, input, side, version(target), source) ?: return null
+    private fun start(kind: Kind, target: PlaybackTarget, input: Int?, side: Side? = null, token: Intent? = null, source: String? = null,
+        feature: ModelFeature = ModelFeature.FACE): String? {
+        val selected = when (kind) { Kind.LISTEN -> ModelFeature.LISTEN; Kind.CAPTIONS -> ModelFeature.CAPTIONS; else -> feature }
+        val config = app.settings.state.value
+        val options = if (side != null || kind.streaming) try { config.options(selected) }
+            catch (e: IllegalArgumentException) { notice(e.message ?: "请重新选择模型方案"); return null } else null
+        val request = store.begin(kind, target, input, side, version(target), source, options, selected, config.autoSpeak) ?: return null
         try { ProbeService.launch(this, request, token) }
         catch (_: RuntimeException) { store.finish(request.empty(Verdict.FAILED, "FOREGROUND_START")); return null }
         return request.id
@@ -86,7 +92,7 @@ class MainActivity : ComponentActivity() {
             }
             else { rejected(pendingKind, pendingTarget, null, Verdict.DENIED, "PROJECTION_CONSENT", pendingPackage); notice("本次未获播放共享授权") }
         }
-        fun startConsented(kind: Kind, chosen: PlaybackTarget, selectedInput: Int?, side: Side?): String? {
+        fun startConsented(kind: Kind, chosen: PlaybackTarget, selectedInput: Int?, side: Side?, feature: ModelFeature = ModelFeature.FACE): String? {
             if (kind.playbackCapture) {
                 if (kind == Kind.CAPTIONS) {
                     projection.launch(projectionManager.createScreenCaptureIntent())
@@ -94,7 +100,7 @@ class MainActivity : ComponentActivity() {
                 else projection.launch(projectionManager.createScreenCaptureIntent())
                 return null
             }
-            return start(kind, chosen, selectedInput, side)
+            return start(kind, chosen, selectedInput, side, feature = feature)
         }
         val mic = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -103,11 +109,11 @@ class MainActivity : ComponentActivity() {
             } else if (pendingKind == Kind.HOLD) notice("麦克风已授权，请重新按住说话")
             else startConsented(pendingKind, pendingTarget, pendingInput, pendingSide)
         }
-        fun userStart(kind: Kind, chosen: PlaybackTarget, selectedInput: Int?, side: Side? = null): String? {
+        fun userStart(kind: Kind, chosen: PlaybackTarget, selectedInput: Int?, side: Side? = null, feature: ModelFeature = ModelFeature.FACE): String? {
             if (store.active.value != null || toneBusy) return null
             pendingKind = kind; pendingTarget = chosen; pendingInput = selectedInput; pendingSide = side
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
-                return startConsented(kind, chosen, selectedInput, side)
+                return startConsented(kind, chosen, selectedInput, side, feature)
             val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
             if (Build.VERSION.SDK_INT >= 33) permissions += Manifest.permission.POST_NOTIFICATIONS
             mic.launch(permissions.toTypedArray())
@@ -143,13 +149,13 @@ class MainActivity : ComponentActivity() {
         val json = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { export(it, false) }
         val md = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { export(it, true) }
 
-        fun speechStart(kind: Kind, side: Side?): String? {
+        fun speechStart(kind: Kind, side: Side?, feature: ModelFeature = ModelFeature.FACE): String? {
             val selected = preferredMic(hardware.ports, settings.mic, app.settings.headsets)
             if (settings.mic != Microphone.AUTO && selected == null) { notice("所选麦克风未连接，请在设置中切换"); return null }
-            return userStart(kind, PlaybackTarget.SELF, selected?.id, side)
+            return userStart(kind, PlaybackTarget.SELF, selected?.id, side, feature)
         }
         Studio(app, lifecycle, chat, active, hardware, requestBluetooth = { bluetooth.launch(Manifest.permission.BLUETOOTH_CONNECT) },
-            start = { speechStart(Kind.HOLD, it) }, listen = { speechStart(Kind.LISTEN, null) },
+            start = { side, feature -> speechStart(Kind.HOLD, side, feature) }, listen = { speechStart(Kind.LISTEN, null) },
             captureApp = { pkg ->
                 pendingPackage = pkg
                 if (android.provider.Settings.canDrawOverlays(this)) userStart(Kind.CAPTIONS, PlaybackTarget.SELECTED, null)

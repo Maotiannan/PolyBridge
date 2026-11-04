@@ -32,7 +32,7 @@ import dev.polybridge.app.audio.HeadsetRole
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Kicker("翻译服务")
-            SettingRow(Mark.CLOUD, "千问翻译", if (config.configured) "已保存个人凭据 · ${config.cloud.region.label}" else "连接个人百炼账号，启用语音和文字翻译", cloud)
+            SettingRow(Mark.CLOUD, "千问与模型", if (config.configured) "${config.models.label} · ${config.cloud.region.label}" else "选择整套或分功能模型，连接百炼账号", cloud)
             Kicker("对话与声音")
             SettingRow(Mark.MIC, "说话时的麦克风", inputLabel, selectInput)
             SettingRow(Mark.SPEAK, "自动朗读译文", "打开对话页时，读出刚完成的译文", { settings.playback(!config.autoSpeak) }, config.autoSpeak)
@@ -104,26 +104,31 @@ import dev.polybridge.app.audio.HeadsetRole
     var workspace by remember { mutableStateOf(config.cloud.workspace) }
     var key by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
-    var advanced by remember { mutableStateOf(workspace.isNotBlank()) }
-    StudioDialog(onDismissRequest = dismiss, title = { Text("连接千问") }, text = {
+    var advanced by remember { mutableStateOf(!config.configured) }
+    var models by remember { mutableStateOf(config.models) }
+    StudioDialog(onDismissRequest = dismiss, title = { Text("千问与模型") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("松开说话键会把这一句发给阿里云百炼识别、翻译。凭据加密保存在这台手机，服务费用按你的账号结算。", color = Muted)
+            config.modelError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            ModelSettings(models) { models = it; error = "" }
+            TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "收起账号连接" else "账号连接 · ${region.label}") }
+            if (advanced) {
+            Text("语音和文字发送到百炼处理。密钥加密保存在本机，费用按你的账号结算。", color = Muted)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Region.entries.forEach { item -> FilterChip(region == item, { region = item }, { Text(item.label) }) }
             }
             OutlinedTextField(key, { key = it; error = "" }, Modifier.fillMaxWidth(), label = { Text(if (config.configured) "替换密钥（可留空）" else "百炼 API Key") },
                 singleLine = true, visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
-            TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "收起业务空间" else "指定业务空间（可选）") }
-            if (advanced) OutlinedTextField(workspace, { workspace = it; error = "" }, Modifier.fillMaxWidth(), singleLine = true,
+            OutlinedTextField(workspace, { workspace = it; error = "" }, Modifier.fillMaxWidth(), singleLine = true,
                 label = { Text("业务空间 ID") }, supportingText = { Text("留空使用本地区公共域名") })
-            if (error.isNotEmpty()) Text(error, color = MaterialTheme.colorScheme.error)
             if (config.configured) TextButton(onClick = {
                 runCatching { settings.disconnect() }.onSuccess { dismiss() }.onFailure { error = "无法移除，请重试。" }
             }) { Text("移除本机密钥") }
+            }
+            if (error.isNotEmpty()) Text(error, color = MaterialTheme.colorScheme.error)
         }
     }, confirmButton = { Button(enabled = key.isNotBlank() || config.configured, onClick = {
-        runCatching { settings.save(region, workspace.trim(), key.trim()) }
-            .onSuccess { key = ""; saved() }.onFailure { error = if (it is IllegalArgumentException) "请检查业务空间 ID。" else "无法安全保存凭据，请重试。" }
+        runCatching { settings.save(region, workspace.trim(), key.trim(), models) }
+            .onSuccess { key = ""; saved() }.onFailure { error = if (it is IllegalArgumentException) it.message ?: "请检查账号和模型设置。" else "无法安全保存凭据，请重试。"; advanced = true }
     }) { Text("保存") } }, dismissButton = { TextButton(onClick = dismiss) { Text("返回") } })
 }

@@ -71,7 +71,8 @@ class LiveDuplexDeviceTest {
                         val far = phrase + phrase + phrase
                         val near = waveform("station-${side.source.substringBefore('-')}")
                         val offset = (0 until near.size / 2).first { kotlin.math.abs(sample(near, it)) > 600 }
-                        val event = LiveUpdate.Finished("line-$index", side, 0, "fixture $index", "tickets $index", far)
+                        val event = LiveUpdate.Finished("line-$index", side, 0, "fixture $index", "tickets $index", far,
+                            model = ModelTrace(dev.polybridge.qwen.ModelIds.LIVE35))
                         receiver(event)
                         waitFor(6000) { desk.view.value.speaking }
                         val route = settings.lastRoutes.value.getValue(side.target)
@@ -118,7 +119,8 @@ class LiveDuplexDeviceTest {
                         assertTrue("opening lost", output / max(1.0, opening) > .65)
                         receiver(event) // Duplicate provider completion can never restart its player.
                         assertEquals(minOf(100, index + 1), store.chat.value.turns.size)
-                        assertNotNull(clips[clips.key(store.chat.value.turns.last(), settings.state.value.cloud)])
+                        val saved = store.chat.value.turns.last()
+                        assertNotNull(clips.find(saved, settings.state.value.optionsFor(saved))?.wave)
                         latencies += elapsed
                         if (index < 2) inst.sendStatus(0, Bundle().apply { putString("overlap", "$target releaseMs=$elapsed echoPowerFraction=$leak route=${route.type}") })
                         index++

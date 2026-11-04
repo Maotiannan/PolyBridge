@@ -1,0 +1,22 @@
+{
+  "version": "0.6.0",
+  "device": "vivo X Fold5",
+  "apkSha256": "442e7f36030f233a36dbab62fef8a9fdca482d1552f1278c58e5a55114463d9a",
+  "host": { "tests": 120, "failures": 0, "errors": 0, "lintErrors": 0, "lintWarnings": 31, "appBuild": true, "testBuild": true },
+  "deviceSuites": [
+    { "name": "ModelSelectionDeviceTest + StudioScreenTest + CaptionReliabilityDeviceTest", "passed": 5, "skipped": 3, "failed": 0, "seconds": 13.612 },
+    { "name": "StreamingListeningRegressionTest", "passed": 7, "skipped": 2, "failed": 0, "seconds": 7.287 }
+  ],
+  "productCloud": [
+    { "model": "qwen-audio-3.1-realtime-flash", "attempt": 1, "passed": false, "reason": "Fixture rate rejected before network; corrected test fixture, reservation retained" },
+    { "model": "qwen-audio-3.1-realtime-flash", "attempt": 2, "passed": true, "actualModelConfirmed": true, "durationMs": 2737, "source": "Je voudrais deux billets.", "target": "我想要两张票。", "audioBytes": 92204 },
+    { "model": "qwen-mt-plus", "passed": true, "actualModelConfirmed": true, "durationMs": 694, "target": "我想要两张票。" },
+    { "model": "qwen-audio-3.1-asr-flash-streaming", "passed": true, "actualModelConfirmed": false, "durationMs": 804, "source": "Je voudrais deux billets." },
+    { "model": "qwen3-tts-instruct-flash", "attempt": 1, "passed": false, "reason": "SERVICE", "durationMs": 252 },
+    { "model": "qwen3-tts-instruct-flash", "attempt": 2, "passed": false, "httpStatus": 404, "code": "InvalidParameter", "hint": "MODEL", "durationMs": 1278 }
+  ],
+  "budget": { "campaign": "qwen-evaluation-20261104", "limitCny": 10, "reservedOrEstimatedCny": 9.602636, "actualBilledCny": null, "oldReservationsRetained": true },
+  "testHarnessCorrections": ["Compose remount must use a fresh composition key", "OriginOS dialog scrolling requires display-targeted swipe instead of exposed accessibility scroll action", "24k fixture resampled to the 16k recording input contract before paid request"],
+  "privacy": { "personalHistoryChanged": false, "personalModelSettingsChanged": false, "credentialsExported": false, "microphoneUsed": false, "speakerPlayback": false, "systemVolumeChanged": false },
+  "notClaimed": ["new model long-conversation quality", "new model acoustic echo performance", "unfolded and large-font settings device coverage", "WhatsApp playback-source two-second grouping", "TTS Instruct availability", "GitHub push or remote CI run"]
+}

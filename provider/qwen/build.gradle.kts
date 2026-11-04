@@ -6,4 +6,5 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.okhttp)
     testImplementation(libs.junit)
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

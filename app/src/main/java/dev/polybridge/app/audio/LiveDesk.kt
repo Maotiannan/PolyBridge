@@ -9,12 +9,13 @@ import dev.polybridge.app.*
 import dev.polybridge.core.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import dev.polybridge.qwen.*
 
 internal data class ListeningState(val id: String? = null, val ready: Boolean = false,
     val drafts: List<LiveUpdate.Caption> = emptyList(), val turnIds: List<String> = emptyList(), val speaking: Boolean = false,
     val isolatedOutput: Boolean = false, val issue: TranslationIssue? = null, val reconnecting: Boolean = false,
     val interruptions: Int = 0, val playbackStoppedAt: Long = 0, val lastLine: LiveUpdate.Caption? = null,
-    val kind: Kind? = null, val captureId: String? = null) {
+    val kind: Kind? = null, val captureId: String? = null, val requestedModel: String? = null, val actualModel: String? = null) {
     val partial get() = drafts.lastOrNull()
 }
 
@@ -22,12 +23,9 @@ internal typealias MicFrames = (ShortArray, Int, Int) -> Unit
 
 internal class LiveDesk(private val context: Context, private val store: ProbeStore, private val settings: TranslationSettings,
     private val clips: VoiceClips,
-    private val connect: ((LiveUpdate) -> Unit) -> LiveSpeechSession = {
-        settings.provider()?.live(it) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL)
-    }, private val microphone: (MicFrames) -> AudioInputSource = { AndroidAudioInput(context, onFrame = it) },
-    private val captionConnection: ((LiveUpdate) -> Unit) -> LiveSpeechSession = {
-        settings.provider()?.live(true, it) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL)
-    }) {
+    private val connect: (((LiveUpdate) -> Unit) -> LiveSpeechSession)? = null,
+    private val microphone: (MicFrames) -> AudioInputSource = { AndroidAudioInput(context, onFrame = it) },
+    private val captionConnection: (((LiveUpdate) -> Unit) -> LiveSpeechSession)? = null) {
     private val main = Handler(Looper.getMainLooper())
     private val routing = PlaybackRouting(context, settings)
     private val state = MutableStateFlow(ListeningState())
@@ -44,6 +42,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
     private val spoken = SpokenEchoes()
     private var epoch = 0
     private var offsetMs = 0L
+    private var options = QwenOptions()
 
     fun record(request: ProbeRequest, projection: android.media.projection.MediaProjection? = null): ProbeEntry {
         synchronized(this) {
@@ -54,7 +53,12 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
         var live: LiveSpeechSession? = null
         return try {
             val captions = request.kind == Kind.CAPTIONS
-            val transport = (if (captions) captionConnection else connect) { event -> receive(request, event) }
+            options = request.modelOptions ?: settings.state.value.options(if (captions) ModelFeature.CAPTIONS else ModelFeature.LISTEN)
+            state.value = state.value.copy(requestedModel = options.liveModel)
+            val receiver: (LiveUpdate) -> Unit = { event -> receive(request, event) }
+            val transport = (if (captions) captionConnection else connect)?.invoke(receiver)
+                ?: (settings.provider(options) ?: throw TranslationFailure(TranslationIssue.CREDENTIAL))
+                    .live(captions || !settings.state.value.autoSpeak, receiver)
             live = transport
             val connection = SpeechGate(context, transport)
             live = connection
@@ -157,18 +161,23 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                     return
                 }
                 val line = LiveUpdate.Caption(id, event.side, event.source, event.target, offsetMs + event.startedMs, event.issue)
-                val added = store.changeChat { it.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), event.issue) }
+                val trace = event.model ?: ModelTrace(options.liveModel, feature = options.feature)
+                val added = store.changeChat { chat ->
+                    val heard = chat.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), event.issue)
+                    if (heard == chat) chat else heard.annotate(id, feature = options.feature, model = trace)
+                }
                 if (added) {
                     val latest = state.value.lastLine
                     state.value = state.value.copy(drafts = drafts, turnIds = state.value.turnIds + id,
-                        lastLine = if (latest != null && latest.startedMs > line.startedMs) latest else line)
+                        lastLine = if (latest != null && latest.startedMs > line.startedMs) latest else line,
+                        actualModel = trace.actualModel)
                     if (event.issue == null && event.pcm.isNotEmpty() && request.kind != Kind.CAPTIONS) {
-                        val wave = waveFromPcm(24000, event.pcm)
+                        val wave = waveFromPcm(event.pcmRate, event.pcm)
                         val turn = store.chat.value.turns.firstOrNull { it.id == id } ?: return
-                        clips.put(clips.key(turn, settings.state.value.cloud), wave)
+                        clips.putGenerated(turn, options, wave)
                         if (request.end.get() == null && settings.state.value.autoSpeak && state.value.partial == null) {
                             val epoch = ++voiceEpoch
-                            main.post { if (currentVoice(request.id, epoch)) play(event.pcm, event.side.target, event.target, epoch) }
+                            main.post { if (currentVoice(request.id, epoch)) play(event.pcm, event.side.target, event.target, epoch, event.pcmRate) }
                         }
                     }
                 }
@@ -203,12 +212,12 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
         } } }
     }
 
-    private fun play(pcm: ByteArray, language: String, text: String, epoch: Long) {
+    private fun play(pcm: ByteArray, language: String, text: String, epoch: Long, rate: Int = 24000) {
         player?.close()
         val media = PcmSpeechPlayer(routing)
         roomLevel = background.level()
         mutedAt = -1
-        val reference = PlaybackEcho(roomLevel).apply { start(pcm) }
+        val reference = PlaybackEcho(roomLevel).apply { start(pcm24(pcm, rate)) }
         echo = reference
         player = media
         var began = false
@@ -231,7 +240,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
             }
         }
         try {
-            media.play(VoicePcm(pcm, 0, pcm.size, 24000), language, false, ::routed) { finished() }
+            media.play(VoicePcm(pcm, 0, pcm.size, rate), language, false, ::routed) { finished() }
         } catch (_: Exception) { finished() }
     }
 }

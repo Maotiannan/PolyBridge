@@ -107,7 +107,7 @@ class QwenDuplexDeviceTest {
                         return store.chat.value.turns[count - 1]
                     }
                     fun clip(turn: Turn): ByteArray {
-                        val wave = requireNotNull(clips[clips.key(turn, settings.state.value.cloud)])
+                        val wave = requireNotNull(clips.find(turn, settings.state.value.optionsFor(turn))?.wave)
                         return wave.copyOfRange(44, wave.size)
                     }
                     val tickets = asset("tickets-zh")

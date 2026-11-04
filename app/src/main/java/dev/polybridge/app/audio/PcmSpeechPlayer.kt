@@ -40,6 +40,25 @@ internal data class VoicePcm(val bytes: ByteArray, val offset: Int, val length: 
     }
 }
 
+/** Playback uses its native rate; the existing echo matcher consumes a 24 kHz mono reference. */
+internal fun pcm24(pcm: ByteArray, rate: Int): ByteArray {
+    require(rate in setOf(8000, 16000, 24000, 48000) && pcm.size % 2 == 0)
+    if (rate == 24000 || pcm.isEmpty()) return pcm
+    val input = ByteBuffer.wrap(pcm).order(ByteOrder.LITTLE_ENDIAN)
+    val frames = pcm.size / 2
+    val count = (frames.toLong() * 24000 / rate).toInt()
+    val output = ByteBuffer.allocate(count * 2).order(ByteOrder.LITTLE_ENDIAN)
+    repeat(count) { i ->
+        val position = i.toDouble() * rate / 24000
+        val lower = position.toInt().coerceAtMost(frames - 1)
+        val upper = (lower + 1).coerceAtMost(frames - 1)
+        val a = input.getShort(lower * 2).toInt()
+        val b = input.getShort(upper * 2).toInt()
+        output.putShort((a + (b - a) * (position - lower)).toInt().coerceIn(-32768, 32767).toShort())
+    }
+    return output.array()
+}
+
 /** Establish the route with silence. Speech only enters the stream after its hardware playback head advances. */
 internal class PcmSpeechPlayer(private val routing: PlaybackRouting) : AutoCloseable {
     private val main = Handler(Looper.getMainLooper())

@@ -5,6 +5,64 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RealtimeEventsTest {
+    @Test fun duplicateResponseCreationDoesNotStealNextSentenceAndRepeatedFinalDoesNotReopenIt() {
+        val results = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(null, results::add).apply { inferLanguage = true }
+        listOf(
+            """{"type":"input_audio_buffer.committed","item_id":"a"}""",
+            """{"type":"input_audio_buffer.committed","item_id":"b"}""",
+            """{"type":"response.created","response":{"id":"r"}}""",
+            """{"type":"response.created","response":{"id":"r"}}""",
+            """{"type":"conversation.item.input_audio_transcription.completed","item_id":"a","transcript":"Bonjour."}""",
+            """{"type":"response.text.done","response_id":"r","text":"你好。"}""",
+            """{"type":"response.done","response":{"id":"r","status":"completed"}}""",
+            """{"type":"conversation.item.input_audio_transcription.completed","item_id":"a","transcript":"Bonjour."}"""
+        ).forEach(parser::accept)
+        assertEquals("a", results.filterIsInstance<LiveUpdate.Finished>().single().id)
+    }
+
+    @Test fun untranslatedFrenchIsAnExplicitFailureNotSuccess() {
+        val results = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(null, results::add).apply { inferLanguage = true }
+        listOf(
+            """{"type":"input_audio_buffer.committed","item_id":"a"}""",
+            """{"type":"response.created","response":{"id":"r"}}""",
+            """{"type":"conversation.item.input_audio_transcription.completed","item_id":"a","transcript":"Je voudrais deux billets."}""",
+            """{"type":"response.text.done","response_id":"r","text":"Je veux deux billets."}""",
+            """{"type":"response.done","response":{"id":"r","status":"completed"}}"""
+        ).forEach(parser::accept)
+        assertEquals(TranslationIssue.UNRELIABLE, results.filterIsInstance<LiveUpdate.Finished>().single().issue)
+    }
+    @Test fun audio31SnapshotsDoNotDuplicateAndAutomaticDirectionComesFromSource() {
+        val result = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(null, result::add).apply { inferLanguage = true }
+        listOf(
+            """{"type":"input_audio_buffer.speech_started","item_id":"a"}""",
+            """{"type":"conversation.item.input_audio_transcription.delta","item_id":"a","text":"Je","stash":" veux"}""",
+            """{"type":"conversation.item.input_audio_transcription.delta","item_id":"a","text":"Je veux","stash":" deux billets."}""",
+            """{"type":"response.created","response":{"id":"r"}}""",
+            """{"type":"conversation.item.input_audio_transcription.completed","item_id":"a","transcript":"Je veux deux billets."}""",
+            """{"type":"response.text.done","response_id":"r","text":"我想要两张票。"}""",
+            """{"type":"response.done","response":{"id":"r","status":"completed"}}"""
+        ).forEach(parser::accept)
+        val done = result.filterIsInstance<LiveUpdate.Finished>().single()
+        assertEquals(Side.FRENCH, done.side)
+        assertEquals("Je veux deux billets.", done.source)
+        assertNull(done.issue)
+        assertTrue(parser.idle)
+    }
+    @Test fun sourceDeltaAndAudioTranscriptDeltaAreNotLost() {
+        val result = mutableListOf<LiveUpdate>()
+        val parser = RealtimeEvents(Side.FRENCH, result::add)
+        listOf(
+            """{"type":"input_audio_buffer.speech_started","item_id":"a"}""",
+            """{"type":"conversation.item.input_audio_transcription.delta","item_id":"a","language":"fr","delta":"Bonjour"}""",
+            """{"type":"response.created","response":{"id":"r"}}""",
+            """{"type":"response.audio_transcript.delta","response_id":"r","delta":"你好"}"""
+        ).forEach(parser::accept)
+        assertEquals("Bonjour", result.filterIsInstance<LiveUpdate.Caption>().last().source)
+        assertEquals("你好", result.filterIsInstance<LiveUpdate.Caption>().last().target)
+    }
     @Test fun aLoopingRecognitionIsNeverPublishedAsAnOrdinarySuccessfulCaption() {
         val output = mutableListOf<LiveUpdate>()
         val events = RealtimeEvents(Side.CHINESE, output::add)

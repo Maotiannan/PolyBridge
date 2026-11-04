@@ -8,7 +8,7 @@ sealed interface LiveUpdate {
     data class Withdrawn(val id: String, val side: Side) : LiveUpdate
     data class Finished(val id: String, val side: Side, val startedMs: Long,
         val source: String, val target: String, val pcm: ByteArray, val issue: TranslationIssue? = null,
-        val endedMs: Long? = null) : LiveUpdate
+        val endedMs: Long? = null, val pcmRate: Int = 24000, val model: ModelTrace? = null) : LiveUpdate
     data class Stopped(val issue: TranslationIssue) : LiveUpdate
 }
 
