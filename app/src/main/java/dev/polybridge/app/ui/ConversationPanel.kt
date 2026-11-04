@@ -291,5 +291,6 @@ private fun issueText(turn: Turn, fr: Boolean) = when (turn.issue) {
     TranslationIssue.EMPTY_REPLY -> if (fr) "Aucune parole reconnue." else "没识别到内容，请靠近麦克风再说一次。"
     TranslationIssue.SERVICE -> if (fr) "Service indisponible." else "千问未完成这次请求，请检查服务配置后重试。"
     TranslationIssue.INTERRUPTED -> if (fr) "Session interrompue." else "上次处理被中断。"
+    TranslationIssue.UNRELIABLE -> if (fr) "Reconnaissance incertaine. Réécoutez le message." else "这段识别出现异常，请重新播放语音。"
     null -> if (fr) "Prise de son interrompue. Réessayez." else turn.verdict?.label ?: "这句话未完成。"
 }

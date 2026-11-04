@@ -70,7 +70,7 @@ class ScreenCaptionsDeviceTest {
                 it.viewIdResourceName?.substringAfterLast('/') == "start_button") } ?: return
         val rect = android.graphics.Rect()
         next.getBoundsInScreen(rect)
-        if (!rect.isEmpty) shell("input tap " + rect.centerX() + " " + rect.centerY())
+        if (!rect.isEmpty) shell("input -d 0 tap " + rect.centerX() + " " + rect.centerY())
     }
 
     @Test(timeout = 180000) fun anotherApplicationsAudioShowsLiveBilingualTextAboveThatApplication() {
@@ -116,12 +116,18 @@ class ScreenCaptionsDeviceTest {
                 click(fixture, label)
                 val until = SystemClock.elapsedRealtime() + 30000
                 var partialSeen = false
+                var maximumInputLevel = 0f
                 while (app.live.view.value.lastLine?.side != side && SystemClock.elapsedRealtime() < until) {
                     if (app.live.view.value.partial?.side == side) partialSeen = true
+                    maximumInputLevel = maxOf(maximumInputLevel, app.store.active.value?.level?.value ?: 0f)
                     SystemClock.sleep(30)
                 }
-                val line = requireNotNull(app.live.view.value.lastLine) { "没有收到固定语音译文" }
-                assertEquals(side, line.side)
+                val state = app.live.view.value
+                val evidence = "ready=${state.ready} issue=${state.issue} reconnecting=${state.reconnecting} " +
+                    "drafts=${state.drafts.map { it.side to it.issue }} inputPeak=$maximumInputLevel active=${app.store.active.value != null}"
+                inst.sendStatus(0, Bundle().apply { putString("externalInput", "$side $evidence") })
+                val line = requireNotNull(state.lastLine) { "没有收到固定语音译文: $evidence" }
+                assertEquals(evidence, side, line.side)
                 assertTrue("同语种或错误译文 " + line.target, if (side == Side.FRENCH) "票" in line.target else line.target.contains("gare", true))
                 waitFor("其他应用上没有出现这句原文与译文") {
                     find(own) { it.text?.toString() == line.source } != null && find(own) { it.text?.toString() == line.target } != null &&

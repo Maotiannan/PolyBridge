@@ -5,6 +5,52 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RealtimeEventsTest {
+    @Test fun aLoopingRecognitionIsNeverPublishedAsAnOrdinarySuccessfulCaption() {
+        val output = mutableListOf<LiveUpdate>()
+        val events = RealtimeEvents(Side.CHINESE, output::add)
+        val repeated = "请继续向前走，come on。".repeat(16)
+        events.accept("""{"type":"input_audio_buffer.speech_started","item_id":"s","audio_start_ms":20}""")
+        events.accept("""{"type":"response.created","response":{"id":"r"}}""")
+        events.accept("""{"type":"conversation.item.input_audio_transcription.text","item_id":"s","language":"zh","text":"你好。","stash":""}""")
+        events.accept("""{"type":"conversation.item.input_audio_transcription.text","item_id":"s","language":"zh","text":"你好。$repeated","stash":""}""")
+        assertFalse("异常循环原文直接刷进了浮窗", output.filterIsInstance<LiveUpdate.Caption>().any { repeated in it.source })
+        events.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"s","language":"zh","transcript":"你好。$repeated"}""")
+        events.accept("""{"type":"response.text.done","response_id":"r","text":"Bonjour."}""")
+        events.accept("""{"type":"response.done","response":{"id":"r","status":"completed"}}""")
+        assertNotNull("循环识别被标记为正常完成", output.filterIsInstance<LiveUpdate.Finished>().single().issue)
+    }
+
+    @Test fun aLoopingTranslationIsNotSavedAsAValidTranslation() {
+        val output = mutableListOf<LiveUpdate>()
+        val events = RealtimeEvents(Side.FRENCH, output::add)
+        val repeated = "请在车站等我，我们马上就到。".repeat(16)
+        events.accept("""{"type":"input_audio_buffer.speech_started","item_id":"s"}""")
+        events.accept("""{"type":"response.created","response":{"id":"r"}}""")
+        events.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"s","language":"fr","transcript":"Attendez-moi à la gare."}""")
+        events.accept("""{"type":"response.text.done","response_id":"r","text":"$repeated"}""")
+        events.accept("""{"type":"response.done","response":{"id":"r","status":"completed"}}""")
+        assertNotNull("循环译文被当成正常完成", output.filterIsInstance<LiveUpdate.Finished>().single().issue)
+    }
+
+    @Test fun updatedSnapshotsAndOrdinaryRepeatedWordsArePreservedWithoutAccumulatingOldPreviews() {
+        val output = mutableListOf<LiveUpdate>()
+        val events = RealtimeEvents(Side.FRENCH, output::add)
+        events.accept("""{"type":"input_audio_buffer.speech_started","item_id":"s"}""")
+        events.accept("""{"type":"response.created","response":{"id":"r"}}""")
+        for (word in listOf("Allez", "Allez, allez", "Allez, allez, allez !")) {
+            events.accept("""{"type":"conversation.item.input_audio_transcription.text","item_id":"s","language":"fr","text":"$word","stash":""}""")
+        }
+        for (word in listOf("走", "走，走", "走，走，走！")) {
+            events.accept("""{"type":"response.text.text","response_id":"r","text":"$word","stash":""}""")
+        }
+        assertEquals("Allez, allez, allez !", output.filterIsInstance<LiveUpdate.Caption>().last().source)
+        assertEquals("走，走，走！", output.filterIsInstance<LiveUpdate.Caption>().last().target)
+        events.accept("""{"type":"conversation.item.input_audio_transcription.completed","item_id":"s","transcript":"Allez, allez, allez !"}""")
+        events.accept("""{"type":"response.text.done","response_id":"r","text":"走，走，走！"}""")
+        events.accept("""{"type":"response.done","response":{"id":"r","status":"completed"}}""")
+        assertNull(output.filterIsInstance<LiveUpdate.Finished>().single().issue)
+    }
+
     @Test fun aCancelledTranslationStillKeepsTheConfirmedOriginalWhenTheNextTurnStarts() {
         for (early in listOf(true, false)) {
             val updates = mutableListOf<LiveUpdate>()

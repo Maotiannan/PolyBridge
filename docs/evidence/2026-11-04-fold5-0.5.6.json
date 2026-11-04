@@ -1,0 +1,123 @@
+{
+  "date": "2026-11-04",
+  "version": "0.5.6",
+  "scope": "Automatic caption tail-following and conservative recovery of pathological repeated recognition. No private audio exported; fixed media and real Qwen used for verification.",
+  "device": {
+    "model": "vivo X Fold5 / V2436A",
+    "android": 16,
+    "versionCode": 5006,
+    "appSha256": "8bc4aedd0f19c75169ee08fc997850ff9d5f9471b4cacca850ed4f2b0ce23547",
+    "testAppSha256": "0e3121bd181d7200ac35a00c41a34267613d1ebb4666f99e9ec133b749ffe058",
+    "bothDeviceHashesMatchLocal": true,
+    "bothApksV2Verified": true,
+    "cleanup": {
+      "stayOnWhilePluggedInOriginalAndRestored": 0,
+      "mediaProjection": null,
+      "applicationServices": "none",
+      "speakerMediaVolume": "0/150, muted",
+      "rememberedBluetoothMediaVolume": "150/150, unchanged",
+      "finalLaunchMs": 562,
+      "removedOnlyKnownTemporaryFixtureImageAndIsolatedTestRecord": true,
+      "privateAudioOrCredentialsExported": false
+    }
+  },
+  "host": {
+    "coreTests": 29,
+    "providerTests": 15,
+    "appTests": 30,
+    "total": 74,
+    "failures": 0,
+    "lintErrors": 0,
+    "lintWarnings": 24,
+    "log": "app/build/caption-qa/056/build-final.log",
+    "newCoverage": [
+      "Long loops are unconfirmed; normal repeated emphasis and cumulative snapshots remain correct",
+      "Full 16/48 kHz clip boundaries, missing or expired audio, 40 second clip without held-speech truncation",
+      "One recovery per event, bounded queue, timeout, close rejects late results",
+      "finish waits for corrected-result delivery before returning",
+      "ASR requests omit forced language and translate only confirmed French or Chinese",
+      "Untruncated compact/full tail following, same-turn growth, manual pause, native accessibility and latest button"
+    ]
+  },
+  "phone": {
+    "reliability": {
+      "log": "app/build/caption-qa/056/verified-reliability.log",
+      "passed": 3,
+      "skipped": 1,
+      "skipReason": "The previously inspected personal anomaly no longer exists in current history. No text was recreated or exported.",
+      "scrollLines": 100,
+      "touchAndAccessibilityPauseResume": true,
+      "isolatedFailurePersistence": true,
+      "realRecoveryCalls": 1,
+      "correctedLanguage": "FRENCH",
+      "fixedSource": "Je voudrais deux billets.",
+      "fixedTranslation": "我想要两张票。",
+      "fixtureViewImage": "app/build/caption-qa/056/scroll.png"
+    },
+    "crossApplication": {
+      "latestLog": "app/build/caption-qa/056/cross-app-diagnostic-2.log",
+      "latestPassed": 2,
+      "latestSeconds": 37.497,
+      "latestFrenchInputPeak": 0.87553775,
+      "latestChineseInputPeak": 0.8675633,
+      "latestBothDirections": true,
+      "latestBreathParagraphAndReopenedHistoryComplete": true,
+      "latestRainCaptions": 0,
+      "stabilityAccepted": false,
+      "failuresNotDiscarded": [
+        {
+          "log": "app/build/caption-qa/056/final-cross-app.log",
+          "failure": "French completed, following Chinese had no new final caption within 30 seconds",
+          "captureSamples": 800320,
+          "nonZeroSamples": 145482,
+          "captureElapsedMs": 50070
+        },
+        {
+          "log": "app/build/caption-qa/056/cross-app-diagnostic.log",
+          "failure": "No final French caption within 30 seconds",
+          "captureSamples": 672320,
+          "nonZeroSamples": 106102,
+          "captureElapsedMs": 42057
+        }
+      ],
+      "interpretation": "Capture received sound, but original failing runs lack per-turn gated-audio and provider-event counters. Root cause remains undetermined. Later passing replay does not close these failures."
+    },
+    "streaming": {
+      "log": "app/build/caption-qa/056/final-streaming.log",
+      "passed": 8,
+      "skippedEmulatorOnly": 1,
+      "seconds": 85.659,
+      "cloudRainCaptions": 0,
+      "cloudBreathPairs": 8,
+      "ticketMentions": 8,
+      "stationMentions": 8,
+      "fixedAudioSeconds": 77.84475,
+      "fixedAudioPhrases": 24,
+      "minimumStrongSampleRetention": 0.9944522896913456
+    },
+    "ordinaryDuplex": {
+      "log": "app/build/caption-qa/056/final-duplex.log",
+      "passed": 1,
+      "turns": 2,
+      "stopMs": 347,
+      "extraEchoTurn": false,
+      "processingP95Ms": 7.619115,
+      "processingMaxMs": 54.496771
+    }
+  },
+  "limitations": [
+    "Historical screenshot confirmed repetition in stored recognition, but old raw audio was not saved",
+    "Actual private WhatsApp voice message not replayed",
+    "Repetition detection is not a general detector for all wrong translations",
+    "Independent recovery is bounded to one complete clip up to 60 seconds within a 90 second memory ring, with at most two pending clips",
+    "Two intermittent missing-caption runs remain open despite later success",
+    "No natural-room or quiet acoustic duplex certification in this release"
+  ],
+  "process": {
+    "subagents": false,
+    "mainAlreadyAncestorOfBranch": true,
+    "remoteConfigured": false,
+    "ci": ".github/workflows/android.yml includes host checks and credential-free Android interface tests",
+    "installerIssue": "Vivo folded-screen touch needed explicit display 0; no biometric bypass. Regular project install confirmation succeeded after correcting the target display."
+  }
+}

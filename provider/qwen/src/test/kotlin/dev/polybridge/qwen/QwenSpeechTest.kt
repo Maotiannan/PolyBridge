@@ -10,6 +10,50 @@ import java.net.URL
 import java.util.Base64
 
 class QwenSpeechTest {
+    @Test fun captionRecoveryDetectsLanguageAgainAndTranslatesTheActualFrenchAudio() {
+        val bodies = mutableListOf<com.google.gson.JsonObject>()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/") { exchange ->
+            bodies += JsonParser.parseString(exchange.requestBody.bufferedReader().use { it.readText() }).asJsonObject
+            val result = if (bodies.size == 1)
+                """{"choices":[{"message":{"content":"Bonjour, je cherche la gare.","annotations":[{"type":"audio_info","language":"fr"}]}}]}"""
+            else """{"choices":[{"message":{"content":"你好，我在找火车站。"}}]}"""
+            val bytes = result.toByteArray()
+            exchange.sendResponseHeaders(200, bytes.size.toLong()); exchange.responseBody.use { it.write(bytes) }
+        }
+        server.start()
+        try {
+            val recovered = QwenSpeech("test-only", URL("http://127.0.0.1:${server.address.port}/")).recoverCaption(byteArrayOf(1, 2))
+            assertEquals(Side.FRENCH, recovered.side)
+            assertEquals("你好，我在找火车站。", recovered.target)
+            assertFalse(bodies[0]["asr_options"].asJsonObject.has("language"))
+            val languages = bodies[1]["translation_options"].asJsonObject
+            assertEquals("French", languages["source_lang"].asString)
+            assertEquals("Chinese", languages["target_lang"].asString)
+        } finally { server.stop(0) }
+    }
+
+    @Test fun unconfirmedLanguageOrAnotherRecognitionLoopNeverEntersTranslation() {
+        for ((language, source) in listOf("" to "Bonjour", "en" to "Hello", "fr" to "Il faut avancer maintenant.".repeat(20))) {
+            var calls = 0
+            val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+            server.createContext("/") { exchange ->
+                calls++
+                exchange.requestBody.close()
+                val bytes = """{"choices":[{"message":{"content":"$source","annotations":[{"type":"audio_info","language":"$language"}]}}]}""".toByteArray()
+                exchange.sendResponseHeaders(200, bytes.size.toLong()); exchange.responseBody.use { it.write(bytes) }
+            }
+            server.start()
+            try {
+                val failure = assertThrows(TranslationFailure::class.java) {
+                    QwenSpeech("test-only", URL("http://127.0.0.1:${server.address.port}/")).recoverCaption(byteArrayOf(1))
+                }
+                assertEquals(TranslationIssue.UNRELIABLE, failure.issue)
+                assertEquals(1, calls)
+            } finally { server.stop(0) }
+        }
+    }
+
     @Test fun sendsSpokenWaveAndTranslatesTheReturnedWordsInBothDirections() {
         for (side in Side.entries) {
             val source = if (side == Side.CHINESE) "火车九点开。" else "Il reste deux places."

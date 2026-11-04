@@ -13,6 +13,8 @@ internal class RealtimeEvents(private val side: Side, private val update: (LiveU
         var language = ""
         var source = ""
         var target = ""
+        var safeSource = ""
+        var end: Long? = null
         var sourceDone = false
         var targetDone = false
         var responseDone = false
@@ -34,6 +36,9 @@ internal class RealtimeEvents(private val side: Side, private val update: (LiveU
                 val id = event.string("item_id")
                 if (inputs.size >= 12) throw TranslationFailure(TranslationIssue.SERVICE)
                 inputs.putIfAbsent(id, Sentence(id, event["audio_start_ms"]?.asLong ?: 0))
+            }
+            "input_audio_buffer.speech_stopped" -> {
+                inputs[event.string("item_id")]?.end = event["audio_end_ms"]?.asLong
             }
             "conversation.item.input_audio_transcription.text", "conversation.item.input_audio_transcription.completed" -> {
                 val line = inputs[event.string("item_id")] ?: return
@@ -92,17 +97,23 @@ internal class RealtimeEvents(private val side: Side, private val update: (LiveU
 
     private fun publish(line: Sentence) {
         val recognized = line.language == sourceLanguage && line.source.isNotBlank()
+        val sourceLoop = CaptionQuality.repetitive(line.source)
+        val targetLoop = CaptionQuality.repetitive(line.target)
+        val quality = TranslationIssue.UNRELIABLE.takeIf { sourceLoop || targetLoop }
+        if (!sourceLoop) line.safeSource = line.source
         if (line.responseDone && line.sourceDone && (line.targetDone || line.issue != null || !recognized)) {
             if (recognized) {
-                val issue = line.issue ?: TranslationIssue.EMPTY_REPLY.takeIf { line.target.isBlank() }
+                val issue = quality ?: line.issue ?: TranslationIssue.EMPTY_REPLY.takeIf { line.target.isBlank() }
                 val pcm = if (issue == null) line.audio?.toByteArray() else null
-                update(LiveUpdate.Finished(line.id, side, line.start, line.source.trim(), line.target.trim(), pcm ?: byteArrayOf(), issue))
+                update(LiveUpdate.Finished(line.id, side, line.start, line.safeSource.trim(),
+                    if (quality == null) line.target.trim() else "", pcm ?: byteArrayOf(), issue, line.end))
                 line.previewShown = false
             }
             discard(line)
         } else if (recognized) {
             line.previewShown = true
-            update(LiveUpdate.Caption(line.id, side, line.source.trim(), line.target.trim(), line.start))
+            update(LiveUpdate.Caption(line.id, side, line.safeSource.trim(),
+                if (quality == null) line.target.trim() else "", line.start, quality))
         } else withdraw(line)
     }
 

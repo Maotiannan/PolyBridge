@@ -35,7 +35,34 @@ class QwenSpeech internal constructor(private val key: String, private val endpo
         live(false, update)
 
     fun live(textOnly: Boolean, update: (LiveUpdate) -> Unit): LiveSpeechSession =
-        ReconnectingLiveSession({ receiver -> QwenLiveSession(key, options, textOnly, receiver) }, update)
+        ReconnectingLiveSession({ receiver ->
+            if (textOnly) RecoveringCaptionSession({ QwenLiveSession(key, options, true, it) }, ::recoverCaption, receiver)
+            else QwenLiveSession(key, options, false, receiver)
+        }, update)
+
+    /** Recheck only anomalous screen captions, without reusing the live recognizer's language. */
+    fun recoverCaption(wave: ByteArray): RecoveredCaption {
+        val data = "data:audio/wav;base64," + Base64.getEncoder().encodeToString(wave)
+        val audio = mapOf("type" to "input_audio", "input_audio" to mapOf("data" to data))
+        val response = post(endpoint, mapOf("model" to options.asrModel,
+            "messages" to listOf(message(listOf(audio))), "asr_options" to mapOf("enable_itn" to false)))
+        val result = runCatching { response.getAsJsonArray("choices")[0].asJsonObject.getAsJsonObject("message") }
+            .getOrNull() ?: throw TranslationFailure(TranslationIssue.UNRELIABLE)
+        val source = runCatching { result["content"].asString.trim() }.getOrDefault("")
+        val language = runCatching { result.getAsJsonArray("annotations").firstOrNull {
+            it.asJsonObject["type"]?.asString == "audio_info"
+        }?.asJsonObject?.get("language")?.asString }.getOrNull()
+        val side = when (language) {
+            "fr" -> Side.FRENCH
+            "zh" -> Side.CHINESE
+            else -> throw TranslationFailure(TranslationIssue.UNRELIABLE)
+        }
+        if (source.isBlank() || CaptionQuality.repetitive(source)) throw TranslationFailure(TranslationIssue.UNRELIABLE)
+        if (Thread.currentThread().isInterrupted) throw TranslationFailure(TranslationIssue.INTERRUPTED)
+        val target = translate(side, source)
+        if (CaptionQuality.repetitive(target)) throw TranslationFailure(TranslationIssue.UNRELIABLE)
+        return RecoveredCaption(side, source, target)
+    }
 
     override fun transcribe(side: Side, wave: ByteArray): String {
         val data = "data:audio/wav;base64," + Base64.getEncoder().encodeToString(wave)

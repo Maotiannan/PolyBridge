@@ -29,7 +29,7 @@ data class Conversation(val turns: List<Turn> = emptyList(), val session: String
     }
 
     fun heard(line: LiveUpdate.Caption, origin: LiveOrigin, issue: TranslationIssue? = null): Conversation {
-        if (line.source.isBlank() || turns.any { it.id == line.id }) return this
+        if ((line.source.isBlank() && issue != TranslationIssue.UNRELIABLE) || turns.any { it.id == line.id }) return this
         val turn = Turn(line.id, line.side, if (issue == null) TurnStatus.READY else TurnStatus.FAILED,
             line.source, line.target, issue = issue, atMs = System.currentTimeMillis(), live = origin)
         val next = turns.indexOfFirst { it.live?.let { earlier -> earlier.captureId == origin.captureId && earlier.offsetMs > origin.offsetMs } == true }

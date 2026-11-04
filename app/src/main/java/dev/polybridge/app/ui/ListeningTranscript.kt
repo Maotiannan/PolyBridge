@@ -20,7 +20,7 @@ internal fun transcriptRows(chat: Conversation, state: ListeningState, kind: Kin
     val prefix = "live-$capture-"
     val saved = chat.turns.filter { it.live?.captureId == capture || it.live == null && it.id.startsWith(prefix) }
     val confirmed = saved.map { turn -> TranscriptRow(LiveUpdate.Caption(turn.id, turn.side,
-        turn.sourceText, turn.translatedText, turn.live?.offsetMs ?: 0), turn) }
+        turn.sourceText, turn.translatedText, turn.live?.offsetMs ?: 0, turn.issue), turn) }
     val drafts = current?.drafts.orEmpty()
     if (drafts.isEmpty()) return confirmed
     val pending = drafts.filter { line -> saved.none { it.id == line.id } }.map { TranscriptRow(it, null) }
@@ -37,8 +37,12 @@ internal fun transcriptRows(chat: Conversation, state: ListeningState, kind: Kin
             if (row.saved?.status == TurnStatus.READY && actions != null) TurnCard(row.saved, null, actions)
             else Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
                 val direction = if (row.line.side == Side.FRENCH) "法语 → 中文" else "中文 → 法语"
-                Kicker(direction + when { row.saved == null -> "  ·  正在听"; row.saved.status == TurnStatus.FAILED -> "  ·  未确认"; else -> "" })
+                Kicker(direction + when { row.line.issue == TranslationIssue.UNRELIABLE -> "  ·  识别待核对";
+                    row.saved == null -> "  ·  正在听"; row.saved.status == TurnStatus.FAILED -> "  ·  未确认"; else -> "" })
                 Text(row.line.source, color = Muted, style = MaterialTheme.typography.bodyMedium)
+                if (row.line.issue == TranslationIssue.UNRELIABLE) Text(
+                    if (row.saved == null) "正在重新核对原音…" else "未能确认这段识别，请重新播放语音。",
+                    color = Muted, style = MaterialTheme.typography.bodyMedium)
                 if (row.line.target.isNotBlank()) Text(row.line.target, color = Ink, style = MaterialTheme.typography.bodyLarge)
                 HorizontalDivider(Modifier.padding(top = 5.dp), color = Line)
             }

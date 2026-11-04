@@ -114,7 +114,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
         val drafts = state.value.drafts
         if (drafts.isEmpty()) return
         store.changeChat { chat -> drafts.fold(chat) { saved, line ->
-            saved.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), reason)
+            saved.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), line.issue ?: reason)
         } }
         state.value = state.value.copy(drafts = emptyList(), turnIds = (state.value.turnIds + drafts.map { it.id }).distinct())
     }
@@ -156,7 +156,7 @@ internal class LiveDesk(private val context: Context, private val store: ProbeSt
                     state.value = state.value.copy(drafts = drafts)
                     return
                 }
-                val line = LiveUpdate.Caption(id, event.side, event.source, event.target, offsetMs + event.startedMs)
+                val line = LiveUpdate.Caption(id, event.side, event.source, event.target, offsetMs + event.startedMs, event.issue)
                 val added = store.changeChat { it.heard(line, LiveOrigin(request.id, request.kind, line.startedMs), event.issue) }
                 if (added) {
                     val latest = state.value.lastLine

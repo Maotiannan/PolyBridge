@@ -29,14 +29,17 @@
 | 模块 | 处理范围 |
 |---|---|
 | core / LiveConversation、ReconnectingLiveSession | 实时字幕、最终译文、终止原因和有上限的连接恢复。旧连接的迟到事件与中断期间的声音不进入新会话 |
+| core / CaptionQuality、RecoveringCaptionSession | 检查长串机械循环；屏幕字幕每条连接只保留最近 90 秒、16 kHz 单声道 PCM 的内存环形缓存。异常时最多排队两段，每段最多 60 秒，独立核对一次。音频边界缺失、过期或超长时不拿残段冒充完整识别 |
 | provider / qwen / QwenLiveSession、RealtimeEvents | 16 kHz 音频经两个固定目标语言的连接发送。结合源语言识别、句子和响应编号归集译文与 24 kHz 译音，只提交匹配的翻译方向 |
 | app / audio / LiveDesk、PlaybackFloor、SpeechGate | 用实际播报波形消回声和判断打断。自由监听及应用播放采集都经过会话独享的人声检测器，先统一到 16 kHz，按 32 毫秒检测，保留 192 毫秒句首缓存。背景声替换为等长静音，音量表取自处理前的输入 |
 | app / audio / PlaybackRouting、HeadsetPreferences | 确认实际输出后按系统媒体音量播放。手动指定的耳机未匹配时保持静音。设备分配使用每次安装独有的散列标识 |
 | app / audio / CaptionApps、ProbeService、LiveDesk | 用户选择可启动的来源应用。前台服务持有本次播放共享许可，按来源 UID 和媒体用途过滤 PCM，送入中法两个自动识别方向。字幕使用纯文本输出，不通过扬声器读回所听内容 |
-| app / ui / ScreenCaptions、ListeningTranscript | 悬浮字幕、自由监听页、字幕页共用同一记录视图。合并按开口时间排序的已保存段落和实时草稿。浮窗可展开滚动，停止后应用内继续显示本次记录 |
+| app / ui / ScreenCaptions、CaptionContent、ListeningTranscript | 窗口位置、文字呈现和记录整理分开。小窗两种语言及全文均不截断文字，默认跟随末尾；手动上翻暂停，按钮恢复跟随。全文逐段标明方向，停止后应用内保留原顺序和未确认状态 |
 | app / ui / CallAssistPanel、audio / TranslatedAudioShare | 机主说中文后生成法语，可在本机播放，或显式分享私有缓存中的只读语音。通话上行仍须另行验证 |
 
 自由监听、长按和系统播放共享互斥。语音消息共享只申请所选应用允许采集的媒体用途，通话音轨仍须单独验收。
+
+字幕复核使用独立的千问 ASR 请求，不指定旧语种，只接受明确的中文或法语结果，再按正确方向翻译。只在异常时增加请求，不生成或播放声音。检测到重复不等于证明原音错误；复核仍重复时显示未确认，不擅自去重成一句。停止时额外等待复核最多 6 秒，未完成项保持未确认；关闭会清空环形缓存和排队任务，已在途 HTTP 返回后释放临时片段且不得再更新字幕。缓存不写入磁盘。阈值集中在策略对象，未新增用户调参负担。[方案和限制](CAPTION_RELIABILITY.md)
 
 千问在自由监听中等待约 1.2 秒静音，在应用播放字幕中等待约 1.8 秒，具体分段由云端决定。翻译响应和原文可以先后到达，按各自编号匹配，两端文字齐全后才作为已确认句提交。停止时给云端最多 12 秒刷新，重连时保留已有草稿并接续上一条连接的时间轴。单段译音超过缓存限制时仍保存原文和译文。[接口参数](https://help.aliyun.com/en/model-studio/live-translator-client-events) · [检测模型及许可](AUDIO_ASSETS.md)
 
