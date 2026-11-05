@@ -1,6 +1,11 @@
 import unittest
+import hashlib
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import wave
 import numpy as np
-from short_clips import mix, schedule
+from short_clips import generate, mix, schedule
 
 
 class ShortClipsTest(unittest.TestCase):
@@ -29,6 +34,24 @@ class ShortClipsTest(unittest.TestCase):
         self.assertAlmostEqual(5, ratio, places=5)
         with self.assertRaises(ValueError):
             mix(clean, np.zeros_like(clean), spans, 5)
+
+    def test_approved_clips_are_reproducible_and_match_the_manifest(self):
+        root = Path(__file__).resolve().parents[2]
+        fixtures = root / "evaluation/noise/fixtures/short"
+        expected = json.loads((fixtures / "manifest.json").read_text(encoding="utf-8"))
+        with TemporaryDirectory() as directory:
+            actual = generate(root, Path(directory))
+            self.assertEqual(expected, actual)
+        self.assertEqual(10, len(expected["clips"]))
+        for clip in expected["clips"]:
+            for name, sha in [(clip["file"], clip["sha256"])] + (
+                    [(clip["reference"], clip["referenceSha256"])] if "reference" in clip else []):
+                path = fixtures / name
+                self.assertEqual(sha, hashlib.sha256(path.read_bytes()).hexdigest())
+                with wave.open(str(path), "rb") as reader:
+                    self.assertEqual((1, 2, 16000, clip["samples"]),
+                                     (reader.getnchannels(), reader.getsampwidth(), reader.getframerate(), reader.getnframes()))
+                    self.assertLessEqual(reader.getnframes() / reader.getframerate(), 20)
 
 
 if __name__ == '__main__':

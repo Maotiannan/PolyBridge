@@ -1,0 +1,21 @@
+PolyBridge short noisy speech evaluation fixtures, generated 2026-11-05.
+Speech: existing project synthetic station-fr, tickets-zh, train-fr, thanks-zh.
+These clips are scripted alternating utterances, not a natural conversation.
+
+Background recordings: ESC-10 subset of ESC-50, curated by Karol J. Piczak.
+Compilation license: CC BY 3.0, https://creativecommons.org/licenses/by/3.0/
+Pinned source and credits:
+https://github.com/karolpiczak/ESC-50/blob/33c8ce9eb2cf0b1c2f8bcf322eb349b6be34dbb6/LICENSE
+
+rain_on_greenhouse.mp3 by j1987 (original CC0), ESC file 2-73027-A-10.wav:
+https://freesound.org/people/j1987/sounds/73027/
+Small Helicopter Takes Off by senorstudy (original CC0), ESC file 1-172649-A-40.wav:
+https://freesound.org/people/senorstudy/sounds/172649/
+clock_tick_close.wav by life_interconnected (original CC0), ESC file 1-62849-A-38.wav:
+https://freesound.org/people/life_interconnected/sounds/62849/
+
+Changes by this project: mono 16kHz PCM resampling, looping to 18 seconds,
+level scaling, mixing with speech, and an amplitude step in rising-rain.
+No endorsement by the original authors is implied.
+manifest.json gives source hashes, output hashes, speech timing and mix levels.
+Fixtures are only included in tests, not the production APK.

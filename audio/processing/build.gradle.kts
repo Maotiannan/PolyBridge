@@ -11,5 +11,7 @@ dependencies {
     compileOnly(libs.onnxruntime.jvm)
     testImplementation(libs.onnxruntime.jvm)
     testImplementation(libs.junit)
+    testImplementation(libs.gson)
 }
+kotlin.sourceSets.test { kotlin.srcDir(rootProject.file("evaluation/noise/kotlin")) }
 tasks.test { systemProperty("polybridge.root", rootProject.projectDir.absolutePath) }

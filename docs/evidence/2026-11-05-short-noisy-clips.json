@@ -1,0 +1,1588 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-05",
+  "sourceBaseCommit": "ebde0f2",
+  "scope": "Approved 10 x 18s fixed bilingual/noise fixtures, two shipping filter modes on JVM and Fold5; not cloud accuracy or live microphone/playback capture",
+  "application": {
+    "version": "0.6.5",
+    "versionCode": 6005,
+    "sha256": "6208e349d29a227481b2b793421eff4805962a871509af78333e4af759727055",
+    "reinstalled": false
+  },
+  "androidRun": {
+    "device": "vivo X Fold5",
+    "testPackageSha256": "d8400ad558438f28bd036e63a7f6127db36a7f0216f90c2471daa39606c25053",
+    "instrumentationTests": 1,
+    "instrumentationSeconds": 19.143,
+    "cloudCalls": 0,
+    "microphoneOpened": false,
+    "audioPlayed": false,
+    "personalPreferencesModified": false,
+    "note": "Final test package additionally contains attribution text and an explicit <=500ms backlog assertion; its APK was built but not reinstalled after the phone locked. This recorded run measured <=236ms, independently checked when exporting this evidence."
+  },
+  "verification": {
+    "jvmTests": 173,
+    "jvmFailures": 0,
+    "jvmSkipped": 0,
+    "note": "Unchanged modules used valid Gradle cache; audio-processing tests were re-executed.",
+    "pythonTests": 9,
+    "lintErrors": 0,
+    "lintWarnings": 33
+  },
+  "criteria": {
+    "strongReference": "abs(sample) > max(10 PCM16 units, 0.2 * per-turn RMS)",
+    "openingAndEndingWindowMs": 250,
+    "retentionWarningBelow": 0.9,
+    "noiseLeakWarning": "any nonzero sample for noise-only input",
+    "meaning": "Nonzero-sample retention is not intelligibility, recognition accuracy or translation accuracy; synthesis zeros and quantization may affect it."
+  },
+  "qualityAcceptance": {
+    "enhanced": {
+      "scenarios": 10,
+      "withWarnings": 0
+    },
+    "basic": {
+      "scenarios": 10,
+      "withWarnings": 2
+    },
+    "note": "JUnit success is structural/harness success; acoustic warnings are reported separately and are not hidden."
+  },
+  "jvm": {
+    "platform": "JVM",
+    "results": [
+      {
+        "clip": "clean",
+        "enhanced": false,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1160,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 131.3688,
+        "frameP95Ms": 0.2238,
+        "frameMaxMs": 0.5454,
+        "outputNonzeroFraction": 0.3222465277777778,
+        "suppressionDb": 1.4801458401593656e-8,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -4.441425841759758e-8,
+            "siSdrDb": 79.9345786204463
+          },
+          {
+            "language": "zh",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 0,
+            "siSdrDb": 133.25981110960262
+          },
+          {
+            "language": "fr",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 0,
+            "siSdrDb": 133.9139319197469
+          },
+          {
+            "language": "zh",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 0,
+            "siSdrDb": 131.8264391404062
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "clean",
+        "enhanced": true,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1180,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1539.9551,
+        "frameP95Ms": 2.7773,
+        "frameMaxMs": 4.6388,
+        "outputNonzeroFraction": 0.29710416666666667,
+        "suppressionDb": 0.03412156578396465,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -0.062458780530493224,
+            "siSdrDb": 33.34551917151976
+          },
+          {
+            "language": "zh",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -0.028413748018950784,
+            "siSdrDb": 37.16207567368804
+          },
+          {
+            "language": "fr",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -0.016558047030962652,
+            "siSdrDb": 37.83979985574591
+          },
+          {
+            "language": "zh",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -0.013987119377582471,
+            "siSdrDb": 36.976125095043386
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "rain-5db",
+        "enhanced": false,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1160,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 139.7525,
+        "frameP95Ms": 0.2473,
+        "frameMaxMs": 0.6014,
+        "outputNonzeroFraction": 0.48682291666666666,
+        "suppressionDb": 1.0166025372072982,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.9997574875712381,
+            "openingRetained": 0.9992138364779874,
+            "endingRetained": 0.9996973365617433,
+            "gainDb": 0.9908338023327824,
+            "siSdrDb": 5.892461687096844
+          },
+          {
+            "language": "zh",
+            "retained": 0.9997655517349172,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 1.020734502962212,
+            "siSdrDb": 5.829102949359312
+          },
+          {
+            "language": "fr",
+            "retained": 0.9995599559955995,
+            "openingRetained": 1,
+            "endingRetained": 0.9986033519553073,
+            "gainDb": 1.252802767447982,
+            "siSdrDb": 4.854321035618573
+          },
+          {
+            "language": "zh",
+            "retained": 0.9994666666666666,
+            "openingRetained": 0.9995617879053462,
+            "endingRetained": 0.9996876951905059,
+            "gainDb": 1.7401935805570998,
+            "siSdrDb": 3.410059340334162
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "rain-5db",
+        "enhanced": true,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1180,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1626.3255,
+        "frameP95Ms": 3.1451,
+        "frameMaxMs": 6.6384,
+        "outputNonzeroFraction": 0.4261770833333333,
+        "suppressionDb": 3.6064563997535046,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.999393718928095,
+            "openingRetained": 0.9944968553459119,
+            "endingRetained": 0.99909200968523,
+            "gainDb": -1.229370174836643,
+            "siSdrDb": 10.593105875468536
+          },
+          {
+            "language": "zh",
+            "retained": 0.9998437011566115,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -1.128079971670499,
+            "siSdrDb": 9.671261573887165
+          },
+          {
+            "language": "fr",
+            "retained": 0.9993399339933994,
+            "openingRetained": 0.9988719684151156,
+            "endingRetained": 0.9990689013035382,
+            "gainDb": -0.970319010064117,
+            "siSdrDb": 9.374486044661957
+          },
+          {
+            "language": "zh",
+            "retained": 0.9986285714285714,
+            "openingRetained": 0.9969325153374233,
+            "endingRetained": 0.9993753903810119,
+            "gainDb": -0.7363955288726171,
+            "siSdrDb": 7.76111412279335
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "rain-0db",
+        "enhanced": false,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1200,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 122.9058,
+        "frameP95Ms": 0.2182,
+        "frameMaxMs": 0.5368,
+        "outputNonzeroFraction": 0.4798125,
+        "suppressionDb": 1.8797222569348495,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.9996968594640475,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 2.5809340520254653,
+            "siSdrDb": 0.8892383374459217
+          },
+          {
+            "language": "zh",
+            "retained": 0.9998437011566115,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 2.6339055021864883,
+            "siSdrDb": 0.8386511457079006
+          },
+          {
+            "language": "fr",
+            "retained": 0.9137513751375137,
+            "openingRetained": 0.33671742808798644,
+            "endingRetained": 1,
+            "gainDb": 2.7205856715763916,
+            "siSdrDb": -0.3138949264722338
+          },
+          {
+            "language": "zh",
+            "retained": 0.9997714285714285,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 4.020609410515198,
+            "siSdrDb": -1.506474150755779
+          }
+        ],
+        "acousticIssues": [
+          "turn3: opening below 90%"
+        ]
+      },
+      {
+        "clip": "rain-0db",
+        "enhanced": true,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1180,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1512.8071,
+        "frameP95Ms": 2.8763,
+        "frameMaxMs": 4.3605,
+        "outputNonzeroFraction": 0.4358854166666667,
+        "suppressionDb": 7.835500803591663,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.9990299502849521,
+            "openingRetained": 0.9960691823899371,
+            "endingRetained": 0.99909200968523,
+            "gainDb": -2.382249832351958,
+            "siSdrDb": 5.2699136140423715
+          },
+          {
+            "language": "zh",
+            "retained": 0.9996874023132228,
+            "openingRetained": 0.9993373094764745,
+            "endingRetained": 1,
+            "gainDb": -2.430802744522943,
+            "siSdrDb": 4.460404111902804
+          },
+          {
+            "language": "fr",
+            "retained": 0.9993399339933994,
+            "openingRetained": 0.9988719684151156,
+            "endingRetained": 0.9981378026070763,
+            "gainDb": -2.605850024058479,
+            "siSdrDb": 3.877851051658285
+          },
+          {
+            "language": "zh",
+            "retained": 0.9990095238095238,
+            "openingRetained": 0.9982471516213848,
+            "endingRetained": 1,
+            "gainDb": -1.9334968322118748,
+            "siSdrDb": 2.717462566424205
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "machine-5db",
+        "enhanced": false,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1160,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 129.8471,
+        "frameP95Ms": 0.2414,
+        "frameMaxMs": 0.64,
+        "outputNonzeroFraction": 0.4264409722222222,
+        "suppressionDb": 1.420075305264109,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.9996362313568571,
+            "openingRetained": 1,
+            "endingRetained": 0.9996973365617433,
+            "gainDb": 1.226861594598854,
+            "siSdrDb": 4.801706086058853
+          },
+          {
+            "language": "zh",
+            "retained": 0.9997655517349172,
+            "openingRetained": 0.9996686547382373,
+            "endingRetained": 0.9996410624551328,
+            "gainDb": 1.022031167776762,
+            "siSdrDb": 5.837748385548077
+          },
+          {
+            "language": "fr",
+            "retained": 0.9997799779977998,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 1.1130763042004341,
+            "siSdrDb": 5.369591461441124
+          },
+          {
+            "language": "zh",
+            "retained": 0.9996952380952381,
+            "openingRetained": 1,
+            "endingRetained": 0.9993753903810119,
+            "gainDb": 1.4085719216281807,
+            "siSdrDb": 4.057549983123447
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "machine-5db",
+        "enhanced": true,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1180,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 2088.8482,
+        "frameP95Ms": 4.1969,
+        "frameMaxMs": 6.4633,
+        "outputNonzeroFraction": 0.4200833333333333,
+        "suppressionDb": 3.9277139818529916,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.999393718928095,
+            "openingRetained": 0.9976415094339622,
+            "endingRetained": 0.9987893462469734,
+            "gainDb": -1.2552070261804005,
+            "siSdrDb": 14.618320571944107
+          },
+          {
+            "language": "zh",
+            "retained": 0.9995311034698343,
+            "openingRetained": 0.9990059642147118,
+            "endingRetained": 0.9996410624551328,
+            "gainDb": -1.2022226455092893,
+            "siSdrDb": 13.235082107931909
+          },
+          {
+            "language": "fr",
+            "retained": 0.9995599559955995,
+            "openingRetained": 0.9994359842075579,
+            "endingRetained": 1,
+            "gainDb": -0.8251847201522302,
+            "siSdrDb": 16.515061277577466
+          },
+          {
+            "language": "zh",
+            "retained": 0.9986285714285714,
+            "openingRetained": 0.9938650306748467,
+            "endingRetained": 1,
+            "gainDb": -0.9032850041040965,
+            "siSdrDb": 12.86896628955475
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "clock-5db",
+        "enhanced": false,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1160,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 201.2027,
+        "frameP95Ms": 0.3725,
+        "frameMaxMs": 0.7235,
+        "outputNonzeroFraction": 0.4292916666666667,
+        "suppressionDb": 1.062614429347915,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 0.8767216224657584,
+            "siSdrDb": 6.497298300546311
+          },
+          {
+            "language": "zh",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 0.6462697140511002,
+            "siSdrDb": 7.430076097853436
+          },
+          {
+            "language": "fr",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 1.3418198314021237,
+            "siSdrDb": 4.11764952770656
+          },
+          {
+            "language": "zh",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 2.0501840507950337,
+            "siSdrDb": 2.3501752733510504
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "clock-5db",
+        "enhanced": true,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1180,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1624.1539,
+        "frameP95Ms": 2.9492,
+        "frameMaxMs": 4.5044,
+        "outputNonzeroFraction": 0.44263541666666667,
+        "suppressionDb": 3.1002356132719395,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.9998181156784285,
+            "openingRetained": 1,
+            "endingRetained": 0.9996973365617433,
+            "gainDb": -1.0110928822387408,
+            "siSdrDb": 19.55616893063234
+          },
+          {
+            "language": "zh",
+            "retained": 0.9998437011566115,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -0.6839358860294364,
+            "siSdrDb": 12.394267219414418
+          },
+          {
+            "language": "fr",
+            "retained": 0.9999266593325999,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -0.7967865128098867,
+            "siSdrDb": 9.969372304608008
+          },
+          {
+            "language": "zh",
+            "retained": 0.9996952380952381,
+            "openingRetained": 0.9995617879053462,
+            "endingRetained": 1,
+            "gainDb": -0.5414450055945316,
+            "siSdrDb": 16.48956617375449
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "quiet-rain-5db",
+        "enhanced": false,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1260,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 125.5412,
+        "frameP95Ms": 0.2251,
+        "frameMaxMs": 0.4094,
+        "outputNonzeroFraction": 0.4479270833333333,
+        "suppressionDb": 1.1189650709709056,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.9981864345302865,
+            "openingRetained": 0.9976689976689976,
+            "endingRetained": 0.9972826086956522,
+            "gainDb": 0.9856143729044363,
+            "siSdrDb": 5.918845882862016
+          },
+          {
+            "language": "zh",
+            "retained": 0.9972654113602625,
+            "openingRetained": 0.9983438224577674,
+            "endingRetained": 0.9971284996410624,
+            "gainDb": 1.0210903037325225,
+            "siSdrDb": 5.829099492504735
+          },
+          {
+            "language": "fr",
+            "retained": 0.998239694880446,
+            "openingRetained": 0.9988713318284425,
+            "endingRetained": 0.9967411545623837,
+            "gainDb": 1.2529668246954129,
+            "siSdrDb": 4.853640146425205
+          },
+          {
+            "language": "zh",
+            "retained": 0.9972420133302689,
+            "openingRetained": 0.9982332155477032,
+            "endingRetained": 0.9974929489188342,
+            "gainDb": 1.7403735116187704,
+            "siSdrDb": 3.410315048564149
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "quiet-rain-5db",
+        "enhanced": true,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1280,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1573.4453,
+        "frameP95Ms": 2.8879,
+        "frameMaxMs": 5.4978,
+        "outputNonzeroFraction": 0.40941666666666665,
+        "suppressionDb": 3.650790274282321,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.9957078950550114,
+            "openingRetained": 0.9782439782439782,
+            "endingRetained": 0.9978864734299517,
+            "gainDb": -1.2870470179735878,
+            "siSdrDb": 9.989304805255086
+          },
+          {
+            "language": "zh",
+            "retained": 0.9980467224001875,
+            "openingRetained": 0.9970188804239815,
+            "endingRetained": 0.9971284996410624,
+            "gainDb": -1.2432937571764433,
+            "siSdrDb": 9.323469422153043
+          },
+          {
+            "language": "fr",
+            "retained": 0.9961860055742996,
+            "openingRetained": 0.9960496613995485,
+            "endingRetained": 0.99487895716946,
+            "gainDb": -1.026222695075649,
+            "siSdrDb": 9.227162549669215
+          },
+          {
+            "language": "zh",
+            "retained": 0.9931816440664981,
+            "openingRetained": 0.9907243816254417,
+            "endingRetained": 0.9956126606079598,
+            "gainDb": -0.6492202686045311,
+            "siSdrDb": 7.506834383714402
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "rising-rain",
+        "enhanced": false,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1160,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 145.8633,
+        "frameP95Ms": 0.2536,
+        "frameMaxMs": 0.6909,
+        "outputNonzeroFraction": 0.4331770833333333,
+        "suppressionDb": 1.4852078509103819,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.999878743785619,
+            "openingRetained": 1,
+            "endingRetained": 0.9996973365617433,
+            "gainDb": 0.055147287423374255,
+            "siSdrDb": 18.862224177417865
+          },
+          {
+            "language": "zh",
+            "retained": 0.9999218505783057,
+            "openingRetained": 0.9996686547382373,
+            "endingRetained": 1,
+            "gainDb": 0.05980154339812179,
+            "siSdrDb": 18.785646780437034
+          },
+          {
+            "language": "fr",
+            "retained": 0.8885221855518886,
+            "openingRetained": 0.1449520586576424,
+            "endingRetained": 0.999534450651769,
+            "gainDb": 1.6405707482661631,
+            "siSdrDb": 1.8198003048553077
+          },
+          {
+            "language": "zh",
+            "retained": 0.9997714285714285,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": 2.751719104308463,
+            "siSdrDb": 0.8507380135379289
+          }
+        ],
+        "acousticIssues": [
+          "turn3: retained below 90%",
+          "turn3: opening below 90%"
+        ]
+      },
+      {
+        "clip": "rising-rain",
+        "enhanced": true,
+        "seconds": 18,
+        "firstNonzeroAtInputMs": 1180,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1913.0093,
+        "frameP95Ms": 3.754,
+        "frameMaxMs": 6.3773,
+        "outputNonzeroFraction": 0.41713194444444446,
+        "suppressionDb": 3.1753181087689204,
+        "turns": [
+          {
+            "language": "fr",
+            "retained": 0.9999393718928095,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -0.43895918297228526,
+            "siSdrDb": 20.841302768010546
+          },
+          {
+            "language": "zh",
+            "retained": 1,
+            "openingRetained": 1,
+            "endingRetained": 1,
+            "gainDb": -0.2348937288400335,
+            "siSdrDb": 20.78381819680709
+          },
+          {
+            "language": "fr",
+            "retained": 0.9994132746607994,
+            "openingRetained": 0.9988719684151156,
+            "endingRetained": 0.9990689013035382,
+            "gainDb": -0.931881335582154,
+            "siSdrDb": 7.539247435105839
+          },
+          {
+            "language": "zh",
+            "retained": 0.9993142857142857,
+            "openingRetained": 0.9995617879053462,
+            "endingRetained": 0.9990630855715178,
+            "gainDb": -0.32534437170152886,
+            "siSdrDb": 5.429365518619326
+          }
+        ],
+        "acousticIssues": []
+      },
+      {
+        "clip": "noise-only-rain",
+        "enhanced": false,
+        "seconds": 18,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 120.7678,
+        "frameP95Ms": 0.2027,
+        "frameMaxMs": 0.419,
+        "outputNonzeroFraction": 0,
+        "suppressionDb": 154.08462722246978,
+        "turns": [],
+        "acousticIssues": []
+      },
+      {
+        "clip": "noise-only-rain",
+        "enhanced": true,
+        "seconds": 18,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1820.9574,
+        "frameP95Ms": 3.536,
+        "frameMaxMs": 6.7697,
+        "outputNonzeroFraction": 0,
+        "suppressionDb": 154.08462722246978,
+        "turns": [],
+        "acousticIssues": []
+      },
+      {
+        "clip": "noise-only-helicopter",
+        "enhanced": false,
+        "seconds": 18,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 137.5987,
+        "frameP95Ms": 0.2534,
+        "frameMaxMs": 0.4469,
+        "outputNonzeroFraction": 0,
+        "suppressionDb": 159.577312375279,
+        "turns": [],
+        "acousticIssues": []
+      },
+      {
+        "clip": "noise-only-helicopter",
+        "enhanced": true,
+        "seconds": 18,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1730.344,
+        "frameP95Ms": 3.5632,
+        "frameMaxMs": 5.6902,
+        "outputNonzeroFraction": 0,
+        "suppressionDb": 159.577312375279,
+        "turns": [],
+        "acousticIssues": []
+      },
+      {
+        "clip": "noise-only-clock",
+        "enhanced": false,
+        "seconds": 18,
+        "maxBufferedMs": 220,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 144.9626,
+        "frameP95Ms": 0.2265,
+        "frameMaxMs": 0.4404,
+        "outputNonzeroFraction": 0,
+        "suppressionDb": 134.2909128223401,
+        "turns": [],
+        "acousticIssues": []
+      },
+      {
+        "clip": "noise-only-clock",
+        "enhanced": true,
+        "seconds": 18,
+        "maxBufferedMs": 236,
+        "beforeFinishSamples": 284672,
+        "elapsedMs": 1552.8275,
+        "frameP95Ms": 2.8609,
+        "frameMaxMs": 4.8926,
+        "outputNonzeroFraction": 0,
+        "suppressionDb": 134.2909128223401,
+        "turns": [],
+        "acousticIssues": []
+      }
+    ],
+    "schemaVersion": 1,
+    "cloudCalls": 0,
+    "scope": "Shipping audio filter only; unpaced fixed input; no capture, echo, cloud recognition or translation accuracy"
+  },
+  "android": {
+    "cloudCalls": 0,
+    "platform": "Android",
+    "results": [
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "clean",
+        "elapsedMs": 189.585208,
+        "enhanced": false,
+        "firstNonzeroAtInputMs": 1160,
+        "frameMaxMs": 1.531354,
+        "frameP95Ms": 0.307136,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0.3222465277777778,
+        "seconds": 18,
+        "suppressionDb": 1.4801458401593656e-8,
+        "turns": [
+          {
+            "endingRetained": 1,
+            "gainDb": -4.441425841759758e-8,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 79.9345786204463
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 0,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 133.25981110960262
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 0,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 133.9139319197469
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 0,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 131.8264391404062
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "clean",
+        "elapsedMs": 1119.900312,
+        "enhanced": true,
+        "firstNonzeroAtInputMs": 1180,
+        "frameMaxMs": 5.218073,
+        "frameP95Ms": 1.823646,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0.29710416666666667,
+        "seconds": 18,
+        "suppressionDb": 0.03412182441406694,
+        "turns": [
+          {
+            "endingRetained": 1,
+            "gainDb": -0.062459954339534524,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 33.345559039292475
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.02841380786592929,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 37.16211764610111
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.016557514348398975,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 37.83993626471301
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.013987119377582471,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 36.976125095043386
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "rain-5db",
+        "elapsedMs": 128.012656,
+        "enhanced": false,
+        "firstNonzeroAtInputMs": 1160,
+        "frameMaxMs": 0.348594,
+        "frameP95Ms": 0.166145,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0.48682291666666666,
+        "seconds": 18,
+        "suppressionDb": 1.0166025372072982,
+        "turns": [
+          {
+            "endingRetained": 0.9996973365617433,
+            "gainDb": 0.9908338023327824,
+            "language": "fr",
+            "openingRetained": 0.9992138364779874,
+            "retained": 0.9997574875712381,
+            "siSdrDb": 5.892461687096844
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 1.020734502962212,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 0.9997655517349172,
+            "siSdrDb": 5.829102949359312
+          },
+          {
+            "endingRetained": 0.9986033519553073,
+            "gainDb": 1.252802767447982,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 0.9995599559955995,
+            "siSdrDb": 4.854321035618573
+          },
+          {
+            "endingRetained": 0.9996876951905059,
+            "gainDb": 1.7401935805570998,
+            "language": "zh",
+            "openingRetained": 0.9995617879053462,
+            "retained": 0.9994666666666666,
+            "siSdrDb": 3.410059340334162
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "rain-5db",
+        "elapsedMs": 1067.866823,
+        "enhanced": true,
+        "firstNonzeroAtInputMs": 1180,
+        "frameMaxMs": 2.581563,
+        "frameP95Ms": 1.76276,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0.4261770833333333,
+        "seconds": 18,
+        "suppressionDb": 3.6064561963001123,
+        "turns": [
+          {
+            "endingRetained": 0.99909200968523,
+            "gainDb": -1.229370174836643,
+            "language": "fr",
+            "openingRetained": 0.9944968553459119,
+            "retained": 0.999393718928095,
+            "siSdrDb": 10.593105875468536
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -1.1280786815773294,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 0.9998437011566115,
+            "siSdrDb": 9.671254657407843
+          },
+          {
+            "endingRetained": 0.9990689013035382,
+            "gainDb": -0.970319187131256,
+            "language": "fr",
+            "openingRetained": 0.9988719684151156,
+            "retained": 0.9993399339933994,
+            "siSdrDb": 9.374488138051131
+          },
+          {
+            "endingRetained": 0.9993753903810119,
+            "gainDb": -0.7363957583021086,
+            "language": "zh",
+            "openingRetained": 0.9969325153374233,
+            "retained": 0.9986285714285714,
+            "siSdrDb": 7.761113594973969
+          }
+        ]
+      },
+      {
+        "acousticIssues": [
+          "turn3: opening below 90%"
+        ],
+        "beforeFinishSamples": 284672,
+        "clip": "rain-0db",
+        "elapsedMs": 137.634948,
+        "enhanced": false,
+        "firstNonzeroAtInputMs": 1200,
+        "frameMaxMs": 0.418229,
+        "frameP95Ms": 0.182656,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0.4798125,
+        "seconds": 18,
+        "suppressionDb": 1.8797222569348495,
+        "turns": [
+          {
+            "endingRetained": 1,
+            "gainDb": 2.5809340520254653,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 0.9996968594640475,
+            "siSdrDb": 0.8892383374459217
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 2.6339055021864883,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 0.9998437011566115,
+            "siSdrDb": 0.8386511457079006
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 2.7205856715763916,
+            "language": "fr",
+            "openingRetained": 0.33671742808798644,
+            "retained": 0.9137513751375137,
+            "siSdrDb": -0.3138949264722338
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 4.020609410515198,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 0.9997714285714285,
+            "siSdrDb": -1.506474150755779
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "rain-0db",
+        "elapsedMs": 1086.803281,
+        "enhanced": true,
+        "firstNonzeroAtInputMs": 1180,
+        "frameMaxMs": 2.889948,
+        "frameP95Ms": 1.76599,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0.4358854166666667,
+        "seconds": 18,
+        "suppressionDb": 7.8354993954783705,
+        "turns": [
+          {
+            "endingRetained": 0.99909200968523,
+            "gainDb": -2.382248406592659,
+            "language": "fr",
+            "openingRetained": 0.9960691823899371,
+            "retained": 0.9990299502849521,
+            "siSdrDb": 5.269919817526143
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -2.4308021373904807,
+            "language": "zh",
+            "openingRetained": 0.9993373094764745,
+            "retained": 0.9996874023132228,
+            "siSdrDb": 4.460404695794414
+          },
+          {
+            "endingRetained": 0.9981378026070763,
+            "gainDb": -2.605846859103788,
+            "language": "fr",
+            "openingRetained": 0.9988719684151156,
+            "retained": 0.9993399339933994,
+            "siSdrDb": 3.8778457014769114
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -1.9334967890339947,
+            "language": "zh",
+            "openingRetained": 0.9982471516213848,
+            "retained": 0.9990095238095238,
+            "siSdrDb": 2.7174622773963844
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "machine-5db",
+        "elapsedMs": 130.636406,
+        "enhanced": false,
+        "firstNonzeroAtInputMs": 1160,
+        "frameMaxMs": 1.055313,
+        "frameP95Ms": 0.171719,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0.4264409722222222,
+        "seconds": 18,
+        "suppressionDb": 1.420075305264109,
+        "turns": [
+          {
+            "endingRetained": 0.9996973365617433,
+            "gainDb": 1.226861594598854,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 0.9996362313568571,
+            "siSdrDb": 4.801706086058853
+          },
+          {
+            "endingRetained": 0.9996410624551328,
+            "gainDb": 1.022031167776762,
+            "language": "zh",
+            "openingRetained": 0.9996686547382373,
+            "retained": 0.9997655517349172,
+            "siSdrDb": 5.837748385548077
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 1.1130763042004341,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 0.9997799779977998,
+            "siSdrDb": 5.369591461441124
+          },
+          {
+            "endingRetained": 0.9993753903810119,
+            "gainDb": 1.4085719216281807,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 0.9996952380952381,
+            "siSdrDb": 4.057549983123447
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "machine-5db",
+        "elapsedMs": 1044.216458,
+        "enhanced": true,
+        "firstNonzeroAtInputMs": 1180,
+        "frameMaxMs": 1.827552,
+        "frameP95Ms": 1.716666,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0.4200833333333333,
+        "seconds": 18,
+        "suppressionDb": 3.9277131175636697,
+        "turns": [
+          {
+            "endingRetained": 0.9987893462469734,
+            "gainDb": -1.2552065162520376,
+            "language": "fr",
+            "openingRetained": 0.9976415094339622,
+            "retained": 0.999393718928095,
+            "siSdrDb": 14.61831961940999
+          },
+          {
+            "endingRetained": 0.9996410624551328,
+            "gainDb": -1.202221685819072,
+            "language": "zh",
+            "openingRetained": 0.9990059642147118,
+            "retained": 0.9995311034698343,
+            "siSdrDb": 13.235084202966377
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.8251846926417171,
+            "language": "fr",
+            "openingRetained": 0.9994359842075579,
+            "retained": 0.9995599559955995,
+            "siSdrDb": 16.515062730579174
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.9032822386021164,
+            "language": "zh",
+            "openingRetained": 0.9938650306748467,
+            "retained": 0.9986285714285714,
+            "siSdrDb": 12.86897660726069
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "clock-5db",
+        "elapsedMs": 125.720052,
+        "enhanced": false,
+        "firstNonzeroAtInputMs": 1160,
+        "frameMaxMs": 0.34526,
+        "frameP95Ms": 0.163594,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0.4292916666666667,
+        "seconds": 18,
+        "suppressionDb": 1.062614429347915,
+        "turns": [
+          {
+            "endingRetained": 1,
+            "gainDb": 0.8767216224657584,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 6.497298300546311
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 0.6462697140511002,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 7.430076097853436
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 1.3418198314021237,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 4.11764952770656
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 2.0501840507950337,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 2.3501752733510504
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "clock-5db",
+        "elapsedMs": 1505.992916,
+        "enhanced": true,
+        "firstNonzeroAtInputMs": 1180,
+        "frameMaxMs": 3.0275,
+        "frameP95Ms": 2.56,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0.44263541666666667,
+        "seconds": 18,
+        "suppressionDb": 3.1002364121979618,
+        "turns": [
+          {
+            "endingRetained": 0.9996973365617433,
+            "gainDb": -1.0110931100611138,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 0.9998181156784285,
+            "siSdrDb": 19.556171049744023
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.6839367315207032,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 0.9998437011566115,
+            "siSdrDb": 12.394267081382132
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.7967876615683862,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 0.9999266593325999,
+            "siSdrDb": 9.969376240840322
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.5414461543992597,
+            "language": "zh",
+            "openingRetained": 0.9995617879053462,
+            "retained": 0.9996952380952381,
+            "siSdrDb": 16.489535391037403
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "quiet-rain-5db",
+        "elapsedMs": 200.289062,
+        "enhanced": false,
+        "firstNonzeroAtInputMs": 1260,
+        "frameMaxMs": 0.522656,
+        "frameP95Ms": 0.285417,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0.4479270833333333,
+        "seconds": 18,
+        "suppressionDb": 1.1189650709709056,
+        "turns": [
+          {
+            "endingRetained": 0.9972826086956522,
+            "gainDb": 0.9856143729044363,
+            "language": "fr",
+            "openingRetained": 0.9976689976689976,
+            "retained": 0.9981864345302865,
+            "siSdrDb": 5.918845882862016
+          },
+          {
+            "endingRetained": 0.9971284996410624,
+            "gainDb": 1.0210903037325225,
+            "language": "zh",
+            "openingRetained": 0.9983438224577674,
+            "retained": 0.9972654113602625,
+            "siSdrDb": 5.829099492504735
+          },
+          {
+            "endingRetained": 0.9967411545623837,
+            "gainDb": 1.2529668246954129,
+            "language": "fr",
+            "openingRetained": 0.9988713318284425,
+            "retained": 0.998239694880446,
+            "siSdrDb": 4.853640146425205
+          },
+          {
+            "endingRetained": 0.9974929489188342,
+            "gainDb": 1.7403735116187704,
+            "language": "zh",
+            "openingRetained": 0.9982332155477032,
+            "retained": 0.9972420133302689,
+            "siSdrDb": 3.410315048564149
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "quiet-rain-5db",
+        "elapsedMs": 1519.471927,
+        "enhanced": true,
+        "firstNonzeroAtInputMs": 1280,
+        "frameMaxMs": 4.054635,
+        "frameP95Ms": 2.548385,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0.40941666666666665,
+        "seconds": 18,
+        "suppressionDb": 3.650791033044603,
+        "turns": [
+          {
+            "endingRetained": 0.9978864734299517,
+            "gainDb": -1.2870470179735878,
+            "language": "fr",
+            "openingRetained": 0.9782439782439782,
+            "retained": 0.9957078950550114,
+            "siSdrDb": 9.989304805255086
+          },
+          {
+            "endingRetained": 0.9971284996410624,
+            "gainDb": -1.2432960503512076,
+            "language": "zh",
+            "openingRetained": 0.9970188804239815,
+            "retained": 0.9980467224001875,
+            "siSdrDb": 9.323451094210268
+          },
+          {
+            "endingRetained": 0.99487895716946,
+            "gainDb": -1.0262235984621049,
+            "language": "fr",
+            "openingRetained": 0.9960496613995485,
+            "retained": 0.9961860055742996,
+            "siSdrDb": 9.227172021243893
+          },
+          {
+            "endingRetained": 0.9956126606079598,
+            "gainDb": -0.6492202686045311,
+            "language": "zh",
+            "openingRetained": 0.9907243816254417,
+            "retained": 0.9931816440664981,
+            "siSdrDb": 7.506834383714402
+          }
+        ]
+      },
+      {
+        "acousticIssues": [
+          "turn3: retained below 90%",
+          "turn3: opening below 90%"
+        ],
+        "beforeFinishSamples": 284672,
+        "clip": "rising-rain",
+        "elapsedMs": 201.264114,
+        "enhanced": false,
+        "firstNonzeroAtInputMs": 1160,
+        "frameMaxMs": 0.534792,
+        "frameP95Ms": 0.28724,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0.4331770833333333,
+        "seconds": 18,
+        "suppressionDb": 1.4852078509103819,
+        "turns": [
+          {
+            "endingRetained": 0.9996973365617433,
+            "gainDb": 0.055147287423374255,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 0.999878743785619,
+            "siSdrDb": 18.862224177417865
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 0.05980154339812179,
+            "language": "zh",
+            "openingRetained": 0.9996686547382373,
+            "retained": 0.9999218505783057,
+            "siSdrDb": 18.785646780437034
+          },
+          {
+            "endingRetained": 0.999534450651769,
+            "gainDb": 1.6405707482661631,
+            "language": "fr",
+            "openingRetained": 0.1449520586576424,
+            "retained": 0.8885221855518886,
+            "siSdrDb": 1.8198003048553077
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": 2.751719104308463,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 0.9997714285714285,
+            "siSdrDb": 0.8507380135379289
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "rising-rain",
+        "elapsedMs": 1522.098124,
+        "enhanced": true,
+        "firstNonzeroAtInputMs": 1180,
+        "frameMaxMs": 2.892552,
+        "frameP95Ms": 2.557188,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0.41713194444444446,
+        "seconds": 18,
+        "suppressionDb": 3.175318674393388,
+        "turns": [
+          {
+            "endingRetained": 1,
+            "gainDb": -0.4389608724096769,
+            "language": "fr",
+            "openingRetained": 1,
+            "retained": 0.9999393718928095,
+            "siSdrDb": 20.841292890678442
+          },
+          {
+            "endingRetained": 1,
+            "gainDb": -0.23489393119033045,
+            "language": "zh",
+            "openingRetained": 1,
+            "retained": 1,
+            "siSdrDb": 20.783815759702755
+          },
+          {
+            "endingRetained": 0.9990689013035382,
+            "gainDb": -0.9318811113354858,
+            "language": "fr",
+            "openingRetained": 0.9988719684151156,
+            "retained": 0.9994132746607994,
+            "siSdrDb": 7.539245680497428
+          },
+          {
+            "endingRetained": 0.9990630855715178,
+            "gainDb": -0.32534437170152886,
+            "language": "zh",
+            "openingRetained": 0.9995617879053462,
+            "retained": 0.9993142857142857,
+            "siSdrDb": 5.429365518619326
+          }
+        ]
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "noise-only-rain",
+        "elapsedMs": 207.37599,
+        "enhanced": false,
+        "frameMaxMs": 0.515677,
+        "frameP95Ms": 0.302813,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0,
+        "seconds": 18,
+        "suppressionDb": 154.08462722246978,
+        "turns": []
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "noise-only-rain",
+        "elapsedMs": 1465.754167,
+        "enhanced": true,
+        "frameMaxMs": 2.814323,
+        "frameP95Ms": 2.429166,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0,
+        "seconds": 18,
+        "suppressionDb": 154.08462722246978,
+        "turns": []
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "noise-only-helicopter",
+        "elapsedMs": 200.687084,
+        "enhanced": false,
+        "frameMaxMs": 0.531615,
+        "frameP95Ms": 0.29625,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0,
+        "seconds": 18,
+        "suppressionDb": 159.577312375279,
+        "turns": []
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "noise-only-helicopter",
+        "elapsedMs": 1456.732552,
+        "enhanced": true,
+        "frameMaxMs": 2.784323,
+        "frameP95Ms": 2.435416,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0,
+        "seconds": 18,
+        "suppressionDb": 159.577312375279,
+        "turns": []
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "noise-only-clock",
+        "elapsedMs": 195.119115,
+        "enhanced": false,
+        "frameMaxMs": 0.527187,
+        "frameP95Ms": 0.282084,
+        "maxBufferedMs": 220,
+        "outputNonzeroFraction": 0,
+        "seconds": 18,
+        "suppressionDb": 134.2909128223401,
+        "turns": []
+      },
+      {
+        "acousticIssues": [],
+        "beforeFinishSamples": 284672,
+        "clip": "noise-only-clock",
+        "elapsedMs": 1468.594895,
+        "enhanced": true,
+        "frameMaxMs": 3.404323,
+        "frameP95Ms": 2.436875,
+        "maxBufferedMs": 236,
+        "outputNonzeroFraction": 0,
+        "seconds": 18,
+        "suppressionDb": 134.2909128223401,
+        "turns": []
+      }
+    ],
+    "schemaVersion": 1,
+    "scope": "Shipping audio filter only; unpaced fixed input; no capture, echo, cloud recognition or translation accuracy"
+  }
+}

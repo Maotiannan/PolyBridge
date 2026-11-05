@@ -8,6 +8,8 @@
 
 ## 仅随安卓测试包安装
 
+2026-11-05新增 `evaluation/noise/fixtures/short/`，通过Android测试源集引用，不进入正式APK。10段各18秒，混合项目固定中法合成语句与雨声、机械声、钟表声，附逐句参考、源/输出SHA256及署名。[实测报告](SHORT_AUDIO_TESTS.md) · [素材清单](../evaluation/noise/fixtures/short/manifest.json) · [署名与变换说明](../evaluation/noise/fixtures/short/CREDITS.txt)。新增两段原始噪声位于 `evaluation/noise/sources/`，固定ESC-10版本、原作者及许可见 [来源](../evaluation/noise/sources/CREDITS.md)。
+
 两段五秒雨声来自 Karol J. Piczak 整理的 ESC-50 数据集的 ESC-10 子集，固定版本为 `33c8ce9eb2cf0b1c2f8bcf322eb349b6be34dbb6`。两条原始 Freesound 录音均为 CC0，ESC-10 合集按 CC BY 3.0 署名，测试包包含作者和出处。测试文件从 44.1 kHz 转成 16 kHz、单声道 PCM，部分测试在内存中改变音量后与词本录音混合。[ESC-50 版本与署名规则](https://github.com/karolpiczak/ESC-50/blob/33c8ce9eb2cf0b1c2f8bcf322eb349b6be34dbb6/LICENSE) · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
 
 | 测试文件 | 原始录音 |

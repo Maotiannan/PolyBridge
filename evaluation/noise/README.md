@@ -1,6 +1,14 @@
 # 自由监听降噪：独立离线评测
 
-此目录不被 Android 模块依赖，保留独立 Python 初筛和参考实现。无麦克风、无云端请求、无私人对话，只有已入库的中法常用表达和两段雨声。0.6.3 已在 `audio/processing` 用 Kotlin 接入 GTCRN 并做真实模型回归；这里的旧初筛结果不替代正式链路或真机验证。[产品接入说明](../../docs/LISTENING_DENOISE.md)
+本目录的Python初筛独立于应用；`kotlin/` 共用测量代码与 `fixtures/short/` 仅被电脑/Android测试源集引用，不进入正式APK。无麦克风、无云端请求、无私人对话。0.6.3 已在 `audio/processing` 用 Kotlin 接入 GTCRN；旧Python初筛结果不替代正式链路或真机验证。[产品接入说明](../../docs/LISTENING_DENOISE.md)
+
+## 2026-11-05 · 用户确认的18秒素材已用于正式链路测试
+
+`short_clips.py` 生成10段固定素材；`test_short_clips.py` 验证时序、混音、20秒上限及重新生成与批准素材一致。`ClipMetrics.kt` 与 `ShortClipBenchmark.kt` 在两端测同一批文件，检查摘要、音频时钟和逐句首尾，不更换模型或改用户设置。电脑、Fold5各20组；基础过滤记录2处句首损失，增强路径未触发本批声学门槛，**结构测试通过不代表全部声学结果合格，更不代表文字翻译正确**。
+
+[完整结果、命令与边界](../../docs/SHORT_AUDIO_TESTS.md) · [逐句数据](../../docs/evidence/2026-11-05-short-noisy-clips.json) · [素材与参考文字](fixtures/short/manifest.json) · [署名](fixtures/short/CREDITS.txt)
+
+下面保留2026-11-04的独立初筛说明，不代表此次正式双平台实测结论。
 
 ## 实现与来源
 

@@ -27,6 +27,10 @@ android {
         isIncludeAndroidResources = true
         all { it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2") }
     }
+    sourceSets.getByName("androidTest") {
+        java.srcDir(rootProject.file("evaluation/noise/kotlin"))
+        assets.srcDir(rootProject.file("evaluation/noise/fixtures"))
+    }
 }
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 dependencies {
