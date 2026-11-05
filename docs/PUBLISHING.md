@@ -20,6 +20,12 @@
 - 历史中最大文件约1.29MB，不需要把APK、工具依赖或构建缓存塞入Git。
 - 发布前重新执行本地测试/Lint任务成功，未变内容使用有效缓存；此前173项电脑测试、9项Python测试、Fold520组音频对照的结论与限制见 [短音频报告](SHORT_AUDIO_TESTS.md)。
 
+## 首次云端检查失败与修复
+
+用户反馈原文：「failed了」。[首次运行](https://github.com/Maotiannan/PolyBridge/actions/runs/41954180050) 的9项Python测试成功，但安装Android SDK时返回 `sdkmanager: command not found` / exit 127。实际运行镜像为Ubuntu26.04.1，不是本地Windows构建环境；应用编译与模拟器检查均尚未开始。
+
+工作流固定为Ubuntu24.04，并在使用 `sdkmanager` 前显式运行 [setup-android](https://github.com/android-actions/setup-android)，锁定v4提交 `be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd` 和命令行工具16.0（12266719）。新增 `tools/test_ci_workflow.py` 的2项静态检查，先失败再通过；这些只检查配置约束，真实云端运行成功才算修复验收。原有测试未跳过、未降低标准，应用版本和行为不变。重新推送后继续检查完整构建和模拟器结果。
+
 ## 后续维护
 
 1. 开发前先 `git fetch origin`，核对远端 `main`；保留本地未提交更改，不强制覆盖或改写已公开历史。

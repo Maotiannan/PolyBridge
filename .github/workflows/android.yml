@@ -4,7 +4,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -18,7 +18,13 @@ jobs:
       - name: Verify offline noise evaluation adapter
         run: |
           python -m pip install -r evaluation/noise/requirements.txt
+          python -m unittest discover -s tools -p 'test_*.py'
           python -m unittest discover -s evaluation/noise -p 'test_*.py'
+      - name: Set up Android SDK command-line tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          cmdline-tools-version: '12266719' # 16.0; keep the JDK 17 toolchain reproducible
+          log-accepted-android-sdk-licenses: 'false'
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0"
       - name: Verify and build
