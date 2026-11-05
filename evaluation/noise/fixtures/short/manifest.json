@@ -1,0 +1,364 @@
+{
+  "schemaVersion": 1,
+  "description": "Bundled synthetic speech alternating fr/zh; public background recordings looped; not a natural conversation",
+  "resampling": "linear mono 16kHz, evaluation only",
+  "sources": [
+    {
+      "file": "app/src/androidTest/assets/rain/2-73027-A-10.wav",
+      "sha256": "0bdfaf4823727add002a9de4f6b7089ea7acb697da5f059e892cee906c0a30e6"
+    },
+    {
+      "file": "evaluation/noise/sources/helicopter.wav",
+      "sha256": "23ad50d792907e1caa894e6e31bb623938ae0417606b830b433da11ca2ecb2f4"
+    },
+    {
+      "file": "evaluation/noise/sources/clock.wav",
+      "sha256": "a78412e271e9bac017201211a97f8e67278d157f980c62a9680bdab90d444785"
+    },
+    {
+      "file": "app/src/main/assets/phrasebook/station-fr.wav",
+      "sha256": "a5d177a88d814d1078c744302e1de5f19576bcd9c6d0ba5e3e7e6699a5fb6217"
+    },
+    {
+      "file": "app/src/main/assets/phrasebook/tickets-zh.wav",
+      "sha256": "be7a46b960f4caedc9f3b406ff7e357397643b44cbf259bbee838e4209852793"
+    },
+    {
+      "file": "app/src/main/assets/phrasebook/train-fr.wav",
+      "sha256": "139f08eaff9b0099e205e2b690dfc80ad61d9ecc425e9cef25efd1370e478272"
+    },
+    {
+      "file": "app/src/main/assets/phrasebook/thanks-zh.wav",
+      "sha256": "b1cc82f9c01478ed1fa5b2d12767900382d6846595375e4e98b7c8b47b62db55"
+    }
+  ],
+  "clips": [
+    {
+      "id": "clean",
+      "file": "clean.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": null,
+      "speechRegionSnrDb": null,
+      "turns": [
+        {
+          "startSample": 16000,
+          "endSample": 49280,
+          "language": "fr",
+          "source": "Excusez-moi, où est la gare ?",
+          "translation": "请问，火车站在哪里？"
+        },
+        {
+          "startSample": 72000,
+          "endSample": 91200,
+          "language": "zh",
+          "source": "我想买两张票。",
+          "translation": "Je voudrais deux billets."
+        },
+        {
+          "startSample": 144000,
+          "endSample": 169600,
+          "language": "fr",
+          "source": "À quelle heure part le prochain train ?",
+          "translation": "下一班车几点出发？"
+        },
+        {
+          "startSample": 224000,
+          "endSample": 245760,
+          "language": "zh",
+          "source": "谢谢你的帮助。",
+          "translation": "Merci pour votre aide."
+        }
+      ],
+      "sha256": "ea11cd175d8f0b2b4a5730f301043f687a788f7a573a8ad94e81c1d26e7b7049",
+      "reference": "clean.clean.wav",
+      "referenceSha256": "ea11cd175d8f0b2b4a5730f301043f687a788f7a573a8ad94e81c1d26e7b7049"
+    },
+    {
+      "id": "rain-5db",
+      "file": "rain-5db.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "rain",
+      "speechRegionSnrDb": 5,
+      "turns": [
+        {
+          "startSample": 16000,
+          "endSample": 49280,
+          "language": "fr",
+          "source": "Excusez-moi, où est la gare ?",
+          "translation": "请问，火车站在哪里？"
+        },
+        {
+          "startSample": 72000,
+          "endSample": 91200,
+          "language": "zh",
+          "source": "我想买两张票。",
+          "translation": "Je voudrais deux billets."
+        },
+        {
+          "startSample": 144000,
+          "endSample": 169600,
+          "language": "fr",
+          "source": "À quelle heure part le prochain train ?",
+          "translation": "下一班车几点出发？"
+        },
+        {
+          "startSample": 224000,
+          "endSample": 245760,
+          "language": "zh",
+          "source": "谢谢你的帮助。",
+          "translation": "Merci pour votre aide."
+        }
+      ],
+      "sha256": "cb53e6eac89dea0f768abc4caede089e009d90f9a9fec65017b3a2c1b73b4f03",
+      "reference": "rain-5db.clean.wav",
+      "referenceSha256": "ea11cd175d8f0b2b4a5730f301043f687a788f7a573a8ad94e81c1d26e7b7049"
+    },
+    {
+      "id": "rain-0db",
+      "file": "rain-0db.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "rain",
+      "speechRegionSnrDb": 0,
+      "turns": [
+        {
+          "startSample": 16000,
+          "endSample": 49280,
+          "language": "fr",
+          "source": "Excusez-moi, où est la gare ?",
+          "translation": "请问，火车站在哪里？"
+        },
+        {
+          "startSample": 72000,
+          "endSample": 91200,
+          "language": "zh",
+          "source": "我想买两张票。",
+          "translation": "Je voudrais deux billets."
+        },
+        {
+          "startSample": 144000,
+          "endSample": 169600,
+          "language": "fr",
+          "source": "À quelle heure part le prochain train ?",
+          "translation": "下一班车几点出发？"
+        },
+        {
+          "startSample": 224000,
+          "endSample": 245760,
+          "language": "zh",
+          "source": "谢谢你的帮助。",
+          "translation": "Merci pour votre aide."
+        }
+      ],
+      "sha256": "3da4070ed08e5d5862766434ca4f8c95e0343147a2e43e057cc5e987338f4ee8",
+      "reference": "rain-0db.clean.wav",
+      "referenceSha256": "ea11cd175d8f0b2b4a5730f301043f687a788f7a573a8ad94e81c1d26e7b7049"
+    },
+    {
+      "id": "machine-5db",
+      "file": "machine-5db.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "helicopter",
+      "speechRegionSnrDb": 5,
+      "turns": [
+        {
+          "startSample": 16000,
+          "endSample": 49280,
+          "language": "fr",
+          "source": "Excusez-moi, où est la gare ?",
+          "translation": "请问，火车站在哪里？"
+        },
+        {
+          "startSample": 72000,
+          "endSample": 91200,
+          "language": "zh",
+          "source": "我想买两张票。",
+          "translation": "Je voudrais deux billets."
+        },
+        {
+          "startSample": 144000,
+          "endSample": 169600,
+          "language": "fr",
+          "source": "À quelle heure part le prochain train ?",
+          "translation": "下一班车几点出发？"
+        },
+        {
+          "startSample": 224000,
+          "endSample": 245760,
+          "language": "zh",
+          "source": "谢谢你的帮助。",
+          "translation": "Merci pour votre aide."
+        }
+      ],
+      "sha256": "c4b6bfebdfd006bdc07ad5db98a577f3e8cb899220eac742bb0f3f8a5458f084",
+      "reference": "machine-5db.clean.wav",
+      "referenceSha256": "ea11cd175d8f0b2b4a5730f301043f687a788f7a573a8ad94e81c1d26e7b7049"
+    },
+    {
+      "id": "clock-5db",
+      "file": "clock-5db.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "clock",
+      "speechRegionSnrDb": 5,
+      "turns": [
+        {
+          "startSample": 16000,
+          "endSample": 49280,
+          "language": "fr",
+          "source": "Excusez-moi, où est la gare ?",
+          "translation": "请问，火车站在哪里？"
+        },
+        {
+          "startSample": 72000,
+          "endSample": 91200,
+          "language": "zh",
+          "source": "我想买两张票。",
+          "translation": "Je voudrais deux billets."
+        },
+        {
+          "startSample": 144000,
+          "endSample": 169600,
+          "language": "fr",
+          "source": "À quelle heure part le prochain train ?",
+          "translation": "下一班车几点出发？"
+        },
+        {
+          "startSample": 224000,
+          "endSample": 245760,
+          "language": "zh",
+          "source": "谢谢你的帮助。",
+          "translation": "Merci pour votre aide."
+        }
+      ],
+      "sha256": "892726f6d9ca2b6da35e7fd67646f33b990d365c8f57d4c26a7f0a9527c878a3",
+      "reference": "clock-5db.clean.wav",
+      "referenceSha256": "ea11cd175d8f0b2b4a5730f301043f687a788f7a573a8ad94e81c1d26e7b7049"
+    },
+    {
+      "id": "quiet-rain-5db",
+      "file": "quiet-rain-5db.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "rain",
+      "speechRegionSnrDb": 5,
+      "turns": [
+        {
+          "startSample": 16000,
+          "endSample": 49280,
+          "language": "fr",
+          "source": "Excusez-moi, où est la gare ?",
+          "translation": "请问，火车站在哪里？"
+        },
+        {
+          "startSample": 72000,
+          "endSample": 91200,
+          "language": "zh",
+          "source": "我想买两张票。",
+          "translation": "Je voudrais deux billets."
+        },
+        {
+          "startSample": 144000,
+          "endSample": 169600,
+          "language": "fr",
+          "source": "À quelle heure part le prochain train ?",
+          "translation": "下一班车几点出发？"
+        },
+        {
+          "startSample": 224000,
+          "endSample": 245760,
+          "language": "zh",
+          "source": "谢谢你的帮助。",
+          "translation": "Merci pour votre aide."
+        }
+      ],
+      "sha256": "b1c33110390fe3259f5cccbbb8158a0e9824f75470077e6bba44524dd22baa21",
+      "reference": "quiet-rain-5db.clean.wav",
+      "referenceSha256": "c03a9c3274ba85984f5c502ef984fe4748474a8bb721ea2b7c1e6193cdf17334"
+    },
+    {
+      "id": "rising-rain",
+      "file": "rising-rain.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "rain (6x at 8s)",
+      "speechRegionSnrDb": 5,
+      "turns": [
+        {
+          "startSample": 16000,
+          "endSample": 49280,
+          "language": "fr",
+          "source": "Excusez-moi, où est la gare ?",
+          "translation": "请问，火车站在哪里？"
+        },
+        {
+          "startSample": 72000,
+          "endSample": 91200,
+          "language": "zh",
+          "source": "我想买两张票。",
+          "translation": "Je voudrais deux billets."
+        },
+        {
+          "startSample": 144000,
+          "endSample": 169600,
+          "language": "fr",
+          "source": "À quelle heure part le prochain train ?",
+          "translation": "下一班车几点出发？"
+        },
+        {
+          "startSample": 224000,
+          "endSample": 245760,
+          "language": "zh",
+          "source": "谢谢你的帮助。",
+          "translation": "Merci pour votre aide."
+        }
+      ],
+      "sha256": "d30b682bdfb39bd70d4cd22b143504d977c7bfac60cdb6dd39de8f76a9f23894",
+      "reference": "rising-rain.clean.wav",
+      "referenceSha256": "ea11cd175d8f0b2b4a5730f301043f687a788f7a573a8ad94e81c1d26e7b7049"
+    },
+    {
+      "id": "noise-only-rain",
+      "file": "noise-only-rain.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "rain",
+      "speechRegionSnrDb": null,
+      "turns": [],
+      "sha256": "1aeb153dabb97a648ca9c63e89967eee72f32d0651f64069172a9a4dcb717e31"
+    },
+    {
+      "id": "noise-only-helicopter",
+      "file": "noise-only-helicopter.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "helicopter",
+      "speechRegionSnrDb": null,
+      "turns": [],
+      "sha256": "2f444c5291f21fab66c796fd9e43cbc17e2230e2d00225a2499dafef31f7c5a7"
+    },
+    {
+      "id": "noise-only-clock",
+      "file": "noise-only-clock.wav",
+      "sampleRate": 16000,
+      "samples": 288000,
+      "seconds": 18.0,
+      "noise": "clock",
+      "speechRegionSnrDb": null,
+      "turns": [],
+      "sha256": "642fd915f0a34d769bd9f99cf0202fe6cc35b2aaafa782095c4ea9a70645d137"
+    }
+  ]
+}
