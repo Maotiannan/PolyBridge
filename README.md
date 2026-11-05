@@ -1,5 +1,7 @@
 # PolyBridge · 折叠屏中法翻译
 
+[GitHub 公开仓库](https://github.com/Maotiannan/PolyBridge) · [自动检查](https://github.com/Maotiannan/PolyBridge/actions) · [发布与安全边界](docs/PUBLISHING.md)
+
 面向 vivo X Fold5、OriginOS 6 的个人中法翻译应用。打开就是面对面对话。合屏时两种语言的说话键并排放在拇指附近；展开后法语和中文各占一半，分别朝向对坐的人。可以说话、打字、核对原文、修改译文和重播。
 
 Fold5 已实测机身和单副蓝牙耳机收音、双向千问翻译、手动耳机重播，以及改完两栏文字后播放新译文。自由监听支持按实际译音识别回声和打断。微信和 WhatsApp 的通话上下行、双耳机同时收发仍需独立验收。[各功能实测范围](docs/NEXT_TASKS.md)
