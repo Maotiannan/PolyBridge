@@ -29,7 +29,8 @@ import dev.polybridge.qwen.ModelFeature
     start: (Side, ModelFeature) -> String?, listen: () -> String?, captureApp: (String) -> Unit,
     end: (String, Boolean) -> Unit, notice: (String) -> Unit,
     inputLabel: String, inputPicker: @Composable (() -> Unit) -> Unit, diagnostics: @Composable () -> Unit) {
-    var page by rememberSaveable { mutableStateOf(if (active?.kind == Kind.CAPTIONS) Page.TOOLS else Page.TALK) }
+    var savedPage by rememberSaveable { mutableStateOf(if (active?.kind == Kind.CAPTIONS) Page.TOOLS else Page.TALK) }
+    val page = savedPage.visibleDestination
     var showCloud by rememberSaveable { mutableStateOf(false) }
     var showInput by rememberSaveable { mutableStateOf(false) }
     var typing by rememberSaveable { mutableStateOf<Side?>(null) }
@@ -63,7 +64,7 @@ import dev.polybridge.qwen.ModelFeature
                 end(it.id, true)
                 if (it.kind == Kind.LISTEN) app.live.stopNow(it)
             }
-            page = next
+            savedPage = next.visibleDestination
         }
     }
     val back = { navigate(if (page == Page.DIAGNOSTICS) Page.SETTINGS else Page.TALK) }
@@ -88,12 +89,11 @@ import dev.polybridge.qwen.ModelFeature
                 } else Masthead(config.configured, { navigate(Page.SETTINGS) }, { showCloud = true })
                 Box(Modifier.fillMaxWidth().weight(1f)) {
                     when (page) {
-                        Page.TALK -> CompactTalk(chat, active, actions, { navigate(Page.BOOK) }, { navigate(Page.LIVE) }, { navigate(Page.CALL) })
+                        Page.TALK, Page.BOOK -> CompactTalk(chat, active, actions, { navigate(Page.LIVE) }, { navigate(Page.CALL) })
                         Page.CALL -> CallAssistPanel(app, chat, active, actions, { voice.translation(it, manual = false) }, { navigate(Page.TOOLS) }, notice)
                         Page.LIVE -> ListeningPanel(app, chat, active, actions, start = {
                             if (!config.configured) showCloud = true else { voice.stop(); listen() }
                         }, stop = { active?.let { end(it.id, false) } }, captions = { navigate(Page.TOOLS) })
-                        Page.BOOK -> Phrasebook { if (app.store.active.value == null) voice.phrase(it) else notice("收音结束后可播放词本") }
                         Page.TOOLS -> AppCaptionPanel(app, active, captureApp, { active?.let { dev.polybridge.app.audio.ProbeService.stop(context, it.id) } }, { showCloud = true })
                         Page.HISTORY -> HistoryPanel(chat, actions, active == null, fresh = {
                             app.store.changeChat { it.newSession() }; navigate(Page.TALK)
@@ -105,7 +105,7 @@ import dev.polybridge.qwen.ModelFeature
                         Page.DIAGNOSTICS -> Column(Modifier.fillMaxSize().padding(horizontal = 14.dp)) { diagnostics() }
                     }
                 }
-                if (page in listOf(Page.TALK, Page.BOOK, Page.HISTORY, Page.LIVE, Page.TOOLS, Page.CALL)) Navigation(page, ::navigate)
+                if (page in listOf(Page.TALK, Page.HISTORY, Page.LIVE, Page.TOOLS, Page.CALL)) Navigation(page, ::navigate)
             }
         }
     }

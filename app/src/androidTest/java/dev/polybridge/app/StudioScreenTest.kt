@@ -3,9 +3,11 @@ package dev.polybridge.app
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.activity.compose.setContent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.polybridge.core.*
+import dev.polybridge.app.ui.*
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -45,11 +47,9 @@ class StudioScreenTest {
         error("不可点击的控件 $label")
     }
 
-    @Test fun phrasebookHistoryAndSettingsAreAccessibleFromTheLauncher() {
+    @Test fun historyAndSettingsRemainAccessibleWithoutPhrasebook() {
         openProjectLauncher()
-        pick("常用表达")
-        pick("出行")
-        waitFor { it.text?.toString() == "请问，火车站在哪里？" }
+        assertNoPhrasebook()
         pick("历史")
         waitFor { it.text?.toString() == "对话历史" }
         pick("设置")
@@ -62,6 +62,31 @@ class StudioScreenTest {
         }
         pick("设备诊断")
         waitFor { it.text?.toString() == "麦克风" }
+    }
+
+    private fun assertNoPhrasebook() {
+        assertNull("词本入口仍显示", find {
+            it.text?.toString()?.contains("常用表达") == true ||
+                it.contentDescription?.toString()?.contains("常用表达") == true
+        })
+    }
+
+    @Test fun emptyCompactAndFoldedTalkDoNotExposePhrasebook() {
+        val activity = openProjectLauncher()
+        val actions = TalkActions({ null }, { _, _ -> }, {}, {}, {})
+        try {
+            for (folded in listOf(false, true)) {
+                test.runOnMainSync { activity.setContent { StudioTheme {
+                    if (folded) FoldTalk(Conversation(), null, false, actions, {}, {})
+                    else CompactTalk(Conversation(), null, actions, {}, {})
+                } } }
+                test.waitForIdleSync()
+                waitFor { it.contentDescription?.toString() == "中文，按住说话" }
+                assertNoPhrasebook()
+            }
+        } finally {
+            test.runOnMainSync { activity.recreate() }
+        }
     }
 
     @Test fun liveCallsAndVoiceToolsOpenWithoutStartingARecording() {

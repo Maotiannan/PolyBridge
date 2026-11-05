@@ -102,10 +102,16 @@ internal enum class Mark(val path: String) {
 }
 
 internal enum class Page(val title: String, val mark: Mark) {
-    TALK("对话", Mark.TALK), BOOK("常用表达", Mark.BOOK), HISTORY("历史", Mark.HISTORY),
+    TALK("对话", Mark.TALK),
+    // Keep the enum name readable in Android saved state from versions with the phrasebook.
+    // It is never a visible destination; restored instances resolve to TALK.
+    BOOK("", Mark.BOOK), HISTORY("历史", Mark.HISTORY),
     LIVE("自由监听", Mark.AUDIO), CALL("中文转法语", Mark.TALK),
     TOOLS("屏幕字幕", Mark.AUDIO),
-    SETTINGS("设置", Mark.SETTINGS), DIAGNOSTICS("设备诊断", Mark.AUDIO)
+    SETTINGS("设置", Mark.SETTINGS), DIAGNOSTICS("设备诊断", Mark.AUDIO);
+
+    val visibleDestination: Page get() = if (this == BOOK) TALK else this
+    companion object { val mainDestinations = listOf(TALK, HISTORY, TOOLS) }
 }
 
 @Composable internal fun Masthead(configured: Boolean, settings: () -> Unit, cloud: () -> Unit) {
@@ -131,7 +137,7 @@ internal enum class Page(val title: String, val mark: Mark) {
     HorizontalDivider(color = Line)
     Row(Modifier.fillMaxWidth().heightIn(min = 59.dp).padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly) {
-        for (page in listOf(Page.TALK, Page.BOOK, Page.HISTORY, Page.TOOLS)) {
+        for (page in Page.mainDestinations) {
             val selected = page == current
             Row(Modifier.weight(1f).heightIn(min = 48.dp).clip(CircleShape)
                 .clickable(role = Role.Tab) { navigate(page) }, verticalAlignment = Alignment.CenterVertically,

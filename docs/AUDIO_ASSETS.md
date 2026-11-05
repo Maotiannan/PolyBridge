@@ -2,6 +2,7 @@
 
 ## 随应用安装
 
+- `phrasebook/` 的固定中法录音及 `catalog.tsv` 仍被麦克风、播放器路由、降噪、回声和模型评测接口复用。0.6.5 已按用户要求删除词本页面和所有可见入口，这些文件仅保留为内部测试素材，不代表仍有用户词本功能；没有删除或改写素材，既有基线可继续复现。
 - 人声检测使用 Silero Team 的 Silero VAD v6.2，锁定上游提交 `be95df9152c0d7618fa1edfeb296fc3dae32376f`。本项目使用其中的 16 kHz opset 15 模型，原始权重未修改，SHA-256 为 `7ed98ddbad84ccac4cd0aeb3099049280713df825c610a8ed34543318f1b2c49`。模型和 MIT 许可一起随 APK 安装。[模型源码与权重](https://github.com/snakers4/silero-vad/tree/be95df9152c0d7618fa1edfeb296fc3dae32376f) · [随包许可](../app/src/main/assets/speech-detection/LICENSE.txt)
 - Android 使用 Microsoft ONNX Runtime 1.23.2 的 CPU 实现。对应的 MIT 许可及上游第三方声明一起随包安装。[上游版本](https://github.com/microsoft/onnxruntime/tree/v1.23.2) · [随包许可](../app/src/main/assets/speech-detection/LICENSE-onnxruntime.txt) · [第三方声明](../app/src/main/assets/speech-detection/ThirdPartyNotices-onnxruntime.txt)
 

@@ -37,7 +37,7 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
     val model: String? = null)
 
 @Composable internal fun CompactTalk(chat: Conversation, active: ProbeRequest?, actions: TalkActions,
-    book: () -> Unit, live: () -> Unit, call: () -> Unit) {
+    live: () -> Unit, call: () -> Unit) {
     val visible = chat.currentTurns
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth()) {
@@ -49,25 +49,21 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp)) {
             actions.model?.let { ModelStatus(it, active != null, active?.modelOptions?.utteranceModel) }
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                val showCover = visible.isEmpty() && maxHeight >= 260.dp
-                Column(Modifier.fillMaxSize()) {
-                    if (showCover) GreetingCover(book)
-                    Row(Modifier.fillMaxWidth().padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("本次对话", color = Ink, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onClick = { actions.type(Side.CHINESE) }) {
-                            Glyph(Mark.TYPE, Muted, 17.dp); Spacer(Modifier.width(6.dp)); Text("打字", color = Muted)
-                        }
+            Column(Modifier.fillMaxSize()) {
+                Row(Modifier.fillMaxWidth().padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("本次对话", color = Ink, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { actions.type(Side.CHINESE) }) {
+                        Glyph(Mark.TYPE, Muted, 17.dp); Spacer(Modifier.width(6.dp)); Text("打字", color = Muted)
                     }
-                    if (visible.isEmpty()) {
-                        HorizontalDivider(color = Line)
-                        Column(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 2.dp)) {
-                            Text("按住下方语言键，开始第一句。", color = Muted, style = MaterialTheme.typography.bodyMedium)
-                            Text("Maintenez votre langue pour parler.", color = Muted, style = MaterialTheme.typography.bodySmall)
-                        }
-                    } else Timeline(visible, null, actions, Modifier.weight(1f))
                 }
+                if (visible.isEmpty()) {
+                    HorizontalDivider(color = Line)
+                    Column(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 2.dp)) {
+                        Text("按住下方语言键，开始第一句。", color = Muted, style = MaterialTheme.typography.bodyMedium)
+                        Text("Maintenez votre langue pour parler.", color = Muted, style = MaterialTheme.typography.bodySmall)
+                    }
+                } else Timeline(visible, null, actions, Modifier.weight(1f))
             }
         }
         Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 6.dp, bottom = 12.dp)) {
@@ -79,24 +75,6 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             Spacer(Modifier.height(7.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (side in Side.entries) HoldButton(side, active, actions, Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable private fun GreetingCover(book: () -> Unit) {
-    Box(Modifier.fillMaxWidth().clip(Round).background(Forest).clickable(role = Role.Button, onClick = book)) {
-        Arches(Leaf.copy(alpha = .32f), Modifier.align(Alignment.CenterEnd).fillMaxWidth(.50f).height(152.dp))
-        Column(Modifier.padding(horizontal = 21.dp, vertical = 16.dp)) {
-            Kicker("ZH  ⇄  FR", Leaf)
-            Spacer(Modifier.height(3.dp))
-            Text("你好。", color = Paper, fontSize = 36.sp, lineHeight = 43.sp, fontWeight = FontWeight.SemiBold)
-            Text("Bonjour.", color = Leaf, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic,
-                fontSize = 38.sp, lineHeight = 42.sp)
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("离线常用表达", color = Paper, style = MaterialTheme.typography.labelMedium)
-                Glyph(Mark.OPEN, Paper, 13.dp)
             }
         }
     }
@@ -115,7 +93,6 @@ internal class TalkActions(val start: (Side) -> String?, val end: (String, Boole
             ToolButton(Mark.FLIP, "翻转对面方向", flip, Paper)
             ToolButton(Mark.AUDIO, "自由监听", { navigate(Page.LIVE) }, Paper)
             ToolButton(Mark.TALK, "中文转法语", { navigate(Page.CALL) }, Paper)
-            ToolButton(Mark.BOOK, "常用表达", { navigate(Page.BOOK) }, Paper)
             ToolButton(Mark.HISTORY, "历史", { navigate(Page.HISTORY) }, Paper)
             TextButton(onClick = { navigate(Page.TOOLS) }) { Text("屏幕字幕", color = Paper) }
             ToolButton(Mark.SETTINGS, "设置", { navigate(Page.SETTINGS) }, Paper)
