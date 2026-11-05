@@ -8,6 +8,7 @@ import dev.polybridge.app.audio.SpeechGate
 import dev.polybridge.core.LiveSpeechSession
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.Before
 import org.junit.runner.RunWith
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -16,6 +17,7 @@ import kotlin.math.*
 /** No microphone, account, playback, or personal preferences. Runs the shipped Android native models. */
 @RunWith(AndroidJUnit4::class)
 class ListeningDenoiseDeviceTest {
+    @Before fun keepNativeChecksInForeground() { openProjectLauncher() }
     @Test fun bundledEnhancementKeepsQuietFrenchAndChineseAndRejectsRain() {
         val inst = InstrumentationRegistry.getInstrumentation()
         val app = inst.targetContext

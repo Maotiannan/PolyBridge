@@ -1,6 +1,7 @@
 package dev.polybridge.core
 
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 /**
  * Confirm echoes whose consonants disappear in the inexpensive 4 kHz matcher.
@@ -15,6 +16,7 @@ internal class FullBandEcho(private val reference: ShortArray, private val backg
     private val windows = LinkedHashMap<Int, Window>()
     private var input = DoubleArray(0)
     private var emphasized = DoubleArray(0)
+    private var inputEnergy = DoubleArray(0)
 
     private fun window(offset: Int, frameSize: Int, sampleRate: Int): Window {
         if (rate != sampleRate) { windows.clear(); rate = sampleRate }
@@ -58,7 +60,7 @@ internal class FullBandEcho(private val reference: ShortArray, private val backg
         val stride = sampleRate / 16000
         val n = count / stride
         if (n < 32) return false
-        if (input.size < n) { input = DoubleArray(n); emphasized = DoubleArray(n) }
+        if (input.size < n) { input = DoubleArray(n); emphasized = DoubleArray(n); inputEnergy = DoubleArray(n + 1) }
         var highPower = 0.0
         for (i in 0 until n) {
             var sum = 0
@@ -68,6 +70,7 @@ internal class FullBandEcho(private val reference: ShortArray, private val backg
                 emphasized[i] = input[i] - 2 * input[i - 1] + input[i - 2]
                 highPower += emphasized[i] * emphasized[i]
             }
+            inputEnergy[i + 1] = highPower
         }
         if (highPower < n * 16.0) return false
         val room = backgroundRms * 1.25 + 18
@@ -82,7 +85,22 @@ internal class FullBandEcho(private val reference: ShortArray, private val backg
             val refPower = band.energy[start + n] - band.energy[start + 2]
             if (refPower < n * 16.0) return false
             var dot = 0.0
-            for (i in 2 until n) dot += emphasized[i] * band.emphasized[start + i]
+            val requiredDot = sqrt(MIN_EXPLAINED * highPower * refPower)
+            var checked = 2
+            while (checked < n) {
+                val end = minOf(n, checked + CORRELATION_BLOCK)
+                for (i in checked until end) dot += emphasized[i] * band.emphasized[start + i]
+                checked = end
+                if (checked < n) {
+                    // Cauchy-Schwarz bounds the *best possible* remaining correlation.
+                    // Abandon an impossible alignment, not a quiet or low-confidence voice.
+                    // This keeps exactly the same full-search acceptance threshold while
+                    // avoiding millions of useless multiplies on every near-end frame.
+                    val remainingInput = maxOf(0.0, highPower - inputEnergy[checked])
+                    val remainingReference = maxOf(0.0, band.energy[start + n] - band.energy[start + checked])
+                    if (abs(dot) + sqrt(remainingInput * remainingReference) < requiredDot * (1 - 1e-10)) return false
+                }
+            }
             if (dot * dot < MIN_EXPLAINED * highPower * refPower) return false
             val gain = dot / refPower
             if (abs(gain) > 2.0) return false
@@ -112,5 +130,6 @@ internal class FullBandEcho(private val reference: ShortArray, private val backg
     private companion object {
         const val MIN_EXPLAINED = .90
         const val BLOCK_SAMPLES = 12000
+        const val CORRELATION_BLOCK = 32
     }
 }

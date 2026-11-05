@@ -99,10 +99,11 @@ class LiveDuplexDeviceTest {
                                 overlapAt = SystemClock.elapsedRealtime()
                             }
                             if (t < 840) frame.forEach { energyIn += it.toDouble() * it }
+                            val processingStarted = SystemClock.elapsedRealtime()
                             microphone(frame, frame.size, 16000)
                             if (t % 100 == 0) {
                                 val observed = settings.lastRoutes.value[side.target]
-                                trace += "$t:${observed?.positionMs}/${SystemClock.elapsedRealtime()-start}/${observed?.ducked}/${desk.view.value.interruptions}"
+                                trace += "$t:${observed?.positionMs}/${SystemClock.elapsedRealtime()-start}/${observed?.ducked}/${desk.view.value.interruptions}/processingMs=${SystemClock.elapsedRealtime()-processingStarted}"
                             }
                             if (t < 840) frame.forEach { energyOut += it.toDouble() * it }
                             if (t in 840..980) for (j in frame.indices) {
@@ -113,7 +114,7 @@ class LiveDuplexDeviceTest {
                         assertTrue("overlap $index failed to stop playback: $trace", desk.view.value.playbackStoppedAt >= overlapAt && !desk.view.value.speaking)
                         val elapsed = desk.view.value.playbackStoppedAt - overlapAt
                         assertEquals(index + 1, desk.view.value.interruptions)
-                        assertTrue("release latency $elapsed", elapsed in 0..500)
+                        assertTrue("release latency $elapsed trace=$trace", elapsed in 0..500)
                         val leak = energyOut / max(1.0, energyIn)
                         assertTrue("echo leakage $leak", energyIn > 0 && leak < .05)
                         assertTrue("opening lost", output / max(1.0, opening) > .65)

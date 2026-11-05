@@ -14,6 +14,7 @@ import dev.polybridge.core.*
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Test
+import org.junit.Before
 import org.junit.runner.RunWith
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -25,6 +26,10 @@ import kotlin.math.abs
 class StreamingListeningRegressionTest {
     private val inst get() = InstrumentationRegistry.getInstrumentation()
     private val app get() = inst.targetContext.applicationContext as PolyBridgeApp
+
+    // OriginOS can suspend a background instrumentation worker even with USB screen-on.
+    // A visible project activity keeps fixed-audio checks in the same foreground state as listening.
+    @Before fun bringAudioChecksToForeground() { openProjectLauncher() }
 
     private fun wave(bytes: ByteArray): ShortArray {
         val input = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
@@ -259,7 +264,7 @@ class StreamingListeningRegressionTest {
                 gate.finish()
             }
             inst.sendStatus(0, Bundle().apply { putString("rainDuringPlayback",
-                "fixture=$name interruptions=$interruptions passed=$passed samples=$sent") })
+                "fixture=$name ducks=$ducks interruptions=$interruptions passed=$passed samples=$sent") })
             assertEquals(rain.size + 320, sent)
             assertEquals("疑似抢话让纯雨声绕过了人声检测：$name", 0, passed)
             assertEquals("纯雨声中止了播报：$name", 0, interruptions)

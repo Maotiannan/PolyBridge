@@ -1,0 +1,115 @@
+{
+  "version": "0.6.4",
+  "versionCode": 6004,
+  "baselineCommit": "1efd1c1",
+  "request": "连接上了",
+  "scope": "Verify 0.6.3 on Fold5, fix measured playback-interruption computation backlog, preserve streaming captions and noise rejection",
+  "device": {
+    "model": "vivo X Fold5 / V2436A",
+    "system": "Android 16 / OriginOS 6",
+    "initialInstalledVersion": "0.6.1 / 6001",
+    "finalInstalledVersion": "0.6.4 / 6004",
+    "coldStart": "Status ok, COLD, 538ms; MainActivity focused",
+    "activeAppServicesAtFinish": 0,
+    "activeMediaProjectionAtFinish": false
+  },
+  "redGreen": {
+    "originalReleaseFailuresMs": [548, 532],
+    "unchangedMaximumReleaseMs": 500,
+    "diagnostic": "20ms input frames took about 20-25ms after near-end speech began; the input clock fell behind during full-band echo fallback search.",
+    "fix": "Process correlation in 32-sample blocks; use the Cauchy-Schwarz remaining-energy upper bound to reject impossible alignments. Keep the full delay search, both resampling variants and all acceptance thresholds. A conservative floating-point margin only avoids premature rejection.",
+    "firstFixedRunReleaseMs": [487, 461],
+    "preservationTests": {
+      "unprunedIndependentReferenceComparisons": 72,
+      "fullSearchEchoAndIndependentNoiseCases": 16,
+      "coverage": "16/48kHz, 32/64/137/320-sample analysis frames, different gain/noise levels, positive/negative gain, both reference resampling variants, cache boundaries"
+    }
+  },
+  "deviceTests": {
+    "uniqueExecuted": 14,
+    "uniqueSkipped": 5,
+    "finalFailures": 0,
+    "duplex": {
+      "commandArguments": "-e testDuplex true -e duplexDurationMs 180000 -e class dev.polybridge.app.LiveDuplexDeviceTest",
+      "turns": 38,
+      "elapsedMs": 183515,
+      "releaseP95Ms": 489,
+      "releaseMaxMs": 491,
+      "assertions": "One interruption per turn; stop <=500ms; echo power fraction <0.05; opening projection >0.65; duplicate Finished does not replay; saved audio exists",
+      "reportedFirstTwoEchoPowerFractions": [0.0, 0.0],
+      "boundary": "Real Android AudioTrack, routing, LiveDesk and shipped speech models. Fixed microphone PCM and simulated cloud responses. Device media speaker stayed muted; this is not room-acoustic or cloud validation."
+    },
+    "nativeAndStreaming": {
+      "classes": ["ListeningDenoiseDeviceTest", "StreamingListeningRegressionTest"],
+      "executed": 8,
+      "skipped": 2,
+      "suiteSeconds": 24.146,
+      "nativeCases": [
+        {"language": "fr", "rate": 16000, "openingNonzeroRetention": 1.0, "batchProcessingMs": 455, "audioMs": 4600},
+        {"language": "fr", "rate": 48000, "openingNonzeroRetention": 1.0, "batchProcessingMs": 350, "audioMs": 4600},
+        {"language": "zh", "rate": 16000, "openingNonzeroRetention": 0.9995744680851064, "batchProcessingMs": 370, "audioMs": 5080},
+        {"language": "zh", "rate": 48000, "openingNonzeroRetention": 0.9995744680851064, "batchProcessingMs": 368, "audioMs": 5080}
+      ],
+      "rainPlayback": [
+        {"fixture": "1-21189-A-10", "ducks": 0, "interruptions": 0, "nonzeroSamplesPassed": 0, "samples": 80320},
+        {"fixture": "2-73027-A-10", "ducks": 0, "interruptions": 0, "nonzeroSamplesPassed": 0, "samples": 80320}
+      ],
+      "longPlayback": {"audioSeconds": 77.84475, "phrases": 24, "minimumStrongSampleRetention": 0.9944522896913456, "simulatedConnections": 1},
+      "quietFrenchOpeningRetention": 0.9989159891598915,
+      "otherAssertions": "Rain then both languages; LISTEN and CAPTIONS input clocks; cancel/finish without releasing unconfirmed audio; reconnect preserves drafts; late finals persisted in spoken order",
+      "skipReasons": ["cloudRain not enabled: no real Qwen request", "history/overlay fixture is restricted to an emulator"],
+      "measurementCaution": "Batch processing time is not speech-to-caption latency. Nonzero waveform retention is not ASR accuracy or intelligibility."
+    },
+    "ui": {
+      "classes": ["CaptionReliabilityDeviceTest", "StudioScreenTest", "ModelSelectionDeviceTest"],
+      "executed": 5,
+      "skipped": 3,
+      "suiteSeconds": 13.414,
+      "assertions": "100-line actual Android overlay tail follows; touch/accessibility scrolling pauses; resume latest works; isolated unconfirmed/later sentence persistence; navigation does not start capture; model dialog cancel/save/preset/feature override in isolated preferences",
+      "skipReasons": ["personal history inspection not enabled", "cloud caption recovery not enabled", "cloud typed translation not enabled"]
+    }
+  },
+  "harnessFinding": "OriginOS paused a background instrumentation process. Opening MainActivity resumed it. Native/listening suites now open and verify the foreground before each test; prior 106.021s single-rain and 29.524s suite durations include background waiting and are not processing benchmarks.",
+  "computerVerification": {
+    "jvmAndRobolectric": 166,
+    "python": 6,
+    "failures": 0,
+    "skipped": 0,
+    "lintErrors": 0,
+    "lintWarnings": 33,
+    "gradleCommand": ".\\gradlew.bat :core:test :audio:processing:test :provider:qwen:test :evaluation:qwen:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --console=plain",
+    "pythonCommand": "python -m unittest discover -s evaluation/noise -p test_*.py",
+    "pythonRuntimeNote": "Windows Store python alias exited without running; rerun using bundled Python succeeded with six tests."
+  },
+  "artifacts": {
+    "main": {
+      "file": "app/build/deliveries/PolyBridge-0.6.4.apk",
+      "bytes": 63668767,
+      "sha256": "cddc01ac424753c2128128c92123aeff291dda6b2003d291030f6bb2cae7ee40",
+      "deviceSha256Matches": true
+    },
+    "instrumentation": {
+      "file": "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      "sha256": "baf5bec23d413cc72fa122f02aa4e2ae2ab06ba54e55efe6c2af80abdf974847",
+      "deviceSha256Matches": true
+    },
+    "signature": "Both APKs pass apksigner verify (v2)",
+    "packageInspection": "0.6.4 / 6004, min API31. GTCRN model, license and provenance included. No desktop DLL/dylib/ai.onnxruntime native-resource folder. Existing 0.6.2/0.6.3 APKs retained."
+  },
+  "preservation": {
+    "personalHistoryCredentialsAndModelPreferences": "Not edited; test stores use isolated names",
+    "speakerVolume": "0/150, muted before and after",
+    "a2dpRememberedVolume": "140/150 before and after; current route speaker",
+    "usbStayAwake": "Temporarily enabled for connected tests, restored to original 0 and read back",
+    "overlayPermission": "UI test restores original app-op in finally"
+  },
+  "cloud": {"calls": 0, "newCharges": 0, "existingBudgetCny": 10, "existingConservativeReservationCny": 9.602636, "ledgerChanged": false},
+  "git": "Current branch codex/caption-scroll-recovery; local main is an ancestor, no remote configured, no push/hosted CI claim. Existing workflow covers added JVM tests. No subagent or new worktree.",
+  "review": "Manual self-review under user prohibition on automatic subagents: mathematical bound cannot admit a rejected candidate; exact final tests unchanged; reusable energy arrays preserve sample length/rate transitions; independent unpruned comparison passes; device tests isolated and serialized; docs distinguish controlled versus real acoustic/cloud evidence.",
+  "remaining": [
+    "Actual WhatsApp sequential voice-message capture, third-message identity and long pauses",
+    "Natural-room microphone, rain, quiet voices and acoustic playback interruption in an approved audible environment",
+    "Real Qwen transcription/translation quality within the existing audited budget",
+    "Longer-running heat and battery behavior; a three-minute controlled run is not long-term validation"
+  ]
+}
