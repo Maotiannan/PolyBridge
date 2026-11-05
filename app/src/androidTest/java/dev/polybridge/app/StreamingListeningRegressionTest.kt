@@ -403,7 +403,7 @@ class StreamingListeningRegressionTest {
                     inst.runOnMainSync { overlay.show() }
                     find("第16句。"); click("查看字幕全文")
                     val all = find("Phrase 1.", contains = true).text.toString()
-                    assertEquals((1..16).joinToString("\n\n") { "Phrase $it.\n第${it}句。" }, all)
+                    assertEquals((1..16).joinToString("\n\n") { "法语 → 中文\nPhrase $it.\n第${it}句。" }, all)
                     fun overlayScroll() = scroller(find("Phrase 1.", contains = true))
                     waitForScroll { !canScrollForward(overlayScroll()) }
                     assertTrue(overlayScroll().performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD))

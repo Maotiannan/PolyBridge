@@ -26,6 +26,8 @@
 
 工作流固定为Ubuntu24.04，并在使用 `sdkmanager` 前显式运行 [setup-android](https://github.com/android-actions/setup-android)，锁定v4提交 `be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd` 和命令行工具16.0（12266719）。新增 `tools/test_ci_workflow.py` 的2项静态检查，先失败再通过；这些只检查配置约束，真实云端运行成功才算修复验收。原有测试未跳过、未降低标准，应用版本和行为不变。重新推送后继续检查完整构建和模拟器结果。
 
+[第二轮运行](https://github.com/Maotiannan/PolyBridge/actions/runs/41954690248) 已完成SDK安装，电脑测试、Lint和APK构建通过。模拟器唯一失败为 `theFloatingWindowAndReopenedCaptionPageBothShowPreviousSentences`：完整JUnit报告显示16句原文、译文及顺序均完整，实际每段含界面已有的「法语 → 中文」标签，而旧测试预期漏了标签。只补正完整字符串预期，不删除测试、不改成宽松包含检查，仍保留滚动到最新、上翻后新字幕不抢位置、重开字幕页能查看第一句的断言。修正后继续以完整云端运行验收，不变更应用0.6.5或手机数据。
+
 ## 后续维护
 
 1. 开发前先 `git fetch origin`，核对远端 `main`；保留本地未提交更改，不强制覆盖或改写已公开历史。
